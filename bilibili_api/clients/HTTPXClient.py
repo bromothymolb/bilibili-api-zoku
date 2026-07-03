@@ -134,7 +134,13 @@ class HTTPXClient(BiliAPIClient):
         if files != {}:
             requests_like_files = {}
             for key, item in files.items():
-                requests_like_files[key] = open(item.path)
+                with open(item.path, "rb") as f:
+                    requests_like_files[key] = (
+                        item.path,
+                        f.read(),
+                        item.mime_type,
+                    )
+            files = requests_like_files
         resp: httpx.Response = await self.__session.request(
             method=method,
             url=url,
