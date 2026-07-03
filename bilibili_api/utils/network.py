@@ -645,10 +645,6 @@ bili_settings.__doc__ = """
 
 
 request_settings = RequestSettings()
-"""
-请求客户端相关设置
-"""
-request_settings.__doc__ = "请求客户端相关设置"
 
 DEFAULT_SETTINGS = {"proxy": "", "timeout": 30.0, "verify_ssl": True, "trust_env": True}
 
@@ -1963,15 +1959,12 @@ def get_instances(client: str | None = None) -> list[str]:
     return list(client_groups[client].keys())
 
 
-def get_exist_instances(client: str | None = None) -> dict[str, list[str]]:
+def get_exist_instances() -> dict[str, list[str]]:
     """
     获取已创建的请求客户端实例
 
-    Args:
-        client (str | None, optional): 请求客户端类型. Defaults to None.
-
     Returns:
-        list[str]: 请求客户端实例名称列表
+        dict[str, list[str]]: 请求客户端实例字典，
     """
     return {k: list(v.keys()) for k, v in client_groups.items()}
 
@@ -2003,7 +1996,7 @@ def get_registered_available_settings() -> dict[str, list[str]]:
     return client_settings
 
 
-def get_settings(
+def get_instance_settings(
     client: str | None = None, instance: str | None = None
 ) -> RequestSettings:
     """
@@ -2014,7 +2007,7 @@ def get_settings(
         instance (str | None, optional): 请求客户端实例名称. Defaults to None.
 
     Returns:
-        BiliAPIClient: 请求客户端
+        RequestSettings: 设置类
     """
     client = client if client else get_selected_client()[0]
     instance = instance if instance else get_selected_instance()
@@ -2036,7 +2029,7 @@ def get_force_settings(
         instance (str | None, optional): 请求客户端实例名称. Defaults to None.
 
     Returns:
-        BiliAPIClient: 请求客户端
+        RequestSettings: 设置类
     """
     client = client if client else get_selected_client()[0]
     instance = instance if instance else get_selected_instance()
@@ -2045,6 +2038,16 @@ def get_force_settings(
     except KeyError:
         raise Exception("未找到对应请求客户端实例")
     return group.get_client()._get_force_settings()
+
+
+def get_settings() -> RequestSettings:
+    """
+    获取模块设置对象，通过对此对象函数调用可以访问与设置相关设置项。
+
+    Returns:
+        RequestSettings: 设置类
+    """
+    return request_settings
 
 
 ##### get_client() / get_session() / set_session() / unset_session() #####

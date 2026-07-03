@@ -34,7 +34,27 @@ from bilibili_api import ...
 - [class BiliAPIResponse()](#class-BiliAPIResponse)
   - [def json()](#def-json)
   - [def utf8\_text()](#def-utf8\_text)
+- [class BiliFilterArgs()](#class-BiliFilterArgs)
+- [class BiliFilterData()](#class-BiliFilterData)
+  - [def \_\_init\_\_()](#def-\_\_init\_\_)
+  - [def aget\_data()](#def-aget\_data)
+  - [def aset\_data()](#def-aset\_data)
+  - [async def aset\_data\_threadsafe()](#async-def-aset\_data\_threadsafe)
+  - [def get\_data()](#def-get\_data)
+  - [def set\_data()](#def-set\_data)
+  - [def set\_data\_threadsafe()](#def-set\_data\_threadsafe)
 - [class BiliFilterFlags()](#class-BiliFilterFlags)
+- [class BiliFilterReturn()](#class-BiliFilterReturn)
+  - [def back()](#def-back)
+  - [def continue\_exec()](#def-continue\_exec)
+  - [def execute\_now()](#def-execute\_now)
+  - [def goto\_idx()](#def-goto\_idx)
+  - [def goto\_name\_post()](#def-goto\_name\_post)
+  - [def goto\_name\_pre()](#def-goto\_name\_pre)
+  - [def return\_now()](#def-return\_now)
+  - [def set\_params()](#def-set\_params)
+  - [def set\_return()](#def-set\_return)
+  - [def skip()](#def-skip)
 - [class BiliWsMsgType()](#class-BiliWsMsgType)
 - [class CookiesRefreshException()](#class-CookiesRefreshException)
 - [class Credential()](#class-Credential)
@@ -107,6 +127,22 @@ from bilibili_api import ...
   - [def to\_json()](#def-to\_json)
   - [async def upload()](#async-def-upload)
   - [async def upload\_by\_note()](#async-def-upload\_by\_note)
+- [class RequestSettings()](#class-RequestSettings)
+  - [def \_\_init\_\_()](#def-\_\_init\_\_)
+  - [def get()](#def-get)
+  - [def get\_all()](#def-get\_all)
+  - [def get\_proxy()](#def-get\_proxy)
+  - [def get\_timeout()](#def-get\_timeout)
+  - [def get\_trust\_env()](#def-get\_trust\_env)
+  - [def get\_verify\_ssl()](#def-get\_verify\_ssl)
+  - [def gets()](#def-gets)
+  - [def set()](#def-set)
+  - [def set\_proxy()](#def-set\_proxy)
+  - [def set\_timeout()](#def-set\_timeout)
+  - [def set\_trust\_env()](#def-set\_trust\_env)
+  - [def set\_verify\_ssl()](#def-set\_verify\_ssl)
+  - [def sets()](#def-sets)
+  - [def unset()](#def-unset)
 - [class ResourceType()](#class-ResourceType)
 - [class ResponseCodeException()](#class-ResponseCodeException)
 - [class ResponseException()](#class-ResponseException)
@@ -138,18 +174,23 @@ from bilibili_api import ...
 - [def configure\_dynamic\_fingerprint()](#def-configure\_dynamic\_fingerprint)
 - [async def ensure\_bili\_ticket()](#async-def-ensure\_bili\_ticket)
 - [async def ensure\_buvid()](#async-def-ensure\_buvid)
-- [def get\_all\_registered\_post\_filters()](#def-get\_all\_registered\_post\_filters)
-- [def get\_all\_registered\_pre\_filters()](#def-get\_all\_registered\_pre\_filters)
 - [def get\_available\_settings()](#def-get\_available\_settings)
 - [def get\_bili\_headers()](#def-get\_bili\_headers)
 - [def get\_client()](#def-get\_client)
+- [def get\_exist\_instances()](#def-get\_exist\_instances)
+- [def get\_force\_settings()](#def-get\_force\_settings)
+- [def get\_instance\_settings()](#def-get\_instance\_settings)
+- [def get\_instances()](#def-get\_instances)
 - [async def get\_real\_url()](#async-def-get\_real\_url)
 - [def get\_registered\_available\_settings()](#def-get\_registered\_available\_settings)
 - [def get\_registered\_clients()](#def-get\_registered\_clients)
 - [def get\_registered\_post\_filters()](#def-get\_registered\_post\_filters)
 - [def get\_registered\_pre\_filters()](#def-get\_registered\_pre\_filters)
 - [def get\_selected\_client()](#def-get\_selected\_client)
+- [def get\_selected\_instance()](#def-get\_selected\_instance)
 - [def get\_session()](#def-get\_session)
+- [def get\_settings()](#def-get\_settings)
+- [def new\_instance()](#def-new\_instance)
 - [async def obtain\_bili\_ticket()](#async-def-obtain\_bili\_ticket)
 - [async def obtain\_buvid()](#async-def-obtain\_buvid)
 - [async def parse\_link()](#async-def-parse\_link)
@@ -157,6 +198,7 @@ from bilibili_api import ...
 - [def register\_client()](#def-register\_client)
 - [def register\_post\_filter()](#def-register\_post\_filter)
 - [def register\_pre\_filter()](#def-register\_pre\_filter)
+- [def remove\_instance()](#def-remove\_instance)
 - [var request\_log](#var-request\_log)
   - [def get\_ignore\_events()](#def-get\_ignore\_events)
   - [def get\_on\_events()](#def-get\_on\_events)
@@ -164,24 +206,14 @@ from bilibili_api import ...
   - [def set\_ignore\_events()](#def-set\_ignore\_events)
   - [def set\_on()](#def-set\_on)
   - [def set\_on\_events()](#def-set\_on\_events)
-- [var request\_settings](#var-request\_settings)
-  - [def get()](#def-get)
-  - [def get\_all()](#def-get\_all)
-  - [def get\_proxy()](#def-get\_proxy)
-  - [def get\_timeout()](#def-get\_timeout)
-  - [def get\_trust\_env()](#def-get\_trust\_env)
-  - [def get\_verify\_ssl()](#def-get\_verify\_ssl)
-  - [def set()](#def-set)
-  - [def set\_proxy()](#def-set\_proxy)
-  - [def set\_timeout()](#def-set\_timeout)
-  - [def set\_trust\_env()](#def-set\_trust\_env)
-  - [def set\_verify\_ssl()](#def-set\_verify\_ssl)
 - [def select\_client()](#def-select\_client)
+- [def select\_instance()](#def-select\_instance)
 - [def set\_session()](#def-set\_session)
 - [def sync()](#def-sync)
 - [def unregister\_client()](#def-unregister\_client)
 - [def unregister\_post\_filter()](#def-unregister\_post\_filter)
 - [def unregister\_pre\_filter()](#def-unregister\_pre\_filter)
+- [def unset\_session()](#def-unset\_session)
 
 ---
 
@@ -688,6 +720,125 @@ class BiliAPIClient(ABC):
 
 ---
 
+## class BiliFilterArgs()
+
+> `@dataclasses.dataclass` 
+
+传入过滤器的参数，携带以下信息。
+
+
+| name | type | description |
+| - | - | - |
+| `client` | `str` | 当前选择的的客户端 |
+| `instance` | `str` | 请求所属的实例 |
+| `func` | `str` | 当前调用的函数 |
+| `params` | `dict` | 调用函数的参数 |
+| `ret` | `Any` | 函数运行返回结果 (可能) |
+| `ins` | `BiliAPIClient` | 调用的 BiliAPIClient 实例 |
+| `cnt` | `int` | 过滤器执行编号，一个编号对应一次函数调用 |
+| `data` | `FilterData` | 用于数据交换的 FilterData 实例 |
+| `settings` | `dict` | 请求客户端相关设置 |
+
+
+---
+
+## class BiliFilterData()
+
+过滤器存储交换数据使用的实例
+
+
+
+
+### def \_\_init\_\_()
+
+
+
+
+
+### def aget_data()
+
+（供异步过滤器使用）获取数据
+
+
+| name | type | description |
+| - | - | - |
+| `cnt` | `int` | 过滤器执行 cnt |
+| `key` | `str` | 键 |
+
+
+
+
+### def aset_data()
+
+（供异步过滤器使用）设置数据
+
+
+| name | type | description |
+| - | - | - |
+| `cnt` | `int` | 过滤器执行 cnt |
+| `key` | `str` | 键 |
+| `value` | `Any` | 值 |
+
+
+
+
+### async def aset_data_threadsafe()
+
+（供异步过滤器使用）设置数据，此函数能保证线程安全。
+
+
+| name | type | description |
+| - | - | - |
+| `cnt` | `int` | 过滤器执行 cnt |
+| `key` | `str` | 键 |
+| `value` | `Any` | 值 |
+
+
+
+
+### def get_data()
+
+获取数据
+
+
+| name | type | description |
+| - | - | - |
+| `cnt` | `int` | 过滤器执行 cnt |
+| `key` | `str` | 键 |
+
+
+
+
+### def set_data()
+
+设置数据
+
+
+| name | type | description |
+| - | - | - |
+| `cnt` | `int` | 过滤器执行 cnt |
+| `key` | `str` | 键 |
+| `value` | `Any` | 值 |
+
+
+
+
+### def set_data_threadsafe()
+
+设置数据，此函数能保证线程安全。
+
+
+| name | type | description |
+| - | - | - |
+| `cnt` | `int` | 过滤器执行 cnt |
+| `key` | `str` | 键 |
+| `value` | `Any` | 值 |
+
+
+
+
+---
+
 ## class BiliFilterFlags()
 
 > Extend: `enum.Enum`
@@ -695,13 +846,170 @@ class BiliAPIClient(ABC):
 过滤器行为枚举
 
 - CONTINUE: 继续下一个过滤器
-- SET_PARAMS: 设置函数的参数 (仅后置过滤器)
-- SET_RETURN: 设置返回值 (仅前置过滤器)
+- SET_PARAMS: 设置函数的参数 (仅前置过滤器)
+- SET_RETURN: 设置返回值 (仅后置过滤器)
 - EXECUTE_NOW: 直接运行函数 (仅前置过滤器)
 - RETURN_NOW: 直接作为函数返回值返回
 - BACK: 回到上一个过滤器
 - SKIP: 跳过下一个过滤器
-- GOTO: 跳到任意一个过滤器 需通过 `(async_)get_registered_(pre|post)_filters` 查询对应过滤器的下标
+- GOTO: 跳到任意一个过滤器 需通过 `get_registered_(pre|post)_filters` 查询对应过滤器的下标
+
+
+
+
+---
+
+## class BiliFilterReturn()
+
+用于结束过滤器返回结果的工具类
+
+
+
+
+### def back()
+
+> `@staticmethod` 
+
+回到上一个过滤器
+
+
+
+**Returns:** `tuple[BiliFilterFlags, None]`:  过滤器函数返回值
+
+
+
+
+### def continue_exec()
+
+> `@staticmethod` 
+
+继续过滤器执行
+
+
+
+**Returns:** `tuple[BiliFilterFlags, None]`:  过滤器函数返回值
+
+
+
+
+### def execute_now()
+
+> `@staticmethod` 
+
+直接运行函数 (仅前置过滤器)
+
+
+
+**Returns:** `tuple[BiliFilterFlags, None]`:  过滤器函数返回值
+
+
+
+
+### def goto_idx()
+
+> `@staticmethod` 
+
+跳到任意一个过滤器
+
+
+| name | type | description |
+| - | - | - |
+| `idx` | `int` | 对应过滤器的下标，可 `get_registered_(pre|post)_filters` 查询 |
+
+**Returns:** `tuple[BiliFilterFlags, int]`:  过滤器函数返回值
+
+
+
+
+### def goto_name_post()
+
+> `@staticmethod` 
+
+跳到任意一个后置过滤器
+
+
+| name | type | description |
+| - | - | - |
+| `name` | `str` | 对应过滤器名称 |
+
+**Returns:** `tuple[BiliFilterFlags, int]`:  过滤器函数返回值
+
+
+
+
+### def goto_name_pre()
+
+> `@staticmethod` 
+
+跳到任意一个前置过滤器
+
+
+| name | type | description |
+| - | - | - |
+| `name` | `str` | 对应过滤器名称 |
+
+**Returns:** `tuple[BiliFilterFlags, int]`:  过滤器函数返回值
+
+
+
+
+### def return_now()
+
+> `@staticmethod` 
+
+直接返回结果，作为待运行函数返回值
+
+
+| name | type | description |
+| - | - | - |
+| `ret` | `Any` | 返回结果 |
+
+**Returns:** `tuple[BiliFilterFlags, Any]`:  过滤器函数返回值
+
+
+
+
+### def set_params()
+
+> `@staticmethod` 
+
+设置函数的参数 (仅前置过滤器)
+
+
+| name | type | description |
+| - | - | - |
+| `params` | `dict` | 参数 |
+
+**Returns:** `tuple[BiliFilterFlags, dict]`:  过滤器函数返回值
+
+
+
+
+### def set_return()
+
+> `@staticmethod` 
+
+设置函数的返回值 (仅后置过滤器)
+
+
+| name | type | description |
+| - | - | - |
+| `ret` | `Any` | 函数返回值 |
+
+**Returns:** `tuple[BiliFilterFlags, Any]`:  过滤器函数返回值
+
+
+
+
+### def skip()
+
+> `@staticmethod` 
+
+跳过下一个过滤器
+
+
+
+**Returns:** `tuple[BiliFilterFlags, None]`:  过滤器函数返回值
 
 
 
@@ -1625,6 +1933,200 @@ NOTE: `gt`, `challenge`, `token` 为验证码基本字段。`seccode`, `validate
 
 ---
 
+## class RequestSettings()
+
+与请求客户端相关设置
+
+模块默认有 `proxy` `timeout` `verify_ssl` `trust_env` 四个设置。
+
+| name | type | default | curl_cffi | aiohttp | httpx |
+| ---- | ---- | ------- | --------- | ------- | ----- |
+| proxy | str | ` ` |  ✅ | ✅ | ✅ |
+| timeout | float | `30.0` | ✅ | ✅ | ✅ |
+| verify_ssl | bool | `True` | ✅ | ✅ | ✅ |
+| trust_env | bool | `True` | ✅ | ✅ | ✅ |
+| http2 | bool | `False` | ✅ | ❌ | ✅ |
+| impersonate | str | ` ` | ✅ | ❌ | ❌ |
+
+
+
+
+### def \_\_init\_\_()
+
+
+
+
+
+### def get()
+
+获取某项设置，字段未曾设置过时将返回 None.
+
+
+| name | type | description |
+| - | - | - |
+| `name` | `str` | 设置名称 |
+
+**Returns:** `Any`:  设置的值
+
+
+
+
+### def get_all()
+
+获取目前所有的设置项
+
+
+
+**Returns:** `dict`:  所有的设置项
+
+
+
+
+### def get_proxy()
+
+获取设置的代理
+
+
+
+**Returns:** `str`:  代理地址. Defaults to "".
+
+
+
+
+### def get_timeout()
+
+获取设置的 web 请求超时时间
+
+
+
+**Returns:** `float`:  超时时间. Defaults to 5.0.
+
+
+
+
+### def get_trust_env()
+
+获取设置的 `trust_env`
+
+
+
+**Returns:** `bool`:  `trust_env`. Defaults to True.
+
+
+
+
+### def get_verify_ssl()
+
+获取设置的是否验证 SSL
+
+
+
+**Returns:** `bool`:  是否验证 SSL. Defaults to True.
+
+
+
+
+### def gets()
+
+获取对应设置项的设置，未设置过则为 None
+
+
+| name | type | description |
+| - | - | - |
+| `keys` | `list[str]` | 设置项 |
+
+**Returns:** `dict`:  对应设置项的设置
+
+
+
+
+### def set()
+
+设置某项设置
+
+
+| name | type | description |
+| - | - | - |
+| `name` | `str` | 设置名称 |
+| `value` | `Any` | 设置的值 |
+
+
+
+
+### def set_proxy()
+
+修改设置的代理
+
+
+| name | type | description |
+| - | - | - |
+| `proxy` | `str` | 代理地址 |
+
+
+
+
+### def set_timeout()
+
+修改设置的 web 请求超时时间
+
+
+| name | type | description |
+| - | - | - |
+| `timeout` | `float` | 超时时间 |
+
+
+
+
+### def set_trust_env()
+
+修改设置的 `trust_env`
+
+
+| name | type | description |
+| - | - | - |
+| `trust_env` | `bool` | `trust_env` |
+
+
+
+
+### def set_verify_ssl()
+
+修改设置的是否验证 SSL
+
+
+| name | type | description |
+| - | - | - |
+| `verify_ssl` | `bool` | 是否验证 SSL |
+
+
+
+
+### def sets()
+
+设置传入的项目
+
+
+| name | type | description |
+| - | - | - |
+| `settings` | `dict` | 设置项，键为设置名称，值为设置值。 |
+
+
+
+
+### def unset()
+
+取消设置项
+
+
+| name | type | description |
+| - | - | - |
+| `keys` | `list[str]` | 设置项 |
+
+
+
+
+---
+
 ## class ResourceType()
 
 > Extend: `enum.Enum`
@@ -2041,43 +2543,14 @@ BV 号转 AV 号。
 
 ---
 
-## def get_all_registered_post_filters()
-
-获取所有已注册的后置过滤器
-
-
-| name | type | description |
-| - | - | - |
-| `in_priority` | `bool, optional` | 是否排序. Defaults to True. |
-
-**Returns:** `list[dict]`:  已注册的后置过滤器
-
-
-
-
----
-
-## def get_all_registered_pre_filters()
-
-获取所有已注册的前置过滤器
-
-
-| name | type | description |
-| - | - | - |
-| `in_priority` | `bool, optional` | 是否排序. Defaults to True. |
-
-**Returns:** `list[dict]`:  已注册的前置过滤器
-
-
-
-
----
-
 ## def get_available_settings()
 
-获取当前支持的设置项
+获取支持的设置项
 
 
+| name | type | description |
+| - | - | - |
+| `client` | `str \| None, optional` | 请求客户端类型. Defaults to None. |
 
 **Returns:** `list[str]`:  支持的设置项名称
 
@@ -2106,11 +2579,78 @@ BV 号转 AV 号。
 
 ## def get_client()
 
-在当前事件循环下获取模块正在使用的请求客户端
+获取模块正在使用的请求客户端
 
 
+| name | type | description |
+| - | - | - |
+| `client` | `str \| None, optional` | 请求客户端类型. Defaults to None. |
+| `instance` | `str \| None, optional` | 请求客户端实例名称. Defaults to None. |
 
 **Returns:** `BiliAPIClient`:  请求客户端
+
+
+
+
+---
+
+## def get_exist_instances()
+
+获取已创建的请求客户端实例
+
+
+
+**Returns:** `dict[str, list[str]]`:  请求客户端实例字典，
+
+
+
+
+---
+
+## def get_force_settings()
+
+获取模块正在使用的请求客户端的强制设置
+
+
+| name | type | description |
+| - | - | - |
+| `client` | `str \| None, optional` | 请求客户端类型. Defaults to None. |
+| `instance` | `str \| None, optional` | 请求客户端实例名称. Defaults to None. |
+
+**Returns:** `RequestSettings`:  设置类
+
+
+
+
+---
+
+## def get_instance_settings()
+
+获取模块正在使用的请求客户端的设置
+
+
+| name | type | description |
+| - | - | - |
+| `client` | `str \| None, optional` | 请求客户端类型. Defaults to None. |
+| `instance` | `str \| None, optional` | 请求客户端实例名称. Defaults to None. |
+
+**Returns:** `RequestSettings`:  设置类
+
+
+
+
+---
+
+## def get_instances()
+
+获取已创建的请求客户端实例
+
+
+| name | type | description |
+| - | - | - |
+| `client` | `str \| None, optional` | 请求客户端类型. Defaults to None. |
+
+**Returns:** `list[str]`:  请求客户端实例名称列表
 
 
 
@@ -2162,13 +2702,11 @@ BV 号转 AV 号。
 
 ## def get_registered_post_filters()
 
-通过请求客户端及其函数筛选已注册的后置过滤器
+获取所有已注册的后置过滤器
 
 
 | name | type | description |
 | - | - | - |
-| `client` | `str` | 请求客户端. |
-| `func` | `str` | 执行函数名. |
 | `in_priority` | `bool, optional` | 是否排序. Defaults to True. |
 
 **Returns:** `list[dict]`:  已注册的后置过滤器
@@ -2180,13 +2718,11 @@ BV 号转 AV 号。
 
 ## def get_registered_pre_filters()
 
-通过请求客户端及其函数筛选已注册的前置过滤器
+获取所有已注册的前置过滤器
 
 
 | name | type | description |
 | - | - | - |
-| `client` | `str` | 请求客户端. |
-| `func` | `str` | 执行函数名. |
 | `in_priority` | `bool, optional` | 是否排序. Defaults to True. |
 
 **Returns:** `list[dict]`:  已注册的前置过滤器
@@ -2209,13 +2745,58 @@ BV 号转 AV 号。
 
 ---
 
+## def get_selected_instance()
+
+获取选择的请求客户端实例
+
+
+
+**Returns:** `str`:  选择的请求客户端实例
+
+
+
+
+---
+
 ## def get_session()
 
 在当前事件循环下获取请求客户端的会话对象。
 
 
+| name | type | description |
+| - | - | - |
+| `client` | `str \| None, optional` | 请求客户端类型. Defaults to None. |
+| `instance` | `str \| None, optional` | 请求客户端实例名称. Defaults to None. |
 
 **Returns:** `object`:  会话对象
+
+
+
+
+---
+
+## def get_settings()
+
+获取模块设置对象，通过对此对象函数调用可以访问与设置相关设置项。
+
+
+
+**Returns:** `RequestSettings`:  设置类
+
+
+
+
+---
+
+## def new_instance()
+
+创建新的请求客户端实例并选择
+
+
+| name | type | description |
+| - | - | - |
+| `name` | `str` | 名称 |
+| `client` | `str \| None, optional` | BiliAPIClient 类型. Defaults to None. |
 
 
 
@@ -2306,12 +2887,7 @@ BV 号转 AV 号。
 
 注册/修改后置过滤器
 
-触发方式1: 当请求客户端设置值位于 `clients` 中且执行函数名称位于 `on` 中触发。
-触发方式2: `trigger(client, on) == True` 或 `await async_trigger(client, on)` 时触发。
-
 执行函数需返回一个元组，第一项为 BiliAPIFlags，第二项为配合 BiliAPIFlags 的值。
-
-BiliAPIClient 对象存在 `data` 字段，可用于过滤器间数据传递，访问时使用 `ins.data[cnt]`。
 
 所有当前函数执行的过滤器为 `ins.data[cnt]["post_filters"]`。
 
@@ -2319,12 +2895,8 @@ BiliAPIClient 对象存在 `data` 字段，可用于过滤器间数据传递，�
 | name | type | description |
 | - | - | - |
 | `name` | `str` | 名称，若重复则为修改对应过滤器。 |
-| `func` | `Callable \| None, optional` | 执行的函数，提供 6 个参数 `(cnt, BiliAPIClient, client, on, 返回值, 传入参数字典)` `(cnt, ins, client, on, ret, params)`. Defaults to None. |
-| `async_func` | `Callable[..., Coroutine] \| None, optional` | 执行的异步函数，提供 6 个参数 `(cnt, BiliAPIClient, client, on, 返回值, 传入参数字典)` `(cnt, ins, client, on, ret, params)`. Defaults to None. |
-| `clients` | `list[str] \| None, optional` | 当请求客户端设置值在此列表中将触发过滤器。与 `on` 配合使用. Defaults to None. |
-| `on` | `list[str] \| None, optional` | 当客户端执行函数名称在此列表中将触发过滤器。与 `client` 配合使用. Defaults to None. |
-| `trigger` | `Callable \| None, optional` | 接受两个参数 `(请求客户端设置值, 执行函数名称)`。若返回 `True` 则触发过滤器. Defaults to None. |
-| `async_trigger` | `Callable[..., Coroutine] \| None, optional` | 接受两个参数 `(请求客户端设置值, 执行函数名称)`。若返回 `True` 则触发过滤器. Defaults to None. |
+| `func` | `Callable \| None, optional` | 执行的函数，参数传入 `FilterArgs` 对象. Defaults to None. |
+| `async_func` | `Callable[..., Coroutine] \| None, optional` | 执行的异步函数，参数传入 `FilterArgs` 对象. Defaults to None. |
 | `priority` | `int, optional` | 优先级，数字越小越优先执行. Defaults to 0. |
 
 
@@ -2336,12 +2908,7 @@ BiliAPIClient 对象存在 `data` 字段，可用于过滤器间数据传递，�
 
 注册/修改前置过滤器
 
-触发方式1: 当请求客户端设置值位于 `clients` 中且执行函数名称位于 `on` 中触发。
-触发方式2: `trigger(client, on) == True` 或 `await async_trigger(client, on)` 时触发。
-
 执行函数需返回一个元组，第一项为 BiliAPIFlags，第二项为配合 BiliAPIFlags 的值。
-
-BiliAPIClient 对象存在 `data` 字段，可用于过滤器间数据传递，访问时使用 `ins.data[cnt]`。
 
 所有当前函数执行的过滤器为 `ins.data[cnt]["pre_filters"]`。
 
@@ -2349,13 +2916,24 @@ BiliAPIClient 对象存在 `data` 字段，可用于过滤器间数据传递，�
 | name | type | description |
 | - | - | - |
 | `name` | `str` | 名称，若重复则为修改对应过滤器。 |
-| `func` | `Callable \| None, optional` | 执行的函数，提供 5 个参数 `(cnt, BiliAPIClient, client, on, 传入参数字典)` `(cnt, ins, client, on, params)`. Defaults to None. |
-| `async_func` | `Callable[..., Coroutine] \| None, optional` | 执行的异步函数，提供 5 个参数 `(cnt, BiliAPIClient, client, on, 传入参数字典)` `(cnt, ins, client, on, params)`. Defaults to None. |
-| `clients` | `list[str] \| None, optional` | 当请求客户端设置值在此列表中将触发过滤器。与 `on` 配合使用. Defaults to None. |
-| `on` | `list[str] \| None, optional` | 当客户端执行函数名称在此列表中将触发过滤器。与 `client` 配合使用. Defaults to None. |
-| `trigger` | `Callable \| None, optional` | 接受两个参数 `(请求客户端设置值, 执行函数名称)`。若返回 `True` 则触发过滤器. Defaults to None. |
-| `async_trigger` | `Callable[..., Coroutine] \| None, optional` | 接受两个参数 `(请求客户端设置值, 执行函数名称)`。若返回 `True` 则触发过滤器. Defaults to None. |
+| `func` | `Callable \| None, optional` | 执行的函数，参数传入 `FilterArgs` 对象. Defaults to None. |
+| `async_func` | `Callable[..., Coroutine] \| None, optional` | 执行的异步函数，参数传入 `FilterArgs` 对象. Defaults to None. |
 | `priority` | `int, optional` | 优先级，数字越小越优先执行. Defaults to 0. |
+
+
+
+
+---
+
+## def remove_instance()
+
+移除请求客户端实例
+
+
+| name | type | description |
+| - | - | - |
+| `name` | `str` | 名称 |
+| `client` | `str \| None, optional` | BiliAPIClient 类型. Defaults to None. |
 
 
 
@@ -2480,148 +3058,6 @@ async def handle(desc: str, data: dict) -> None:
 
 ---
 
-## var request_settings
-
-请求参数设置
-
-
-
-### def get()
-
-获取某项设置
-
-默认设置名称：`proxy` `timeout` `verify_ssl` `trust_env`
-
-
-| name | type | description |
-| - | - | - |
-| `name` | `str` | 设置名称 |
-
-**Returns:** `Any`:  设置的值
-
-
-
-
-### def get_all()
-
-获取目前所有的设置项
-
-
-
-**Returns:** `dict`:  所有的设置项
-
-
-
-
-### def get_proxy()
-
-获取设置的代理
-
-
-
-**Returns:** `str`:  代理地址. Defaults to "".
-
-
-
-
-### def get_timeout()
-
-获取设置的 web 请求超时时间
-
-
-
-**Returns:** `float`:  超时时间. Defaults to 5.0.
-
-
-
-
-### def get_trust_env()
-
-获取设置的 `trust_env`
-
-
-
-**Returns:** `bool`:  `trust_env`. Defaults to True.
-
-
-
-
-### def get_verify_ssl()
-
-获取设置的是否验证 SSL
-
-
-
-**Returns:** `bool`:  是否验证 SSL. Defaults to True.
-
-
-
-
-### def set()
-
-设置某项设置
-
-默认设置名称：`proxy` `timeout` `verify_ssl` `trust_env`
-
-
-| name | type | description |
-| - | - | - |
-| `name` | `str` | 设置名称 |
-| `value` | `Any` | 设置的值 |
-
-
-
-
-### def set_proxy()
-
-修改设置的代理
-
-
-| name | type | description |
-| - | - | - |
-| `proxy` | `str` | 代理地址 |
-
-
-
-
-### def set_timeout()
-
-修改设置的 web 请求超时时间
-
-
-| name | type | description |
-| - | - | - |
-| `timeout` | `float` | 超时时间 |
-
-
-
-
-### def set_trust_env()
-
-修改设置的 `trust_env`
-
-
-| name | type | description |
-| - | - | - |
-| `trust_env` | `bool` | `trust_env` |
-
-
-
-
-### def set_verify_ssl()
-
-修改设置的是否验证 SSL
-
-
-| name | type | description |
-| - | - | - |
-| `verify_ssl` | `bool` | 是否验证 SSL |
-
-
-
-
----
-
 ## def select_client()
 
 选择模块使用的注册过的请求客户端，可用于用户自定义请求客户端。
@@ -2636,14 +3072,31 @@ async def handle(desc: str, data: dict) -> None:
 
 ---
 
+## def select_instance()
+
+选择请求客户端实例
+
+
+| name | type | description |
+| - | - | - |
+| `name` | `str` | 名称 |
+
+
+
+
+---
+
 ## def set_session()
 
-在当前事件循环下设置请求客户端的会话对象。
+设置请求客户端的会话对象。
 
 
 | name | type | description |
 | - | - | - |
 | `session` | `object` | 会话对象 |
+| `loop` | `asyncio.AbstractEventLoop` | 事件循环. Defaults to `asyncio.get_event_loop()` |
+| `client` | `str \| None, optional` | 请求客户端类型. Defaults to None. |
+| `instance` | `str \| None, optional` | 请求客户端实例名称. Defaults to None. |
 
 
 
@@ -2702,6 +3155,22 @@ async def handle(desc: str, data: dict) -> None:
 | name | type | description |
 | - | - | - |
 | `name` | `str` | 过滤器名称 |
+
+
+
+
+---
+
+## def unset_session()
+
+取消设置请求客户端的会话对象。
+
+
+| name | type | description |
+| - | - | - |
+| `loop` | `asyncio.AbstractEventLoop` | 事件循环. Defaults to `asyncio.get_event_loop()` |
+| `client` | `str \| None, optional` | 请求客户端类型. Defaults to None. |
+| `instance` | `str \| None, optional` | 请求客户端实例名称. Defaults to None. |
 
 
 

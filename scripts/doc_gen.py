@@ -161,7 +161,7 @@ def parse(data: dict, indent: int = 0, root: bool = False):
     if data["node"][".class"] == "TypeInfo":
         if data["node"]["defn"]["name"] in ignored_classes:
             return
-        if not data["node"]["defn"]["name"].startswith("Request") and not data["node"]["defn"]["name"] == "BiliSettings":
+        if not data["node"]["defn"]["name"].startswith("RequestLog") and not data["node"]["defn"]["name"] == "BiliSettings":
             funcs.append(
                 [
                     data["node"]["defn"]["name"],
