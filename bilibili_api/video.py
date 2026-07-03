@@ -34,7 +34,7 @@ from .utils.AsyncEvent import AsyncEvent
 from .utils.BytesReader import BytesReader
 from .utils.danmaku import Danmaku, SpecialDanmaku
 from .utils.network import Api, BiliWsMsgType, Credential, get_client
-from .utils.utils import get_api, raise_for_statement
+from .utils.utils import get_api, get_data, raise_for_statement
 
 API = get_api("video")
 
@@ -218,6 +218,16 @@ class VideoAppealReasonType:
             dict: 传入函数的参数字典
         """
         return {"tid": 52, "出处": source}
+
+
+def get_subtitle_lan_info() -> list:
+    """
+    获取字幕代码相关信息
+
+    Returns:
+        list: 各种语言列表，列表项为字典，`doc_zh` 为对应语言，`lan` 字段为其对应代码。
+    """
+    return get_data("subtitle_lan.json") # type: ignore
 
 
 class Video:
@@ -1663,7 +1673,7 @@ class Video:
         ```
 
         Args:
-            lan (str): 字幕语言代码，参考 https
+            lan (str): 字幕语言代码，参考 `video.get_subtitle_lan_info()` 函数返回结果
             data (dict): 字幕数据
             submit (bool): 是否提交，不提交为草稿
             sign (bool): 是否署名
@@ -1685,18 +1695,14 @@ class Video:
         api = API["operate"]["submit_subtitle"]
 
         # lan check，应该是这里面的语言代码
-        async with await anyio.open_file(
-            os.path.join(os.path.dirname(__file__), "data/subtitle_lan.json"),
-            encoding="utf-8",
-        ) as f:
-            subtitle_lans = json.loads(await f.read())
-            for lan_template in subtitle_lans:
-                if lan_template["lan"] == lan:
-                    break
-            else:
-                raise ArgsException(
-                    "lan 参数错误，请参见 https://s1.hdslb.com/bfs/subtitle/subtitle_lan.json"
-                )
+        subtitle_lans = get_subtitle_lan_info()
+        for lan_template in subtitle_lans:
+            if lan_template["lan"] == lan:
+                break
+        else:
+            raise ArgsException(
+                "lan 参数错误，请参见 https://s1.hdslb.com/bfs/subtitle/subtitle_lan.json"
+            )
 
         payload = {
             "type": 1,

@@ -112,6 +112,7 @@ from bilibili_api import video
 - [class VideoQuality()](#class-VideoQuality)
 - [class VideoStreamDownloadURL()](#class-VideoStreamDownloadURL)
 - [async def get\_cid\_info()](#async-def-get\_cid\_info)
+- [def get\_subtitle\_lan\_info()](#def-get\_subtitle\_lan\_info)
 
 ---
 
@@ -924,7 +925,7 @@ page_index 和 cid 至少提供其中一个，其中 cid 优先级最高
 
 | name | type | description |
 | - | - | - |
-| `lan` | `str` | 字幕语言代码，参考 https |
+| `lan` | `str` | 字幕语言代码，参考 `video.get_subtitle_lan_info()` 函数返回结果 |
 | `data` | `dict` | 字幕数据 |
 | `submit` | `bool` | 是否提交，不提交为草稿 |
 | `sign` | `bool` | 是否署名 |
@@ -1522,6 +1523,19 @@ CONNECTED:  成功连接。 CallbackData: None。
 | `cid` | `int` | CID |
 
 **Returns:** `dict`:  调用 https//hd.biliplus.com 的 API 返回的结果
+
+
+
+
+---
+
+## def get_subtitle_lan_info()
+
+获取字幕代码相关信息
+
+
+
+**Returns:** `list`:  各种语言列表，列表项为字典，`doc_zh` 为对应语言，`lan` 字段为其对应代码。
 
 
 
