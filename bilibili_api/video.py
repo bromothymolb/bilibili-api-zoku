@@ -14,12 +14,10 @@ from functools import cmp_to_key
 from inspect import iscoroutine, isfunction
 import json
 import logging
-import os
 import re
 import struct
 from typing import Any
 
-import anyio
 from yarl import URL
 
 from . import user
