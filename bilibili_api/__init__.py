@@ -47,6 +47,7 @@ from . import (
     video_tag,
     video_uploader,
     video_zone,
+    video_zone_v2,
     vote,
     watchroom,
 )
@@ -281,6 +282,7 @@ __all__ = [
     "video_tag",
     "video_uploader",
     "video_zone",
+    "video_zone_v2",
     "vote",
     "watchroom",
 ]
