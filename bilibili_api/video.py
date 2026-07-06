@@ -881,6 +881,15 @@ class Video:
                 json_data["dm_setting"] = read_settings(reader.bytes_string())
             elif type_ == 12:
                 json_data["image_dms"] = read_image_danmakus(reader.bytes_string())
+
+            #以下为更改部分 
+            # 这里如果没有这个的话，在登录状态下(Credential)请求像 BV1HLz9BJEgi 这种有花式弹幕的视频会报解析错误：
+            #File "C:\Users\xx\AppData\Roaming\Python\Python38\site-packages\bilibili_api\video.py", line 787, in read_image_danmakus
+                #raise ResponseException("解析响应数据错误")
+            #bilibili_api.exceptions.ResponseException.ResponseException: 解析响应数据错误
+            #经过二进制排查发现缺少对14的处理，这是一段字符串。
+            elif type_ == 14:
+                reader.bytes_string()
             else:
                 continue
         return json_data
