@@ -13,12 +13,9 @@ from bilibili_api import video_zone
 - [class VideoZoneTypes()](#class-VideoZoneTypes)
 - [async def get\_zone\_hot\_tags()](#async-def-get\_zone\_hot\_tags)
 - [def get\_zone\_info\_by\_name()](#def-get\_zone\_info\_by\_name)
-- [def get\_zone\_info\_by\_name\_v2()](#def-get\_zone\_info\_by\_name\_v2)
 - [def get\_zone\_info\_by\_tid()](#def-get\_zone\_info\_by\_tid)
-- [def get\_zone\_info\_by\_tid\_v2()](#def-get\_zone\_info\_by\_tid\_v2)
 - [def get\_zone\_list()](#def-get\_zone\_list)
 - [def get\_zone\_list\_sub()](#def-get\_zone\_list\_sub)
-- [def get\_zone\_list\_sub\_v2()](#def-get\_zone\_list\_sub\_v2)
 - [async def get\_zone\_new\_videos()](#async-def-get\_zone\_new\_videos)
 - [async def get\_zone\_top10()](#async-def-get\_zone\_top10)
 - [async def get\_zone\_videos\_count\_today()](#async-def-get\_zone\_videos\_count\_today)
@@ -209,22 +206,6 @@ from bilibili_api import video_zone
 
 ---
 
-## def get_zone_info_by_name_v2()
-
-根据分区名称获取分区信息 (tid_v2)。
-
-
-| name | type | description |
-| - | - | - |
-| `name` | `str` | 分区名。 |
-
-**Returns:** `tuple[dict | None, dict | None]`:  第一个是主分区，第二个是子分区，没有时返回 None。
-
-
-
-
----
-
 ## def get_zone_info_by_tid()
 
 根据 tid 获取分区信息。
@@ -235,22 +216,6 @@ from bilibili_api import video_zone
 | `tid` | `int` | 频道的 tid。 |
 
 **Returns:** `tuple[dict | None, dict | None]`:  第一个是主分区，第二个是子分区，没有时返回 None。
-
-
-
-
----
-
-## def get_zone_info_by_tid_v2()
-
-提供 tid_v2 查找所在分区信息。
-
-
-| name | type | description |
-| - | - | - |
-| `tid_v2` | `int` | 分区 tid_v2。 |
-
-**Returns:** `tuple[dict | None, dict | None]`:  (主分区, 子分区)，没有时返回 (None, None)。
 
 
 
@@ -273,20 +238,6 @@ from bilibili_api import video_zone
 ## def get_zone_list_sub()
 
 获取所有分区的数据
-含父子关系（即一层次只有主分区）
-
-
-
-**Returns:** `list[dict]`:  所有分区的数据
-
-
-
-
----
-
-## def get_zone_list_sub_v2()
-
-获取所有新版分区(zone_v2)的数据
 含父子关系（即一层次只有主分区）
 
 

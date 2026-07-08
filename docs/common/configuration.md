@@ -92,7 +92,7 @@ request_settings.set_enable_auto_buvid(False)
 
 ## 额外设置
 
-针对不同的第三方请求库，模块会有各不相同的额外设置。相关信息见 [模块请求库相关](https://nemo2011.github.io/bilibili-api/#/request_client)。
+针对不同的第三方请求库，模块会有各不相同的额外设置。相关信息见 [模块请求库相关](https://bromothymolb.github.io/bilibili-api-zoku/#/request_client)。
 
 为了对这些字段进行处理，`request_settings` 提供 `set` 函数。
 

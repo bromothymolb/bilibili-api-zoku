@@ -2305,7 +2305,7 @@ class Credential:
     """
     凭据类，用于各种请求操作的验证。
 
-    以下字段获取方式见 https://nemo2011.github.io/bilibili-api/#/common/credential?id=获取-credential-类所需信息
+    以下字段获取方式见 https://bromothymolb.github.io/bilibili-api-zoku/#/common/credential?id=获取-credential-类所需信息
 
     重要 cookies:
      - `SESSDATA` (`sessdata`);
@@ -2363,7 +2363,7 @@ class Credential:
         **kwargs: Any,
     ) -> None:
         """
-        各字段获取方式查看：https://nemo2011.github.io/bilibili-api/#/common/credential?id=获取-credential-类所需信息
+        各字段获取方式查看：https://bromothymolb.github.io/bilibili-api-zoku/#/get-credential.md
 
         Args:
             sessdata (str | None, optional): 浏览器 Cookies 中的 SESSDATA 字段值. Defaults to None.

@@ -30,13 +30,13 @@
 </head>
 <body>
   <nav>
-    <a href="https://github.com/nemo2011/bilibili-api" target="_blank">贡献项目</a>
+    <a href="https://github.com/bromothymolb/bilibili-api-zoku" target="_blank">贡献项目</a>
   </nav>
   <div id="app"></div>
   <script>
     window.$docsify = {
       name: 'bilibili-api',
-      repo: 'https://github.com/nemo2011/bilibili-api',
+      repo: 'https://github.com/bromothymolb/bilibili-api-zoku',
       loadSidebar: true,
       search: {
         paths: 'auto',
@@ -45,11 +45,31 @@
         depth: 6
       }
     }
+
+    window.addEventListener('load', function () {
+      const $notice = document.querySelector('.notice')
+      if (!window.localStorage) {
+        $notice.classList.add('show');
+        return;
+      }
+
+      const noticeConfirmed = window.localStorage.getItem('bilibili-api/noticeConfirmed') === '1';
+
+      if (!noticeConfirmed) {
+        $notice.classList.add('show');
+        document.querySelector('.notice-confirm').addEventListener('click', function() {
+          $notice.classList.remove('show');
+          window.localStorage.setItem('bilibili-api/noticeConfirmed', '1');
+        })
+      }
+    })
   </script>
   <!-- Docsify v4 -->
-  <script src="https://lib.baomitu.com/docsify/4.13.1/docsify.min.js"></script>
+  <script src="https://lib.baomitu.com/docsify/4.12.1/docsify.min.js"></script>
   <script src="https://lib.baomitu.com/prism/1.23.0/components/prism-python.min.js"></script>
   <script src="https://lib.baomitu.com/prism/1.23.0/components/prism-json.min.js"></script>
-  <script src="search.js"></script>
+  <script src="https://lib.baomitu.com/prism/1.23.0/components/prism-typescript.min.js"></script>
+  <script src="https://lib.baomitu.com/prism/1.23.0/components/prism-javascript.min.js"></script>
+  <script src="./search.js"></script>
 </body>
 </html>

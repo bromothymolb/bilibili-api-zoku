@@ -1052,7 +1052,7 @@ Cookies 刷新错误。
 
 凭据类，用于各种请求操作的验证。
 
-以下字段获取方式见 https://nemo2011.github.io/bilibili-api/#/common/credential?id=获取-credential-类所需信息
+以下字段获取方式见 https://bromothymolb.github.io/bilibili-api-zoku/#/common/credential?id=获取-credential-类所需信息
 
 重要 cookies:
  - `SESSDATA` (`sessdata`);
@@ -1092,7 +1092,7 @@ Cookies 刷新错误。
 
 ### def \_\_init\_\_()
 
-各字段获取方式查看：https://nemo2011.github.io/bilibili-api/#/common/credential?id=获取-credential-类所需信息
+各字段获取方式查看：https://bromothymolb.github.io/bilibili-api-zoku/#/get-credential.md
 
 buvid3 和 buvid4 建议配合食用，bili_ticket 和 bili_ticket_expires 亦建议配合食用。
 
@@ -3105,7 +3105,7 @@ async def handle(desc: str, data: dict) -> None:
 
 ## def sync()
 
-同步执行异步函数，使用可参考 [同步执行异步代码](https://nemo2011.github.io/bilibili-api/#/sync-executor)
+同步执行异步函数，使用可参考 [同步执行异步代码](https://bromothymolb.github.io/bilibili-api-zoku/#/sync-executor)
 
 
 | name | type | description |

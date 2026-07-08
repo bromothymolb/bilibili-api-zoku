@@ -1,33 +1,52 @@
-![Bilibili API Logo](logo.png)
+![bilibili-api logo](./design/logo.png)
 
 <div align="center">
 
-**欢迎来到 bilibili-api 文档 ヾ(ﾟ∀ﾟゞ)**
+# bilibili-api $^{続}_{zoku}$
+
+[![API 数量](https://img.shields.io/badge/API%20数量-400+-blue)][api.json]
+[![LICENSE](https://img.shields.io/badge/LICENSE-GPLv3+-red)][LICENSE]
+[![Python](https://img.shields.io/badge/python-3.10+-blue)](https://www.python.org)
+[![Stable Version](https://img.shields.io/github/v/release/bromothymolb/bilibili-api-zoku?label=pre-release&include_prereleases&sort=semver)][pypi]
+[![Pre-release Version](https://img.shields.io/github/v/release/bromothymolb/bilibili-api-zoku?label=pre-release&include_prereleases&sort=semver)][pypi]
+[![STARS](https://img.shields.io/github/stars/bromothymolb/bilibili-api-zoku?color=yellow&label=Github%20Stars)][stargazers]
+[![Docs](https://img.shields.io/badge/Docs-Site-green)][docs]
+[![Docs](https://img.shields.io/badge/Docs-Github-green)][docs-github]
 
 </div>
 
-bilibili-api 是一个调用 [Bilibili](https://www.bilibili.com) API 的 Python 库，除此之外还有其他相关功能提供。
+# 简介
 
-模块可调用的 API 范围包括视频、音频、专栏（图文）、番剧、动态、用户、直播、个人消息中心，等等。模块内置了这些功能相关接口的信息，提供了方便的函数调用，省去了找接口、验参数与部分接口应用风控参数的常规接口接入过程。
+这是一个用 Python 写的调用 [Bilibili](https://www.bilibili.com) 各种 API 的库，
+范围涵盖视频、音频、直播、动态、专栏、用户、番剧等[^1]。
 
-## 安装
+## 特色
 
-``` zsh
-# 正式版本
+- 范围涵盖广，基本覆盖常用的爬虫，操作。
+- 可使用代理，绕过 b 站风控策略。
+- 全面支持 BV 号（bvid），同时也兼容 AV 号（aid）。
+- 调用简便，函数命名易懂，代码注释详细。
+- 不仅仅是官方提供的 API！还附加：AV 号与 BV 号互转[^2]、连接直播弹幕 Websocket 服务器、视频弹幕反查、下载弹幕、字幕文件[^3]、专栏内容爬取、cookies 刷新等[^4]。
+- **全部是异步操作**。
+- 默认支持 [`aiohttp`][aiohttp] / [`httpx`][httpx] / [`curl_cffi`][curl_cffi] 等异步网络请求库接入。
+- 支持采用各种手段避免触发反爬虫风控。[^4]可通过 [`curl_cffi`][curl_cffi] 和 [`fpgen`][fpgen] 进行浏览器指纹信息模拟。[^5]
+
+# 快速上手
+
+首先使用以下指令安装本模块：
+
+```
+# 主版本
 $ pip3 install bilibili-api-python
-
-# dev 分支版本，最新修改都在此处。
-$ pip3 install git+https://github.com/Nemo2011/bilibili-api.git@dev
-
-# dev-dyn-fp 分支版本
-$ pip3 install git+https://github.com/Nemo2011/bilibili-api.git@dev-dyn-fp
 
 # 开发版本
 $ pip3 install bilibili-api-dev
+
+# 最新修改会在 dev 分支
+$ pip3 install git+https://github.com/bromothymolb/bilibili-api-zoku.git@dev
 ```
 
-除此之外，模块还需要 **至少一个** 异步网络请求库，默认支持 `curl_cffi` `aiohttp`
-`httpx`。
+然后需要**自行安装**一个支持异步的第三方请求库，如 `aiohttp` / `httpx` / `curl_cffi`。
 
 ``` zsh
 # aiohttp
@@ -36,26 +55,196 @@ $ pip3 install "aiohttp[speedups]" # faster
 
 # httpx
 $ pip3 install httpx
-$ pip3 install "httpx[http2]" # http2 support
+$ pip3 install httpx[http2] # http2 support
 
 # curl_cffi
 $ pip3 install "curl_cffi"
 ```
 
-## 指纹伪装
+接下来我们来获取视频的播放量等信息：
 
-模块支持 [`curl_cffi`](https://github.com/lexiforest/curl_cffi) + [`fpgen`](https://github.com/scrapfly/fingerprint-generator) 指纹伪装。当然，两个模块都需要单独安装。
+```python
+import asyncio
+from bilibili_api import video
 
-``` zsh
-$ pip3 install "curl_cffi"
-$ pip3 install fpgen
 
-# 不过也可以
-$ pip3 install "bilibili-api-python[fingerprint]"
+async def main() -> None:
+    # 实例化 Video 类
+    v = video.Video(bvid="BV1uv411q7Mv")
+    # 获取信息
+    info = await v.get_info()
+    # 打印信息
+    print(info)
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
+
 ```
 
-## 快速上手
+输出（已格式化，已省略部分）：
 
-## 配置项
+```json
+{
+    "bvid": "BV1uv411q7Mv",
+    "aid": 243922477,
+    "videos": 1,
+    "tid": 17,
+    "tname": "单机游戏",
+    "copyright": 1,
+    "pic": "http://i2.hdslb.com/bfs/archive/82e52df9d0221836c260c82f2890e3761a46716b.jpg",
+    "title": "爆肝９８小时！在 MC 中还原糖调小镇",
+    "pubdate": 1595203214,
+    "ctime": 1595168654,
+    ...and more
+}
+```
 
-## 常见问题
+如何给这个视频点赞？我们需要登录自己的账号。
+
+这里设计是传入一个 Credential 类，获取所需的信息参照：[获取 Credential 类所需信息][get-credential]
+
+下面的代码将会给视频点赞
+
+```python
+import asyncio
+from bilibili_api import video, Credential
+
+async def main() -> None:
+    # 实例化 Credential 类
+    credential = Credential(sessdata=SESSDATA, bili_jct=BILI_JCT, buvid3=BUVID3)
+    # 实例化 Video 类
+    v = video.Video(bvid="BVxxxxxxxx", credential=credential)
+    info = await v.get_info()
+    print(info)
+    # 给视频点赞
+    await v.like(True)
+
+if __name__ == '__main__':
+    asyncio.run(main())
+```
+
+如果没有报错，就代表调用 API 成功，你可以到视频页面确认是不是调用成功了。
+
+> **Warning** 注意，请不要泄露这两个值给他人，否则你的账号将可能遭受盗号的风险！
+
+# 异步迁移
+
+由于从 v5 版本开始，基本全部改为异步，如果你不会异步，可以参考 [asyncio](https://docs.python.org/zh-cn/3/library/asyncio.html)
+
+异步可以进行并发请求，性能更高，不过如果请求过快仍然会导致被屏蔽。
+
+总的来说，异步比同步更有优势，所以不会的话可以去学一下，会发现新天地（误
+
+如果你仍然想继续使用同步代码，请参考 [同步执行异步代码](https://bromothymolb.github.io/bilibili-api-zoku/#/sync-executor)
+
+# 模块使用的请求库
+
+模块在允许的条件下，按照 [`curl_cffi`][curl_cffi] [`aiohttp`][aiohttp] [`httpx`][httpx] 的优先级选择第三方请求库。
+
+如果硬要选择一个请求库，论功能选择 `curl_cffi`，论速度选择 `aiohttp`，论稳定性选择 `httpx`。不妨自行尝试，选择最适合项目的请求库。
+
+如果想要指定请求库，可以利用 `select_client` 进行切换。
+
+``` python
+from bilibili_api import select_client
+
+select_client("curl_cffi") # 选择 curl_cffi，支持伪装浏览器的 TLS / JA3 / Fingerprint，支持 http2
+select_client("aiohttp") # 选择 aiohttp
+select_client("httpx") # 选择 httpx，不支持 WebSocket，支持 http2
+```
+
+curl_cffi 支持伪装浏览器的 TLS / JA3 / Fingerprint，但需要手动设置。curl_cffi 和 httpx 支持 HTTP2，也需要手动设置。
+
+``` python
+from bilibili_api import request_settings
+
+request_settings.set("impersonate", "chrome131") # 第二参数数值参考 curl_cffi 文档
+# https://curl-cffi.readthedocs.io/en/latest/impersonate/targets.html
+request_settings.set("http2", True) # 打开 HTTP2 功能
+```
+
+# FA♂Q
+
+**Q: 关于 API 调用的正确姿势是什么？**
+
+A: 所有 API 调用，请尽量使用 **指名方式** 传参，
+因为 API 较多，可能不同函数的传参顺序不一样，例子：
+
+```python
+# 推荐
+video.get_info(bvid="BV1uv411q7Mv")
+
+# 当然也可以这样
+kwargs = {
+    "bvid": "BV1uv411q7Mv"
+}
+video.get_info(**kwargs)
+
+# 不推荐
+video.get_info("BV1uv411q7Mv")
+```
+
+**Q: 为什么会提示 412 Precondition Failed ？**
+
+A: 你的请求速度太快了。造成请求速度过快的原因可能是你写了高并发的代码。
+
+这种情况下，你的 IP 会暂时被封禁而无法使用，你可以设置代理绕过。
+
+```python
+from bilibili_api import request_settings
+
+request_settings.set_proxy("http://your-proxy.com") # 里头填写你的代理地址
+
+request_settings.set_proxy("http://username:password@your-proxy.com") # 如果需要用户名、密码
+```
+
+**Q: 怎么没有我想要的功能？**
+
+A: 你可以发 Issue 来提交你的需求，但是，最好的办法是自己写（懒）
+
+<span id="contribute">**Q: 我有一个大胆的想法，如何给代码库贡献？**</span>
+
+A: 请先 clone 本仓库一份，然后从 main 分支新建一个分支，在该分支上工作。
+如果你觉得已经可以了，请向项目仓库的 develop 分支发起 Pull request。
+如果你不明白这些操作的话，可以百度。完整指南：[CONTRIBUTING.md](https://github.com/bromothymolb/bilibili-api-zoku/blob/main/.github/CONTRIBUTING.md)
+
+**Q: 稳定性怎么样？**
+
+A: 由于该模块比较特殊，是爬虫模块，如果 b 站的接口变更，可能会马上失效。因此请始终保证是最新版本。如果发现问题可以提 [Issues][issues-new]。
+
+# 模块与仓库历史
+
+模块最早起源于 [MoyuScript/bilibili-api](https://github.com/MoyuScript/bilibili-api)，后由 [Nemo2011/bilibili-api](https://github.com/Nemo2011/bilibili-api) 接手继续维护，后仓库因故删档。
+
+本仓库将接续模块的维护工作，在此对前前后后投入模块建设的贡献者表示感谢！也欢迎更多人参与到其中！
+
+## `MoyuScript/bilibili-api`
+
+- [第一条 commit (2020.01.27)](https://github.com/Nemo2011/bilibili-api/commit/8dc3f9a05fa28ed9b060cafa6d5c23131a28a113)
+- [最后一条 commit (2022.01.17)](https://github.com/Nemo2011/bilibili-api/commit/dc518016c7649be2a135ccb8badb091712754a3d)
+
+## `Nemo2011/bilibili-api`
+
+- [第一条 commit (2022.04.26)](https://github.com/bromothymolb/bilibili-api-zoku/commit/2ffbc8bf1a69b3d27a4e172e18d206aefc08a940)
+- 删档 (2026.07.06)
+
+## `bromothymolb/bilibili-api-zoku`
+
+- 物語、終わり
+- 次は、続・終わりの物語
+
+[^1]: 这里只列出一部分，请以实际 API 为准。
+[^2]: 代码来源：<https://www.zhihu.com/question/381784377/answer/1099438784> (WTFPL)
+[^3]: 弹幕 ASS 生成由 Danmaku2ASS <https://github.com/m13253/danmaku2ass> 支持 (GPLv3)。
+[^4]: 此部分功能实现离不开 BAC Project <https://github.com/socialsisteryi/bilibili-API-collect> 社区对相关接口的不懈探索。感谢所有参与其中的贡献者对本模块的间接支持。
+[^5]: 更多可见 https://nemo2011.github.io/bilibili-api/#/README?id=fingerprint
+
+[docs]: https://bromothymolb.github.io/bilibili-api-zoku
+[docs-github]: https://github.com/bromothymolb/bilibili-api-zoku/tree/main/docs
+[api.json]: https://github.com/bromothymolb/bilibili-api-zoku/tree/main/bilibili_api/data/api/
+[license]: https://github.com/bromothymolb/bilibili-api-zoku/tree/main/LICENSE
+[stargazers]: https://github.com/bromothymolb/bilibili-api-zoku/stargazers
+[issues-new]: https://github.com/bromothymolb/bilibili-api-zoku/issues/new/choose
+[get-credential]: https://bromothymolb.github.io/bilibili-api-zoku/#/get-credential
+[pypi]: https://pypi.org/project/bilibili-api-zoku

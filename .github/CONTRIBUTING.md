@@ -14,12 +14,12 @@
 
 # 1、开发流程
 
-1. 使用 `git clone git@github.com:nemo2011/bilibili-api.git` 将本仓库拉取到本地。再 `cd bilibili-api` 切换工作目录。
+1. 使用 `git clone git@github.com:bromothymolb/bilibili-api-zoku.git` 将本仓库拉取到本地。再 `cd bilibili-api` 切换工作目录。
 2. 项目依赖使用 `pip` 管理。通过 `pip3 install -r requirements.txt` 安装相关依赖。
 3. **使用 `python install.py` 进行初始化**，该项非常重要，将会初始化 Git Hooks 并安装开发依赖项。
 4. 使用 `git checkout dev && git checkout -b {分支名}` 从 dev 分支切换到一个新的分支再进行编码。
 5. 开发完毕后，使用 `git push -u origin {分支名}` 将分支推送到你 fork 的仓库。
-6. **向 `dev` 分支**发起 [Pull Requests](https://github.com/nemo2011/bilibili-api/pulls)。
+6. **向 `dev` 分支**发起 [Pull Requests](https://github.com/bromothymolb/bilibili-api-zoku/pulls)。
 
 # 2、代码风格与规范
 
