@@ -14,7 +14,7 @@
 | aiohttp   | 2      | ✅      | ✅     | ✅        |                                                                            |
 | httpx     | 1      | ✅      | ✅     | ❌        | `http2` defaults to `False`                                                |
 
-名为 `impersonate` 的设置决定了 curl_cffi 模仿哪个浏览器的指纹，名为 `http2` 的设置决定了 curl_cffi / httpx 是否启用 HTTP2。[这些设置如何启用？](https://nemo2011.github.io/bilibili-api/#/configuration)
+名为 `impersonate` 的设置决定了 curl_cffi 模仿哪个浏览器的指纹，名为 `http2` 的设置决定了 curl_cffi / httpx 是否启用 HTTP2。[这些设置如何启用？](https://bromothymolb.github.io/bilibili-api-zoku/#/configuration)
 
 ### 2、切换请求库
 
@@ -218,7 +218,7 @@ def download_content_length(self, cnt: int) -> int: ...
 
 整体思路是新建一个类，继承 `BiliAPIClient`，然后对前文提到的函数进行实现。
 
-此处实现可以参考模块自带的 `client`。见 <https://github.com/nemo2011/bilibili-api/tree/main/bilibili_api/clients>
+此处实现可以参考模块自带的 `client`。见 <https://github.com/bromothymolb/bilibili-api-zoku/tree/main/bilibili_api/clients>
 
 > 函数中可以调用 `request_log.dispatch` 函数实现日志功能。
 

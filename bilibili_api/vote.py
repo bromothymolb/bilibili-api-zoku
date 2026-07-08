@@ -3,7 +3,7 @@ bilibili_api.vote
 
 投票相关操作。
 
-需要 vote_id,获取 vote_id: https://nemo2011.github.io/bilibili-api/#/vote_id
+需要 vote_id,获取 vote_id: https://bromothymolb.github.io/bilibili-api-zoku/#/vote_id
 """
 
 from enum import Enum
@@ -82,7 +82,7 @@ class Vote:
     投票类
 
     Attributes:
-        vote_id (int): vote_id, 获取：https://nemo2011.github.io/bilibili-api/#/vote_id
+        vote_id (int): vote_id, 获取：https://bromothymolb.github.io/bilibili-api-zoku/#/vote_id
 
         credential (Credential): 凭据类
     """
@@ -90,7 +90,7 @@ class Vote:
     def __init__(self, vote_id: int, credential: Optional[Credential] = None) -> None:
         """
         Args:
-            vote_id (int): vote_id, 获取：https://nemo2011.github.io/bilibili-api/#/vote_id
+            vote_id (int): vote_id, 获取：https://bromothymolb.github.io/bilibili-api-zoku/#/vote_id
 
             credential (Credential): 凭据类，非必要.
         """

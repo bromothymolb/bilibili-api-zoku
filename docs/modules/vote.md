@@ -5,7 +5,7 @@ bilibili_api.vote
 
 投票相关操作。
 
-需要 vote_id,获取 vote_id: https://nemo2011.github.io/bilibili-api/#/vote_id
+需要 vote_id,获取 vote_id: https://bromothymolb.github.io/bilibili-api-zoku/#/vote_id
 
 
 ``` python

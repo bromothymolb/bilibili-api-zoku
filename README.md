@@ -1,31 +1,19 @@
-![bilibili-api logo](https://raw.githubusercontent.com/Nemo2011/bilibili-api/main/design/logo.png)
+![bilibili-api logo](./design/logo.png)
 
 <div align="center">
 
-# bilibili-api
+# bilibili-api $^{続}_{zoku}$
 
 [![API 数量](https://img.shields.io/badge/API%20数量-400+-blue)][api.json]
 [![LICENSE](https://img.shields.io/badge/LICENSE-GPLv3+-red)][LICENSE]
 [![Python](https://img.shields.io/badge/python-3.10+-blue)](https://www.python.org)
-[![Stable Version](https://img.shields.io/pypi/v/bilibili-api-python?label=stable)][pypi]
-[![Pre-release Version](https://img.shields.io/github/v/release/Nemo2011/bilibili-api?label=pre-release&include_prereleases&sort=semver)][pypi-dev]
-[![STARS](https://img.shields.io/github/stars/nemo2011/bilibili-api?color=yellow&label=Github%20Stars)][stargazers]
-[![Testing](https://github.com/Nemo2011/bilibili-api/actions/workflows/testing.yml/badge.svg?branch=dev)](https://github.com/Nemo2011/bilibili-api/actions/workflows/testing.yml)
-
-**:warning: 接口可能改动，请及时更新最新版 [![Stable Version](https://img.shields.io/pypi/v/bilibili-api-python?label=stable)][pypi]**
+[![Stable Version](https://img.shields.io/github/v/release/bromothymolb/bilibili-api-zoku?label=pre-release&include_prereleases&sort=semver)][pypi]
+[![Pre-release Version](https://img.shields.io/github/v/release/bromothymolb/bilibili-api-zoku?label=pre-release&include_prereleases&sort=semver)][pypi]
+[![STARS](https://img.shields.io/github/stars/bromothymolb/bilibili-api-zoku?color=yellow&label=Github%20Stars)][stargazers]
+[![Docs](https://img.shields.io/badge/Docs-Site-green)][docs]
+[![Docs](https://img.shields.io/badge/Docs-Github-green)][docs-github]
 
 </div>
-
-**注意事项：使用此模块时请仅用于学习和测试，禁止用于非法用途及其他恶劣的社区行为如：恶意刷屏、辱骂黄暴、各种形式的滥用等，违规此模块许可证 `GNU General Public License Version 3` 及此条注意事项而产生的任何后果自负，模块的所有贡献者不负任何责任。**
-
-开发文档: [bilibili_api 开发文档][docs] ([GitHub][docs-github])
-
-原仓库地址：[https://github.com/MoyuScript/bilibili-api](https://github.com/MoyuScript/bilibili-api) (*现已被删除)
-
-Github 仓库：[https://github.com/nemo2011/bilibili-api](https://github.com/nemo2011/bilibili-api)
-
-> 模块最早由 @MoyuScript 于 2020 年创建，于 2022 年宣布停止维护。本仓库是原仓库 fork，遵循 `GNU General Public License Version 3`。在此感谢早期的众多模块贡献者与 @MoyuScript 对新仓库的支持。
-> 见 `MoyuScript/bilibili-api` 的 [第一条 commit (2020.01.27)](https://github.com/Nemo2011/bilibili-api/commit/8dc3f9a05fa28ed9b060cafa6d5c23131a28a113)与 [最后一条 commit (2022.01.17)](https://github.com/Nemo2011/bilibili-api/commit/dc518016c7649be2a135ccb8badb091712754a3d)。
 
 # 简介
 
@@ -55,7 +43,7 @@ $ pip3 install bilibili-api-python
 $ pip3 install bilibili-api-dev
 
 # 最新修改会在 dev 分支
-$ pip3 install git+https://github.com/Nemo2011/bilibili-api.git@dev
+$ pip3 install git+https://github.com/bromothymolb/bilibili-api-zoku.git@dev
 ```
 
 然后需要**自行安装**一个支持异步的第三方请求库，如 `aiohttp` / `httpx` / `curl_cffi`。
@@ -146,7 +134,7 @@ if __name__ == '__main__':
 
 总的来说，异步比同步更有优势，所以不会的话可以去学一下，会发现新天地（误
 
-如果你仍然想继续使用同步代码，请参考 [同步执行异步代码](https://nemo2011.github.io/bilibili-api/#/sync-executor)
+如果你仍然想继续使用同步代码，请参考 [同步执行异步代码](https://bromothymolb.github.io/bilibili-api-zoku/#/sync-executor)
 
 # 模块使用的请求库
 
@@ -208,7 +196,7 @@ request_settings.set_proxy("http://username:password@your-proxy.com") # 如果�
 
 **Q: 我想在项目中使用这个模块，但是我的项目使用其他请求库进行网络请求（如 `pycurl`），想要模块也同时使用它（们），可以吗？**
 
-A: 可以，但是你可能要自己动手实现模块和具体请求库的适配。详见 [自定义请求库](https://nemo2011.github.io/bilibili-api/#/request_client)
+A: 可以，但是你可能要自己动手实现模块和具体请求库的适配。详见 [自定义请求库](https://bromothymolb.github.io/bilibili-api-zoku/#/request_client)
 
 **Q: 怎么没有我想要的功能？**
 
@@ -218,11 +206,32 @@ A: 你可以发 Issue 来提交你的需求，但是，最好的办法是自己�
 
 A: 请先 clone 本仓库一份，然后从 main 分支新建一个分支，在该分支上工作。
 如果你觉得已经可以了，请向项目仓库的 develop 分支发起 Pull request。
-如果你不明白这些操作的话，可以百度。完整指南：[CONTRIBUTING.md](https://github.com/nemo2011/bilibili-api/blob/main/.github/CONTRIBUTING.md)
+如果你不明白这些操作的话，可以百度。完整指南：[CONTRIBUTING.md](https://github.com/bromothymolb/bilibili-api-zoku/blob/main/.github/CONTRIBUTING.md)
 
 **Q: 稳定性怎么样？**
 
 A: 由于该模块比较特殊，是爬虫模块，如果 b 站的接口变更，可能会马上失效。因此请始终保证是最新版本。如果发现问题可以提 [Issues][issues-new]。
+
+# 模块与仓库历史
+
+模块最早起源于 [MoyuScript/bilibili-api](https://github.com/MoyuScript/bilibili-api)，后由 [Nemo2011/bilibili-api](https://github.com/Nemo2011/bilibili-api) 接手继续维护，后仓库因故删档。
+
+本仓库将接续模块的维护工作，在此对前前后后投入模块建设的贡献者表示感谢！也欢迎更多人参与到其中！
+
+## `MoyuScript/bilibili-api`
+
+- [第一条 commit (2020.01.27)](https://github.com/Nemo2011/bilibili-api/commit/8dc3f9a05fa28ed9b060cafa6d5c23131a28a113)
+- [最后一条 commit (2022.01.17)](https://github.com/Nemo2011/bilibili-api/commit/dc518016c7649be2a135ccb8badb091712754a3d)
+
+## `Nemo2011/bilibili-api`
+
+- [第一条 commit (2022.04.26)](https://github.com/bromothymolb/bilibili-api-zoku/commit/2ffbc8bf1a69b3d27a4e172e18d206aefc08a940)
+- 删档 (2026.07.06)
+
+## `bromothymolb/bilibili-api-zoku`
+
+- 物語、終わり
+- 次は、続・終わりの物語
 
 [^1]: 这里只列出一部分，请以实际 API 为准。
 [^2]: 代码来源：<https://www.zhihu.com/question/381784377/answer/1099438784> (WTFPL)
@@ -230,22 +239,11 @@ A: 由于该模块比较特殊，是爬虫模块，如果 b 站的接口变更�
 [^4]: 思路来源：<https://socialsisteryi.github.io/bilibili-API-collect/docs/login/cookie_refresh.html> (CC-BY-NC 4.0)
 [^5]: 大量思路来源 <https://github.com/SocialSisterYi/bilibili-API-collect> 中相关讨论。
 
-[docs]: https://nemo2011.github.io/bilibili-api
-[docs-github]: https://github.com/nemo2011/bilibili-api/tree/main/docs
-[api.json]: https://github.com/nemo2011/bilibili-api/tree/main/bilibili_api/data/api/
-[license]: https://github.com/nemo2011/bilibili-api/tree/main/LICENSE
-[stargazers]: https://github.com/nemo2011/bilibili-api/stargazers
-[issues-new]: https://github.com/Nemo2011/bilibili-api/issues/new/choose
-[get-credential]: https://nemo2011.github.io/bilibili-api/#/get-credential
-[pypi]: https://pypi.org/project/bilibili-api-python
-[pypi-dev]: https://pypi.org/project/bilibili-api-dev
-
-# Star History
-
-<a href="https://www.star-history.com/?type=date&repos=Nemo2011%2Fbilibili-api">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=Nemo2011/bilibili-api&type=date&theme=dark&legend=top-left" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=Nemo2011/bilibili-api&type=date&legend=top-left" />
-   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=Nemo2011/bilibili-api&type=date&legend=top-left" />
- </picture>
-</a>
+[docs]: https://bromothymolb.github.io/bilibili-api-zoku
+[docs-github]: https://github.com/bromothymolb/bilibili-api-zoku/tree/main/docs
+[api.json]: https://github.com/bromothymolb/bilibili-api-zoku/tree/main/bilibili_api/data/api/
+[license]: https://github.com/bromothymolb/bilibili-api-zoku/tree/main/LICENSE
+[stargazers]: https://github.com/bromothymolb/bilibili-api-zoku/stargazers
+[issues-new]: https://github.com/bromothymolb/bilibili-api-zoku/issues/new/choose
+[get-credential]: https://bromothymolb.github.io/bilibili-api-zoku/#/get-credential
+[pypi]: https://pypi.org/project/bilibili-api-zoku

@@ -1162,7 +1162,7 @@ class Credential:
         **kwargs
     ) -> None:
         """
-        各字段获取方式查看：https://nemo2011.github.io/bilibili-api/#/get-credential.md
+        各字段获取方式查看：https://bromothymolb.github.io/bilibili-api-zoku/#/get-credential.md
 
         Args:
             sessdata   (str | None, optional): 浏览器 Cookies 中的 SESSDATA 字段值. Defaults to None.

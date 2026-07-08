@@ -697,7 +697,7 @@ Cookies 刷新错误。
 
 ### def \_\_init\_\_()
 
-各字段获取方式查看：https://nemo2011.github.io/bilibili-api/#/get-credential.md
+各字段获取方式查看：https://bromothymolb.github.io/bilibili-api-zoku/#/get-credential.md
 
 
 | name | type | description |
@@ -2167,7 +2167,7 @@ async def handle(desc: str, data: dict) -> None:
 
 ## def sync()
 
-同步执行异步函数，使用可参考 [同步执行异步代码](https://nemo2011.github.io/bilibili-api/#/sync-executor)
+同步执行异步函数，使用可参考 [同步执行异步代码](https://bromothymolb.github.io/bilibili-api-zoku/#/sync-executor)
 
 
 | name | type | description |

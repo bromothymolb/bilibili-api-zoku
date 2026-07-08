@@ -37,10 +37,10 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/Nemo2011/bilibili-api"
-Repository = "https://github.com/Nemo2011/bilibili-api"
-Documentation = "https://nemo2011.github.io/bilibili-api"
-"Bug Report" = "https://github.com/Nemo2011/bilibili-api/issues"
+Homepage = "https://github.com/bromothymolb/bilibili-api-zoku"
+Repository = "https://github.com/bromothymolb/bilibili-api-zoku"
+Documentation = "https://bromothymolb.github.io/bilibili-api-zoku"
+"Bug Report" = "https://github.com/bromothymolb/bilibili-api-zoku/issues"
 
 [tool.setuptools.dynamic]
 version = { attr = "bilibili_api.BILIBILI_API_VERSION" }
