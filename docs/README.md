@@ -2,7 +2,7 @@
 
 <div align="center">
 
-# bilibili-api $^{続}_{zoku}$
+# `bilibili-api-zoku` (続)
 
 [![API 数量](https://img.shields.io/badge/API%20数量-400+-blue)][api.json]
 [![LICENSE](https://img.shields.io/badge/LICENSE-GPLv3+-red)][LICENSE]
@@ -217,21 +217,6 @@ A: 由于该模块比较特殊，是爬虫模块，如果 b 站的接口变更�
 模块最早起源于 [MoyuScript/bilibili-api](https://github.com/MoyuScript/bilibili-api)，后由 [Nemo2011/bilibili-api](https://github.com/Nemo2011/bilibili-api) 接手继续维护，后仓库因故删档。
 
 本仓库将接续模块的维护工作，在此对前前后后投入模块建设的贡献者表示感谢！也欢迎更多人参与到其中！
-
-## `MoyuScript/bilibili-api`
-
-- [第一条 commit (2020.01.27)](https://github.com/Nemo2011/bilibili-api/commit/8dc3f9a05fa28ed9b060cafa6d5c23131a28a113)
-- [最后一条 commit (2022.01.17)](https://github.com/Nemo2011/bilibili-api/commit/dc518016c7649be2a135ccb8badb091712754a3d)
-
-## `Nemo2011/bilibili-api`
-
-- [第一条 commit (2022.04.26)](https://github.com/bromothymolb/bilibili-api-zoku/commit/2ffbc8bf1a69b3d27a4e172e18d206aefc08a940)
-- 删档 (2026.07.06)
-
-## `bromothymolb/bilibili-api-zoku`
-
-- 物語、終わり
-- 次は、続・終わりの物語
 
 [^1]: 这里只列出一部分，请以实际 API 为准。
 [^2]: 代码来源：<https://www.zhihu.com/question/381784377/answer/1099438784> (WTFPL)
