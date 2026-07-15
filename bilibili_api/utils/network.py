@@ -30,7 +30,7 @@ import os
 import random
 import re
 import struct
-from threading import Lock
+import threading
 import time
 from typing import Any
 import urllib.parse
@@ -207,6 +207,8 @@ Events:
 - (过滤器)
 - DO_PRE_FILTER: 执行前置过滤器。
 - DO_POST_FILTER: 执行后置过滤器
+- (会话管理)
+- SESSION_MANAGEMENT: 会话管理相关信息。
 
 CallbackData: 描述 (str) 数据 (dict)
 
@@ -1186,7 +1188,12 @@ class BiliAPIClient(ABC):
 
 
 client_func_cnt = 0
-client_lock = Lock()
+client_lock = threading.Lock()
+loop2id: dict[asyncio.AbstractEventLoop, str] = {}
+id2loop: dict[str, asyncio.AbstractEventLoop] = {}
+loop_lock: dict[str, anyio.Lock] = {}
+clean_loops: set[asyncio.AbstractEventLoop] = set()
+clean_tasks: set[asyncio.Task] = set()
 
 
 class BiliFilterFlags(Enum):
@@ -1221,13 +1228,13 @@ class BiliFilterData:
     def __init__(self) -> None:
         self.__data: dict[int, Any] = {}
         self.__adata: dict[int, Any] = {}
-        self.__locks: dict[int, Lock] = {}
+        self.__locks: dict[int, threading.Lock] = {}
         self.__alocks: dict[int, anyio.Lock] = {}
 
     def _ensure_data(self, idx: int) -> None:
         if self.__data.get(idx) is None:
             self.__data[idx] = {}
-            self.__locks[idx] = Lock()
+            self.__locks[idx] = threading.Lock()
         if self.__adata.get(idx) is None:
             self.__adata[idx] = {}
             self.__alocks[idx] = anyio.Lock()
@@ -1715,22 +1722,44 @@ class _BiliAPIClient:
         return None
 
 
+def ensure_event_loop() -> asyncio.AbstractEventLoop:
+    try:
+        asyncio.get_event_loop()
+    except RuntimeError:
+        asyncio.set_event_loop(asyncio.new_event_loop())
+    return asyncio.get_event_loop()
+
+
+def event_loop_to_str(loop: asyncio.AbstractEventLoop) -> str:
+    global loop2id, loop_lock
+    if loop2id.get(loop):
+        return loop2id[loop]
+    loop_name = "AbstractEventLoop-" + str(time.time_ns())
+    loop2id[loop] = loop_name
+    id2loop[loop_name] = loop
+    loop_lock[loop_name] = anyio.Lock()
+    return loop_name
+
+
+def get_event_loop() -> str:
+    return event_loop_to_str(ensure_event_loop())
+
+
 class _BiliAPIClientGroup:
     """
     helper class to sync settings among clients in different event loops
     """
 
     def __init__(self, client: str, name: str) -> None:
-        self.__session_pool: dict[asyncio.AbstractEventLoop, "_BiliAPIClient"] = {}
-        self.__set_session_pool: dict[asyncio.AbstractEventLoop, "_BiliAPIClient"] = {}
+        self.__session_pool: dict[str, "_BiliAPIClient"] = {}
+        self.__set_session_pool: dict[str, "_BiliAPIClient"] = {}
         self.__base_settings = RequestSettings()
         self.__force_settings = RequestSettings()
         self.__client__ = client
         self.__instance__ = name
 
-    def ensure_client(
-        self, loop: asyncio.AbstractEventLoop = asyncio.get_event_loop()
-    ) -> _BiliAPIClient:
+    def ensure_client(self, loop: str | None = None) -> _BiliAPIClient:
+        loop = loop if loop else get_event_loop()
         client = self.__session_pool.get(loop)
         if client is None:
             settings = RequestSettings()
@@ -1742,24 +1771,22 @@ class _BiliAPIClientGroup:
             self.__session_pool[loop] = client
         return client
 
-    def set_session(
-        self, session: Any, loop: asyncio.AbstractEventLoop = asyncio.get_event_loop()
-    ) -> None:
+    def set_session(self, session: Any, loop: str | None = None) -> None:
+        loop = loop if loop else get_event_loop()
         settings = RequestSettings()
         settings.sets(self.__base_settings.get_all())
         client = _BiliAPIClient(self.__client__, self.__instance__, settings, session)
         client._get_force_settings().sets(self.__force_settings.get_all())
         self.__set_session_pool[loop] = client
 
-    def unset_session(
-        self, loop: asyncio.AbstractEventLoop = asyncio.get_event_loop()
-    ) -> None:
+    def unset_session(self, loop: str | None = None) -> None:
+        loop = loop if loop else get_event_loop()
         if not self.__set_session_pool.get(loop):
             return
         del self.__set_session_pool[loop]
 
     def get_client(self) -> _BiliAPIClient:
-        loop = asyncio.get_event_loop()
+        loop = get_event_loop()
         if self.__set_session_pool.get(loop):
             client = self.__set_session_pool[loop]
         else:
@@ -1786,18 +1813,18 @@ class _BiliAPIClientGroup:
         self.__force_settings.sets(settings)
 
     def clean(self) -> None:
-        loops: set[asyncio.AbstractEventLoop] = set()
-        tasks: set[asyncio.Task] = set()
+        global clean_loops, clean_tasks
 
-        def close(pool: dict[asyncio.AbstractEventLoop, _BiliAPIClient]):
-            for loop, client in pool.items():
+        def close(pool: dict[str, _BiliAPIClient]):
+            for loop_id, client in pool.items():
+                loop = id2loop[loop_id]
                 if not loop.is_closed():
-                    loops.add(loop)
+                    clean_loops.add(loop)
                     task = loop.create_task(client.close())
-                    tasks.add(task)
-                    task.add_done_callback(tasks.discard)
+                    clean_tasks.add(task)
+                    task.add_done_callback(clean_tasks.discard)
                     task.add_done_callback(
-                        lambda *args, **kwargs: self.__session_pool.pop(loop)
+                        lambda *args, **kwargs: self.__session_pool.pop(loop_id)
                     )
 
         close(self.__session_pool)
@@ -2091,18 +2118,18 @@ def get_session(client: str | None = None, instance: str | None = None) -> objec
 
 def set_session(
     session: object,
-    loop: asyncio.AbstractEventLoop = asyncio.get_event_loop(),
     client: str | None = None,
     instance: str | None = None,
+    loop: asyncio.AbstractEventLoop | None = None,
 ) -> None:
     """
     设置请求客户端的会话对象。
 
     Args:
         session (object): 会话对象
-        loop (asyncio.AbstractEventLoop): 事件循环. Defaults to `asyncio.get_event_loop()`
         client (str | None, optional): 请求客户端类型. Defaults to None.
         instance (str | None, optional): 请求客户端实例名称. Defaults to None.
+        loop (asyncio.AbstractEventLoop | None, optional): 事件循环，不提供则采用当前事件循环. Defaults to None.
     """
     client = client if client else get_selected_client()[0]
     instance = instance if instance else get_selected_instance()
@@ -2110,21 +2137,21 @@ def set_session(
         group = client_groups[client][instance]
     except KeyError:
         raise Exception("未找到对应请求客户端实例")
-    group.set_session(session, loop)
+    group.set_session(session, event_loop_to_str(loop) if loop else get_event_loop())
 
 
 def unset_session(
-    loop: asyncio.AbstractEventLoop = asyncio.get_event_loop(),
     client: str | None = None,
     instance: str | None = None,
+    loop: asyncio.AbstractEventLoop | None = None,
 ) -> None:
     """
     取消设置请求客户端的会话对象。
 
     Args:
-        loop (asyncio.AbstractEventLoop): 事件循环. Defaults to `asyncio.get_event_loop()`
         client (str | None, optional): 请求客户端类型. Defaults to None.
         instance (str | None, optional): 请求客户端实例名称. Defaults to None.
+        loop (asyncio.AbstractEventLoop | None, optional): 事件循环，不提供则采用当前事件循环. Defaults to None.
     """
     client = client if client else get_selected_client()[0]
     instance = instance if instance else get_selected_instance()
@@ -2132,7 +2159,7 @@ def unset_session(
         group = client_groups[client][instance]
     except KeyError:
         raise Exception("未找到对应请求客户端实例")
-    group.unset_session(loop)
+    group.unset_session(event_loop_to_str(loop) if loop else get_event_loop())
 
 
 ##### filter #####
