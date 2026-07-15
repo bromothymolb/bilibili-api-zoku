@@ -53,9 +53,9 @@ class AioHTTPClient(BiliAPIClient):
         self.__downloads: dict[int, aiohttp.ClientResponse] = {}
         self.__download_cnt: int = 0
 
-        self.__session_update_lock = asyncio.Lock()
-        self.__ws_cnt_lock = asyncio.Lock()
-        self.__down_cnt_lock = asyncio.Lock()
+        self.__session_update_lock = anyio.Lock()
+        self.__ws_cnt_lock = anyio.Lock()
+        self.__down_cnt_lock = anyio.Lock()
 
     def get_wrapped_session(self) -> aiohttp.ClientSession:
         return self.__session

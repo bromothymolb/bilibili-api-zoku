@@ -2341,7 +2341,7 @@ class Credential:
     7. `ensure` 与 `obtain` 若没有传入凭据类，将创建一个新的 `blank` 作为凭据类带入。因此获取 `global` 字段直接不带参调用 `ensure`，更新 `global` 字段直接不带参调用 `obtain`。
     """
 
-    _refresh_lock: asyncio.Lock = asyncio.Lock()
+    _refresh_lock: anyio.Lock = anyio.Lock()
 
     b_nut: str | None = None
     b_lsid: str | None = None

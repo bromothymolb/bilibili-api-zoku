@@ -6,6 +6,7 @@ CurlCFFIClient 实现
 
 import asyncio
 
+import anyio
 import curl_cffi  # pylint: disable=E0401
 from curl_cffi import requests  # pylint: disable=E0401
 
@@ -62,8 +63,8 @@ class CurlCFFIClient(BiliAPIClient):
         self.__downloads: dict[int, requests.Response] = {}
         self.__download_cnt: int = 0
 
-        self.__ws_cnt_lock = asyncio.Lock()
-        self.__down_cnt_lock = asyncio.Lock()
+        self.__ws_cnt_lock = anyio.Lock()
+        self.__down_cnt_lock = anyio.Lock()
 
     def get_wrapped_session(self) -> requests.AsyncSession:
         return self.__session

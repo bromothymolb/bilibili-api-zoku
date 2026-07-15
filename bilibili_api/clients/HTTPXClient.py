@@ -4,7 +4,6 @@ bilibili_api.clients.httpx
 HTTPXClient 实现
 """
 
-import asyncio
 from collections.abc import AsyncGenerator
 
 import anyio
@@ -63,8 +62,8 @@ class HTTPXClient(BiliAPIClient):
         self.__download_cnt: int = 0
 
         self.__need_update_session: bool = False
-        self.__session_update_lock = asyncio.Lock()
-        self.__down_cnt_lock = asyncio.Lock()
+        self.__session_update_lock = anyio.Lock()
+        self.__down_cnt_lock = anyio.Lock()
 
     def get_wrapped_session(self) -> httpx.AsyncClient:
         return self.__session
