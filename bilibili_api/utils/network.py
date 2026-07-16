@@ -112,7 +112,6 @@ class RequestLog(AsyncEvent):
             "ANTI_SPIDER",
             "DO_PRE_FILTER",
             "DO_POST_FILTER",
-            "SESSION_MANAGEMENT",
         ]
 
     def get_on_events(self) -> list[str]:
@@ -177,8 +176,8 @@ class RequestLog(AsyncEvent):
             and evt in self.get_on_events()
             and evt not in self.get_ignore_events()
         ):
-            if evt in ["ANTI_SPIDER", "SESSION_MANAGEMENT"]:
-                self.logger.info(f"{real_data['msg']}")
+            if evt == "ANTI_SPIDER":
+                self.logger.info(f"【{desc}】{real_data['msg']}")
                 return
             elif not real_data.get("act_id"):
                 self.logger.info(f"{desc}: {real_data}")
@@ -241,8 +240,6 @@ Events:
 - (过滤器)
 - DO_PRE_FILTER: 执行前置过滤器。
 - DO_POST_FILTER: 执行后置过滤器
-- (会话管理)
-- SESSION_MANAGEMENT: 会话管理相关信息。
 
 CallbackData: 描述 (str) 数据 (dict)
 
@@ -286,8 +283,6 @@ Events:
 - (过滤器)
 - DO_PRE_FILTER: 执行前置过滤器。
 - DO_POST_FILTER: 执行后置过滤器
-- (会话管理)
-- SESSION_MANAGEMENT: 会话管理相关信息。
 
 CallbackData: 描述 (str) 数据 (dict)
 
@@ -1858,11 +1853,6 @@ def register_client(name: str, cls: type, settings: dict = {}) -> None:
     client_settings[name] += list(settings.keys())
     optional_settings[name] = settings
     new_instance("default", name)
-    request_log.dispatch(
-        "SESSION_MANAGEMENT",
-        "会话管理",
-        {"msg": f"请求库 {name} ({cls}) 注册成功。实例 default 创建成功。"},
-    )
 
 
 def unregister_client(name: str) -> None:
@@ -1876,11 +1866,6 @@ def unregister_client(name: str) -> None:
     try:
         sessions.pop(name)
         client_groups.pop(name)
-        request_log.dispatch(
-            "SESSION_MANAGEMENT",
-            "会话管理",
-            {"msg": f"请求库 {name} 取消注册成功。"},
-        )
     except KeyError:
         raise ArgsException("未找到指定请求客户端。")
 
@@ -1937,11 +1922,6 @@ def new_instance(name: str, client: str | None = None) -> None:
     global client_groups
     client_groups[client][name] = _BiliAPIClientGroup(client, name)
     select_instance(name)
-    request_log.dispatch(
-        "SESSION_MANAGEMENT",
-        "会话管理",
-        {"msg": f"请求库 {name} 实例 {client} 创建成功。"},
-    )
 
 
 def remove_instance(name: str, client: str | None = None) -> None:
@@ -1956,11 +1936,6 @@ def remove_instance(name: str, client: str | None = None) -> None:
     global client_groups
     try:
         client_groups[client].pop(name)
-        request_log.dispatch(
-            "SESSION_MANAGEMENT",
-            "会话管理",
-            {"msg": f"请求库 {name} 实例 {client} 移除成功。"},
-        )
     except KeyError:
         raise ArgsException("未找到指定请求客户端实例。")
 
@@ -2105,16 +2080,8 @@ def get_client(client: str | None = None, instance: str | None = None) -> BiliAP
     Returns:
         BiliAPIClient: 请求客户端
     """
-    client_msg, instance_msg = "", ""
-    client = client or get_selected_client()[1 - bool(client_msg := "(已选择)")] # type: ignore
-    instance = (
-        instance or (get_selected_instance(),)[1 - bool(instance_msg := "(已选择)")]
-    )
-    request_log.dispatch(
-        "SESSION_MANAGEMENT",
-        "会话管理",
-        {"msg": f"获取请求库 {client}{client_msg} 实例 {instance}{instance_msg}。"},
-    )
+    client = client or get_selected_client()[0]
+    instance = instance or get_selected_instance()
     try:
         group = client_groups[client][instance] # type: ignore
     except KeyError:
