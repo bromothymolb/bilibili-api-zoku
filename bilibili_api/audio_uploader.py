@@ -651,9 +651,7 @@ class AudioUploader(AsyncEvent):
             "avid": self.meta.aid or "",
             "tid": self.meta.tid or "",
             "cid": self.meta.cid or "",
-            "compilation_id": (
-                self.meta.compilation_id or ""
-            ),
+            "compilation_id": self.meta.compilation_id or "",
             "title": self.meta.title,
             "intro": self.meta.desc,
             "member_with_type": [
@@ -668,27 +666,21 @@ class AudioUploader(AsyncEvent):
                     "m_type": 2,  # 作词
                     "members": [
                         {"name": lyricist.name, "mid": lyricist.uid}
-                        for lyricist in (
-                            self.meta.lyricist or []
-                        )
+                        for lyricist in (self.meta.lyricist or [])
                     ],
                 },
                 {
                     "m_type": 3,
                     "members": [
                         {"name": composer.name, "mid": composer.uid}
-                        for composer in (
-                            self.meta.composer or []
-                        )
+                        for composer in (self.meta.composer or [])
                     ],
                 },  # 作曲
                 {
                     "m_type": 4,
                     "members": [
                         {"name": arranger.name, "mid": arranger.uid}
-                        for arranger in (
-                            self.meta.arranger or []
-                        )
+                        for arranger in (self.meta.arranger or [])
                     ],
                 },  # 编曲
                 {
@@ -702,27 +694,21 @@ class AudioUploader(AsyncEvent):
                     "m_type": 6,
                     "members": [
                         {"name": cover_maker.name, "mid": cover_maker.uid}
-                        for cover_maker in (
-                            self.meta.cover_maker or []
-                        )
+                        for cover_maker in (self.meta.cover_maker or [])
                     ],
                 },  # 本家作者
                 {
                     "m_type": 7,
                     "members": [
                         {"name": cover_maker.name, "mid": cover_maker.uid}
-                        for cover_maker in (
-                            self.meta.cover_maker or []
-                        )
+                        for cover_maker in (self.meta.cover_maker or [])
                     ],  # FIXME: 显然不对
                 },  # 封面
                 {
                     "m_type": 8,
                     "members": [
                         {"name": sound_source.name, "mid": sound_source.uid}
-                        for sound_source in (
-                            self.meta.sound_source or []
-                        )
+                        for sound_source in (self.meta.sound_source or [])
                     ],
                 },  # 音源
                 {
@@ -743,9 +729,7 @@ class AudioUploader(AsyncEvent):
                     "m_type": 11,
                     "members": [
                         {"name": instrument}
-                        for instrument in (
-                            self.meta.instrument or []
-                        )
+                        for instrument in (self.meta.instrument or [])
                     ],
                 },  # 乐器
                 {

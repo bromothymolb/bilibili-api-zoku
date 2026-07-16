@@ -846,9 +846,7 @@ class InteractiveVideoDownloader(AsyncEvent):
         """
         super().__init__()
         self.__video = video
-        self.__download_func = (
-            self_download_func or self.__download
-        )
+        self.__download_func = self_download_func or self.__download
         self.__task = None
         self.__out = out
         self.__mode = downloader_mode

@@ -2083,7 +2083,7 @@ def get_client(client: str | None = None, instance: str | None = None) -> BiliAP
     client = client or get_selected_client()[0]
     instance = instance or get_selected_instance()
     try:
-        group = client_groups[client][instance] # type: ignore
+        group = client_groups[client][instance]  # type: ignore
     except KeyError:
         raise Exception("未找到对应请求客户端实例")
     return group.get_client()  # type: ignore
