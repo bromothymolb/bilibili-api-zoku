@@ -37,12 +37,8 @@ from bilibili_api import ...
 - [class BiliFilterArgs()](#class-BiliFilterArgs)
 - [class BiliFilterData()](#class-BiliFilterData)
   - [def \_\_init\_\_()](#def-\_\_init\_\_)
-  - [def aget\_data()](#def-aget\_data)
-  - [def aset\_data()](#def-aset\_data)
-  - [async def aset\_data\_threadsafe()](#async-def-aset\_data\_threadsafe)
   - [def get\_data()](#def-get\_data)
   - [def set\_data()](#def-set\_data)
-  - [def set\_data\_threadsafe()](#def-set\_data\_threadsafe)
 - [class BiliFilterFlags()](#class-BiliFilterFlags)
 - [class BiliFilterReturn()](#class-BiliFilterReturn)
   - [def back()](#def-back)
@@ -200,6 +196,7 @@ from bilibili_api import ...
 - [def register\_pre\_filter()](#def-register\_pre\_filter)
 - [def remove\_instance()](#def-remove\_instance)
 - [var request\_log](#var-request\_log)
+  - [def get\_all\_events()](#def-get\_all\_events)
   - [def get\_ignore\_events()](#def-get\_ignore\_events)
   - [def get\_on\_events()](#def-get\_on\_events)
   - [def is\_on()](#def-is\_on)
@@ -738,6 +735,7 @@ class BiliAPIClient(ABC):
 | `cnt` | `int` | 过滤器执行编号，一个编号对应一次函数调用 |
 | `data` | `FilterData` | 用于数据交换的 FilterData 实例 |
 | `settings` | `dict` | 请求客户端相关设置 |
+| `event_loop` | `str` | 请求客户端的事件循环，对应模块内部编号 |
 
 
 ---
@@ -751,47 +749,6 @@ class BiliAPIClient(ABC):
 
 ### def \_\_init\_\_()
 
-
-
-
-
-### def aget_data()
-
-（供异步过滤器使用）获取数据
-
-
-| name | type | description |
-| - | - | - |
-| `cnt` | `int` | 过滤器执行 cnt |
-| `key` | `str` | 键 |
-
-
-
-
-### def aset_data()
-
-（供异步过滤器使用）设置数据
-
-
-| name | type | description |
-| - | - | - |
-| `cnt` | `int` | 过滤器执行 cnt |
-| `key` | `str` | 键 |
-| `value` | `Any` | 值 |
-
-
-
-
-### async def aset_data_threadsafe()
-
-（供异步过滤器使用）设置数据，此函数能保证线程安全。
-
-
-| name | type | description |
-| - | - | - |
-| `cnt` | `int` | 过滤器执行 cnt |
-| `key` | `str` | 键 |
-| `value` | `Any` | 值 |
 
 
 
@@ -812,20 +769,6 @@ class BiliAPIClient(ABC):
 ### def set_data()
 
 设置数据
-
-
-| name | type | description |
-| - | - | - |
-| `cnt` | `int` | 过滤器执行 cnt |
-| `key` | `str` | 键 |
-| `value` | `Any` | 值 |
-
-
-
-
-### def set_data_threadsafe()
-
-设置数据，此函数能保证线程安全。
 
 
 | name | type | description |
@@ -2965,13 +2908,15 @@ Events:
 - DWN_CREATE:  新建下载。
 - DWN_PART:    部分下载。
 - DWN_CLOSE:   结束下载。
+- CLOSE:       关闭会话。
 - (Api)
 - API_REQUEST: Api 请求。
 - API_RESPONSE: Api 响应。
 - (反爬虫)
 - ANTI_SPIDER: 反爬虫相关信息。
 - (过滤器)
-- DO_FILTER: 执行过滤器。
+- DO_PRE_FILTER: 执行前置过滤器。
+- DO_POST_FILTER: 执行后置过滤器
 
 CallbackData: 描述 (str) 数据 (dict)
 
@@ -2984,6 +2929,17 @@ async def handle(desc: str, data: dict) -> None:
 ```
 
 默认启用 Api 和 Anti-Spider 相关信息。
+
+
+
+### def get_all_events()
+
+获取日志支持的所有默认事件列表
+
+
+
+**Returns:** `list[str]`:  日志支持的所有默认事件列表
+
 
 
 
@@ -3094,9 +3050,9 @@ async def handle(desc: str, data: dict) -> None:
 | name | type | description |
 | - | - | - |
 | `session` | `object` | 会话对象 |
-| `loop` | `asyncio.AbstractEventLoop` | 事件循环. Defaults to `asyncio.get_event_loop()` |
 | `client` | `str \| None, optional` | 请求客户端类型. Defaults to None. |
 | `instance` | `str \| None, optional` | 请求客户端实例名称. Defaults to None. |
+| `loop` | `asyncio.AbstractEventLoop \| None, optional` | 事件循环，不提供则采用当前事件循环. Defaults to None. |
 
 
 
@@ -3168,9 +3124,9 @@ async def handle(desc: str, data: dict) -> None:
 
 | name | type | description |
 | - | - | - |
-| `loop` | `asyncio.AbstractEventLoop` | 事件循环. Defaults to `asyncio.get_event_loop()` |
 | `client` | `str \| None, optional` | 请求客户端类型. Defaults to None. |
 | `instance` | `str \| None, optional` | 请求客户端实例名称. Defaults to None. |
+| `loop` | `asyncio.AbstractEventLoop \| None, optional` | 事件循环，不提供则采用当前事件循环. Defaults to None. |
 
 
 
