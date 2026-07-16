@@ -89,6 +89,32 @@ class RequestLog(AsyncEvent):
         self.__ignore_events: list[str] = []
         self.add_event_listener("__ALL__", self.__handle_events)
 
+    def get_all_events(self) -> list[str]:
+        """
+        获取日志支持的所有默认事件列表
+
+        Returns:
+            list[str]: 日志支持的所有默认事件列表
+        """
+        return [
+            "REQUEST",
+            "RESPONSE",
+            "WS_CREATE",
+            "WS_RECV",
+            "WS_SEND",
+            "WS_CLOSE",
+            "DWN_CREATE",
+            "DWN_PART",
+            "DWN_CLOSE",
+            "CLOSE",
+            "API_REQUEST",
+            "API_RESPONSE",
+            "ANTI_SPIDER",
+            "DO_PRE_FILTER",
+            "DO_POST_FILTER",
+            "SESSION_MANAGEMENT",
+        ]
+
     def get_on_events(self) -> list[str]:
         """
         获取日志输出支持的事件类型
@@ -151,30 +177,36 @@ class RequestLog(AsyncEvent):
             and evt in self.get_on_events()
             and evt not in self.get_ignore_events()
         ):
+            if evt == "ANTI_SPIDER":
+                self.logger.info(f"{real_data['msg']}")
+                return
+            elif not real_data.get("act_id"):
+                self.logger.info(f"{desc}: {real_data}")
+                return
+            act_id = real_data.pop("act_id")
+            client = real_data.pop("client")
+            instance = real_data.pop("instance")
+            info_str = f"#{act_id} [{client}/{instance}]"
+            log_str = ""
+            middle_str = " "
             if evt.startswith("WS_"):
                 ws_id = real_data.pop("id")
-                self.logger.info(f"WS #{ws_id} {desc}: {real_data}")
+                middle_str += f"WS #{ws_id} "
             elif evt.startswith("DWN_"):
                 dwn_id = real_data.pop("id")
-                self.logger.info(f"DWN #{dwn_id} {desc}: {real_data}")
+                middle_str += f"DWN #{dwn_id} "
             elif evt == "DO_PRE_FILTER":
-                act_id = real_data.pop("id")
-                client = real_data.pop("client")
                 action = real_data.pop("action")
-                self.logger.info(
-                    f"PRE_FILTER [#{act_id} {client}.{action}] {real_data}"
-                )
+                name = real_data.pop("name")
+                priority = real_data.pop("priority")
+                log_str = f"{desc} {action}() <- {name}  (priority: {priority})"
             elif evt == "DO_POST_FILTER":
-                act_id = real_data.pop("id")
-                client = real_data.pop("client")
                 action = real_data.pop("action")
-                self.logger.info(
-                    f"POST_FILTER [#{act_id} {client}.{action}] {real_data}"
-                )
-            elif evt == "ANTI_SPIDER":
-                self.logger.info(f"{real_data['msg']}")
-            else:
-                self.logger.info(f"{desc}: {real_data}")
+                name = real_data.pop("name")
+                priority = real_data.pop("priority")
+                log_str = f"{desc} {action}() -> {name}  (priority: {priority})"
+            log_str = log_str or f"{desc}: {real_data}"
+            self.logger.info(info_str + middle_str + log_str)
 
 
 request_log = RequestLog()
@@ -199,6 +231,7 @@ Events:
 - DWN_CREATE:  新建下载。
 - DWN_PART:    部分下载。
 - DWN_CLOSE:   结束下载。
+- CLOSE:       关闭会话。
 - (Api)
 - API_REQUEST: Api 请求。
 - API_RESPONSE: Api 响应。
@@ -243,13 +276,17 @@ Events:
 - DWN_CREATE:  新建下载。
 - DWN_PART:    部分下载。
 - DWN_CLOSE:   结束下载。
+- CLOSE:       关闭会话。
 - (Api)
 - API_REQUEST: Api 请求。
 - API_RESPONSE: Api 响应。
 - (反爬虫)
 - ANTI_SPIDER: 反爬虫相关信息。
 - (过滤器)
-- DO_FILTER: 执行过滤器。
+- DO_PRE_FILTER: 执行前置过滤器。
+- DO_POST_FILTER: 执行后置过滤器
+- (会话管理)
+- SESSION_MANAGEMENT: 会话管理相关信息。
 
 CallbackData: 描述 (str) 数据 (dict)
 
@@ -1193,7 +1230,6 @@ loop2id: dict[asyncio.AbstractEventLoop, str] = {}
 id2loop: dict[str, asyncio.AbstractEventLoop] = {}
 loop_lock: dict[str, threading.Lock] = {}
 loop_record_lock = threading.Lock()
-clean_loops: set[asyncio.AbstractEventLoop] = set()
 clean_tasks: set[asyncio.Task] = set()
 
 
@@ -1228,17 +1264,10 @@ class BiliFilterData:
 
     def __init__(self) -> None:
         self.__data: dict[int, Any] = {}
-        self.__adata: dict[int, Any] = {}
-        self.__locks: dict[int, threading.Lock] = {}
-        self.__alocks: dict[int, anyio.Lock] = {}
 
     def _ensure_data(self, idx: int) -> None:
         if self.__data.get(idx) is None:
             self.__data[idx] = {}
-            self.__locks[idx] = threading.Lock()
-        if self.__adata.get(idx) is None:
-            self.__adata[idx] = {}
-            self.__alocks[idx] = anyio.Lock()
 
     def set_data(self, cnt: int, key: str, value: Any) -> None:
         """
@@ -1261,54 +1290,6 @@ class BiliFilterData:
             key (str): 键
         """
         return self.__data[cnt][key]
-
-    def set_data_threadsafe(self, cnt: int, key: str, value: Any) -> None:
-        """
-        设置数据，此函数能保证线程安全。
-
-        Args:
-            cnt (int): 过滤器执行 cnt
-            key (str): 键
-            value (Any): 值
-        """
-        self.__locks[cnt].acquire()
-        self.set_data(cnt, key, value)
-        self.__locks[cnt].release()
-
-    def aset_data(self, cnt: int, key: str, value: Any) -> None:
-        """
-        （供异步过滤器使用）设置数据
-
-        Args:
-            cnt (int): 过滤器执行 cnt
-            key (str): 键
-            value (Any): 值
-        """
-        self._ensure_data(cnt)
-        self.__adata[cnt][key] = value
-
-    def aget_data(self, cnt: int, key: str) -> Any:
-        """
-        （供异步过滤器使用）获取数据
-
-        Args:
-            cnt (int): 过滤器执行 cnt
-            key (str): 键
-        """
-        return self.__adata[cnt][key]
-
-    async def aset_data_threadsafe(self, cnt: int, key: str, value: Any) -> None:
-        """
-        （供异步过滤器使用）设置数据，此函数能保证线程安全。
-
-        Args:
-            cnt (int): 过滤器执行 cnt
-            key (str): 键
-            value (Any): 值
-        """
-        await self.__alocks[cnt].acquire()
-        self.aset_data(cnt, key, value)
-        self.__alocks[cnt].release()
 
 
 @dataclass
@@ -1524,10 +1505,9 @@ class _BiliAPIClient:
             return lambda arg: self.__force_settings.set(key.lstrip("set_"), arg)
 
         global client_func_cnt
-        client_lock.acquire()
-        client_func_cnt += 1
-        cnt = client_func_cnt
-        client_lock.release()
+        with client_lock:
+            client_func_cnt += 1
+            cnt = client_func_cnt
 
         def arg_convert(args, kwargs) -> dict:
             # convert args to kwargs
@@ -1564,10 +1544,11 @@ class _BiliAPIClient:
                 while i < len(pres):
                     pre = pres[i]
                     log = {
-                        "id": cnt,
+                        "act_id": cnt,
                         "name": pre["name"],
                         "priority": pre["priority"],
                         "client": self.__client__,
+                        "instance": self.__instance__,
                         "action": key,
                     }
                     request_log.dispatch("DO_PRE_FILTER", "执行前置过滤器", log)
@@ -1595,10 +1576,11 @@ class _BiliAPIClient:
                 while j < len(pres):
                     post = posts[j]
                     log = {
-                        "id": cnt,
+                        "act_id": cnt,
                         "name": post["name"],
                         "priority": post["priority"],
                         "client": self.__client__,
+                        "instance": self.__instance__,
                         "action": key,
                     }
                     request_log.dispatch("DO_POST_FILTER", "执行后置过滤器", log)
@@ -1641,10 +1623,11 @@ class _BiliAPIClient:
                 while i < len(pres):
                     pre = pres[i]
                     log = {
-                        "id": cnt,
+                        "act_id": cnt,
                         "name": pre["name"],
                         "priority": pre["priority"],
                         "client": self.__client__,
+                        "instance": self.__instance__,
                         "action": key,
                     }
                     request_log.dispatch("DO_PRE_FILTER", "执行前置过滤器", log)
@@ -1681,10 +1664,11 @@ class _BiliAPIClient:
                 while j < len(posts):
                     post = posts[j]
                     log = {
-                        "id": cnt,
+                        "act_id": cnt,
                         "name": post["name"],
                         "priority": post["priority"],
                         "client": self.__client__,
+                        "instance": self.__instance__,
                         "action": key,
                     }
                     request_log.dispatch("DO_POST_FILTER", "执行后置过滤器", log)
@@ -1735,15 +1719,14 @@ def event_loop_to_str(loop: asyncio.AbstractEventLoop) -> str:
     global loop2id, loop_lock
     if loop2id.get(loop):
         return loop2id[loop]
-    loop_record_lock.acquire()
-    if loop2id.get(loop):
-        return loop2id[loop]
-    loop_name = "AbstractEventLoop-" + str(time.time_ns())
-    loop2id[loop] = loop_name
-    id2loop[loop_name] = loop
-    loop_lock[loop_name] = threading.Lock()
-    loop_record_lock.release()
-    return loop_name
+    with loop_record_lock:
+        if loop2id.get(loop):
+            return loop2id[loop]
+        loop_name = "AbstractEventLoop-" + str(time.time_ns())
+        loop2id[loop] = loop_name
+        id2loop[loop_name] = loop
+        loop_lock[loop_name] = threading.Lock()
+        return loop_name
 
 
 def get_event_loop() -> str:
@@ -1765,18 +1748,19 @@ class _BiliAPIClientGroup:
 
     def ensure_client(self, loop: str | None = None) -> _BiliAPIClient:
         loop = loop if loop else get_event_loop()
-        loop_lock[loop].acquire()
-        client = self.__session_pool.get(loop)
-        if client is None:
-            settings = RequestSettings()
-            settings.sets(DEFAULT_SETTINGS)
-            settings.sets(optional_settings[self.__client__])
-            settings.sets(self.__base_settings.get_all())
-            client = _BiliAPIClient(self.__client__, self.__instance__, settings, None)
-            client._get_force_settings().sets(self.__force_settings.get_all())
-            self.__session_pool[loop] = client
-        loop_lock[loop].release()
-        return client
+        with loop_lock[loop]:
+            client = self.__session_pool.get(loop)
+            if client is None:
+                settings = RequestSettings()
+                settings.sets(DEFAULT_SETTINGS)
+                settings.sets(optional_settings[self.__client__])
+                settings.sets(self.__base_settings.get_all())
+                client = _BiliAPIClient(
+                    self.__client__, self.__instance__, settings, None
+                )
+                client._get_force_settings().sets(self.__force_settings.get_all())
+                self.__session_pool[loop] = client
+            return client
 
     def set_session(self, session: Any, loop: str | None = None) -> None:
         loop = loop if loop else get_event_loop()
@@ -1819,23 +1803,11 @@ class _BiliAPIClientGroup:
     def force_sets(self, settings: dict) -> None:
         self.__force_settings.sets(settings)
 
-    def clean(self) -> None:
-        global clean_loops, clean_tasks
-
-        def close(pool: dict[str, _BiliAPIClient]):
-            for loop_id, client in pool.items():
-                loop = id2loop[loop_id]
-                if not loop.is_closed():
-                    clean_loops.add(loop)
-                    task = loop.create_task(client.close())
-                    clean_tasks.add(task)
-                    task.add_done_callback(clean_tasks.discard)
-                    task.add_done_callback(
-                        lambda *args, **kwargs: self.__session_pool.pop(loop_id)
-                    )
-
-        close(self.__session_pool)
-        close(self.__set_session_pool)
+    async def clean(self) -> None:
+        for _, client in self.__session_pool.items():
+            await client.close()
+        for _, client in self.__set_session_pool.items():
+            await client.close()
 
 
 sessions: dict[str, type["BiliAPIClient"]] = {}
@@ -2303,9 +2275,22 @@ def __clean() -> None:
     """
     程序退出清理操作。
     """
-    for _, instances in client_groups.items():
-        for _, instance in instances.items():
-            instance.clean()
+    try:
+        loop = asyncio.get_event_loop()
+    except RuntimeError:
+        return
+
+    async def __clean_task():
+        for _, instances in client_groups.items():
+            for _, instance in instances.items():
+                await instance.clean()
+
+    if loop.is_running():
+        task = loop.create_task(__clean_task())
+        clean_tasks.add(task)
+        task.add_done_callback(clean_tasks.discard)
+    elif not loop.is_closed():
+        loop.run_until_complete(__clean_task())
 
 
 ################################################## END Session Management ##################################################
@@ -3466,76 +3451,95 @@ async def _get_bili_ticket(credential: Credential) -> tuple[str, int]:
 
 def __register_builtin_log_filters():
     def log_pre(args: BiliFilterArgs):
+        running_info = {
+            "act_id": args.cnt,
+            "client": args.client,
+            "instance": args.instance,
+        }
         match args.func:
             case "request":
                 request_log.dispatch(
                     "REQUEST",
-                    f"#{args.cnt} [{args.client}/{args.instance}] 发起请求",
-                    args.params,
+                    "发起请求",
+                    args.params | running_info,
                 )
             case "ws_send":
                 request_log.dispatch(
                     "WS_SEND",
-                    f"#{args.cnt} [{args.client}/{args.instance}] 发送 WebSocket 请求",
-                    {"id": args.params["cnt"], "data": args.params["data"]},
+                    "发送 WebSocket 请求",
+                    {"id": args.params["cnt"], "data": args.params["data"]}
+                    | running_info,
                 )
             case "ws_close":
                 request_log.dispatch(
                     "WS_CLOSE",
-                    f"#{args.cnt} [{args.client}/{args.instance}] 关闭 WebSocket 请求",
-                    {"id": args.params["cnt"]},
+                    "关闭 WebSocket 请求",
+                    {"id": args.params["cnt"]} | running_info,
+                )
+            case "download_close":
+                request_log.dispatch(
+                    "DWN_CLOSE",
+                    "结束下载",
+                    {"id": args.params["cnt"]} | running_info,
+                )
+            case "close":
+                request_log.dispatch(
+                    "CLOSE",
+                    "关闭会话",
+                    running_info,
                 )
         return BiliFilterReturn.continue_exec()
 
     def log_post(args: BiliFilterArgs):
+        running_info = {
+            "act_id": args.cnt,
+            "client": args.client,
+            "instance": args.instance,
+        }
         match args.func:
             case "request":
                 request_log.dispatch(
                     "RESPONSE",
-                    f"#{args.cnt} [{args.client}/{args.instance}] 获得响应",
+                    "获得响应",
                     {
                         "code": args.ret.code,
                         "headers": args.ret.headers,
                         "cookies": args.ret.cookies,
                         "data": args.ret.raw,
                         "url": args.ret.url,
-                    },
+                    }
+                    | running_info,
+                )
+            case "ws_create":
+                args.params["id"] = args.ret
+                request_log.dispatch(
+                    "WS_CREATE",
+                    "开始 WebSocket 连接",
+                    args.params | running_info,
                 )
             case "download_create":
-                args.params.update({"id": args.ret})
+                args.params["id"] = args.ret
                 request_log.dispatch(
                     "DWN_CREATE",
-                    f"#{args.cnt} [{args.client}/{args.instance}] 开始下载",
-                    args.params,
+                    "开始下载",
+                    args.params | running_info,
                 )
             case "download_chunk":
                 request_log.dispatch(
                     "DWN_PART",
-                    f"#{args.cnt} [{args.client}/{args.instance}] 收到部分下载数据",
-                    {"id": args.params["cnt"], "data": args.ret},
-                )
-            case "download_close":
-                request_log.dispatch(
-                    "DWN_CLOSE",
-                    f"#{args.cnt} [{args.client}/{args.instance}] 结束下载",
-                    {"id": args.params["cnt"]},
-                )
-            case "ws_create":
-                args.params.update({"id": args.ret})
-                request_log.dispatch(
-                    "WS_CREATE",
-                    f"#{args.cnt} [{args.client}/{args.instance}] 开始 WebSocket 连接",
-                    args.params,
+                    "收到部分下载数据",
+                    {"id": args.params["cnt"], "data": args.ret} | running_info,
                 )
             case "ws_recv":
                 request_log.dispatch(
                     "WS_RECV",
-                    f"#{args.cnt} [{args.client}/{args.instance}] 收到 WebSocket 数据",
+                    "收到 WebSocket 数据",
                     {
                         "id": args.params["cnt"],
                         "data": args.ret[0],
                         "flags": args.ret[1].value,
-                    },
+                    }
+                    | running_info,
                 )
         return BiliFilterReturn.continue_exec()
 
