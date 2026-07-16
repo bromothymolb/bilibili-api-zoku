@@ -1191,7 +1191,8 @@ client_func_cnt = 0
 client_lock = threading.Lock()
 loop2id: dict[asyncio.AbstractEventLoop, str] = {}
 id2loop: dict[str, asyncio.AbstractEventLoop] = {}
-loop_lock: dict[str, anyio.Lock] = {}
+loop_lock: dict[str, threading.Lock] = {}
+loop_record_lock = threading.Lock()
 clean_loops: set[asyncio.AbstractEventLoop] = set()
 clean_tasks: set[asyncio.Task] = set()
 
@@ -1734,10 +1735,14 @@ def event_loop_to_str(loop: asyncio.AbstractEventLoop) -> str:
     global loop2id, loop_lock
     if loop2id.get(loop):
         return loop2id[loop]
+    loop_record_lock.acquire()
+    if loop2id.get(loop):
+        return loop2id[loop]
     loop_name = "AbstractEventLoop-" + str(time.time_ns())
     loop2id[loop] = loop_name
     id2loop[loop_name] = loop
-    loop_lock[loop_name] = anyio.Lock()
+    loop_lock[loop_name] = threading.Lock()
+    loop_record_lock.release()
     return loop_name
 
 
@@ -1760,6 +1765,7 @@ class _BiliAPIClientGroup:
 
     def ensure_client(self, loop: str | None = None) -> _BiliAPIClient:
         loop = loop if loop else get_event_loop()
+        loop_lock[loop].acquire()
         client = self.__session_pool.get(loop)
         if client is None:
             settings = RequestSettings()
@@ -1769,6 +1775,7 @@ class _BiliAPIClientGroup:
             client = _BiliAPIClient(self.__client__, self.__instance__, settings, None)
             client._get_force_settings().sets(self.__force_settings.get_all())
             self.__session_pool[loop] = client
+        loop_lock[loop].release()
         return client
 
     def set_session(self, session: Any, loop: str | None = None) -> None:
