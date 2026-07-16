@@ -186,7 +186,8 @@ class RequestLog(AsyncEvent):
             act_id = real_data.pop("act_id")
             client = real_data.pop("client")
             instance = real_data.pop("instance")
-            info_str = f"#{act_id} [{client}/{instance}]"
+            loop = real_data.pop("event_loop")
+            info_str = f"#{act_id} [{client}/{instance}] {loop}"
             log_str = ""
             middle_str = " "
             if evt.startswith("WS_"):
@@ -1226,6 +1227,7 @@ class BiliAPIClient(ABC):
 
 client_func_cnt = 0
 client_lock = threading.Lock()
+loop_cnt = 0
 loop2id: dict[asyncio.AbstractEventLoop, str] = {}
 id2loop: dict[str, asyncio.AbstractEventLoop] = {}
 loop_lock: dict[str, threading.Lock] = {}
@@ -1307,6 +1309,7 @@ class BiliFilterArgs:
         cnt (int): 过滤器执行编号，一个编号对应一次函数调用
         data (FilterData): 用于数据交换的 FilterData 实例
         settings (dict): 请求客户端相关设置
+        event_loop (str): 请求客户端的事件循环，对应模块内部编号
     """
 
     client: str
@@ -1318,6 +1321,7 @@ class BiliFilterArgs:
     cnt: int
     data: BiliFilterData
     settings: dict
+    event_loop: str
 
 
 class BiliFilterReturn:
@@ -1461,6 +1465,7 @@ class _BiliAPIClient:
         client_instance: str,
         client_settings: RequestSettings,
         client_session: Any,
+        event_loop: str,
     ) -> None:
         self.__client__: str = client_name
         self.__instance__: str = client_instance
@@ -1473,6 +1478,7 @@ class _BiliAPIClient:
         self.__base_settings._set_base()
         self.__force_settings = RequestSettings()
         self.__data = BiliFilterData()
+        self.__event_loop = event_loop
 
     def _get_base_settings(self) -> RequestSettings:
         # merge global settings to local settings
@@ -1538,6 +1544,7 @@ class _BiliAPIClient:
                     cnt=cnt,
                     data=self.__data,
                     settings=self.__base_settings.get_all(),
+                    event_loop=self.__event_loop,
                 )
                 pres = get_registered_pre_filters(in_priority=True)
                 i = 0
@@ -1550,6 +1557,7 @@ class _BiliAPIClient:
                         "client": self.__client__,
                         "instance": self.__instance__,
                         "action": key,
+                        "event_loop": self.__event_loop,
                     }
                     request_log.dispatch("DO_PRE_FILTER", "执行前置过滤器", log)
                     try:
@@ -1582,6 +1590,7 @@ class _BiliAPIClient:
                         "client": self.__client__,
                         "instance": self.__instance__,
                         "action": key,
+                        "event_loop": self.__event_loop,
                     }
                     request_log.dispatch("DO_POST_FILTER", "执行后置过滤器", log)
                     try:
@@ -1617,6 +1626,7 @@ class _BiliAPIClient:
                     cnt=cnt,
                     data=self.__data,
                     settings=self.__base_settings.get_all(),
+                    event_loop=self.__event_loop,
                 )
                 pres = get_registered_pre_filters(in_priority=True)
                 i = 0
@@ -1629,6 +1639,7 @@ class _BiliAPIClient:
                         "client": self.__client__,
                         "instance": self.__instance__,
                         "action": key,
+                        "event_loop": self.__event_loop,
                     }
                     request_log.dispatch("DO_PRE_FILTER", "执行前置过滤器", log)
                     flag, after_filter = BiliFilterFlags.CONTINUE, None
@@ -1670,6 +1681,7 @@ class _BiliAPIClient:
                         "client": self.__client__,
                         "instance": self.__instance__,
                         "action": key,
+                        "event_loop": self.__event_loop,
                     }
                     request_log.dispatch("DO_POST_FILTER", "执行后置过滤器", log)
                     flag, after_filter = BiliFilterFlags.CONTINUE, None
@@ -1716,13 +1728,14 @@ def ensure_event_loop() -> asyncio.AbstractEventLoop:
 
 
 def event_loop_to_str(loop: asyncio.AbstractEventLoop) -> str:
-    global loop2id, loop_lock
+    global loop2id, loop_lock, loop_cnt
     if loop2id.get(loop):
         return loop2id[loop]
     with loop_record_lock:
         if loop2id.get(loop):
             return loop2id[loop]
-        loop_name = "AbstractEventLoop-" + str(time.time_ns())
+        loop_name = "asyncio-event-loop-" + str(loop_cnt)
+        loop_cnt += 1
         loop2id[loop] = loop_name
         id2loop[loop_name] = loop
         loop_lock[loop_name] = threading.Lock()
@@ -1756,7 +1769,7 @@ class _BiliAPIClientGroup:
                 settings.sets(optional_settings[self.__client__])
                 settings.sets(self.__base_settings.get_all())
                 client = _BiliAPIClient(
-                    self.__client__, self.__instance__, settings, None
+                    self.__client__, self.__instance__, settings, None, loop
                 )
                 client._get_force_settings().sets(self.__force_settings.get_all())
                 self.__session_pool[loop] = client
@@ -1766,7 +1779,9 @@ class _BiliAPIClientGroup:
         loop = loop if loop else get_event_loop()
         settings = RequestSettings()
         settings.sets(self.__base_settings.get_all())
-        client = _BiliAPIClient(self.__client__, self.__instance__, settings, session)
+        client = _BiliAPIClient(
+            self.__client__, self.__instance__, settings, session, loop
+        )
         client._get_force_settings().sets(self.__force_settings.get_all())
         self.__set_session_pool[loop] = client
 
@@ -3455,6 +3470,7 @@ def __register_builtin_log_filters():
             "act_id": args.cnt,
             "client": args.client,
             "instance": args.instance,
+            "event_loop": args.event_loop,
         }
         match args.func:
             case "request":
@@ -3495,6 +3511,7 @@ def __register_builtin_log_filters():
             "act_id": args.cnt,
             "client": args.client,
             "instance": args.instance,
+            "event_loop": args.event_loop,
         }
         match args.func:
             case "request":
