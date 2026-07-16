@@ -2376,6 +2376,8 @@ class Credential:
     """
 
     _refresh_lock: anyio.Lock = anyio.Lock()
+    _buvid_lock: anyio.Lock = anyio.Lock()
+    _bili_jct_lock: anyio.Lock = anyio.Lock()
 
     b_nut: str | None = None
     b_lsid: str | None = None
@@ -3664,7 +3666,10 @@ async def ensure_buvid(credential: Credential | None = None) -> tuple[str, str, 
         )
         return (credential.buvid3, credential.buvid4, credential.buvid_fp)  # type: ignore
 
-    return await obtain_buvid(credential)
+    async with credential._buvid_lock:
+        if credential.is_buvid_generated():
+            return (credential.buvid3, credential.buvid4, credential.buvid_fp)  # type: ignore
+        return await obtain_buvid(credential)
 
 
 async def obtain_buvid(credential: Credential | None = None) -> tuple[str, str, str]:
@@ -3763,7 +3768,10 @@ async def ensure_bili_ticket(
         )
         return credential.bili_ticket, credential.bili_ticket_expires  # type: ignore
 
-    return await obtain_bili_ticket(credential)
+    async with credential._bili_jct_lock:
+        if credential.is_bili_ticket_valid():
+            return credential.bili_ticket, credential.bili_ticket_expires  # type: ignore
+        return await obtain_bili_ticket(credential)
 
 
 async def obtain_bili_ticket(
