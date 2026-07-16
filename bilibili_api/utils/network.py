@@ -177,7 +177,7 @@ class RequestLog(AsyncEvent):
             and evt in self.get_on_events()
             and evt not in self.get_ignore_events()
         ):
-            if evt == "ANTI_SPIDER":
+            if evt in ["ANTI_SPIDER", "SESSION_MANAGEMENT"]:
                 self.logger.info(f"{real_data['msg']}")
                 return
             elif not real_data.get("act_id"):
@@ -1858,6 +1858,11 @@ def register_client(name: str, cls: type, settings: dict = {}) -> None:
     client_settings[name] += list(settings.keys())
     optional_settings[name] = settings
     new_instance("default", name)
+    request_log.dispatch(
+        "SESSION_MANAGEMENT",
+        "会话管理",
+        {"msg": f"请求库 {name} ({cls}) 注册成功。实例 default 创建成功。"},
+    )
 
 
 def unregister_client(name: str) -> None:
@@ -1871,6 +1876,11 @@ def unregister_client(name: str) -> None:
     try:
         sessions.pop(name)
         client_groups.pop(name)
+        request_log.dispatch(
+            "SESSION_MANAGEMENT",
+            "会话管理",
+            {"msg": f"请求库 {name} 取消注册成功。"},
+        )
     except KeyError:
         raise ArgsException("未找到指定请求客户端。")
 
@@ -1927,6 +1937,11 @@ def new_instance(name: str, client: str | None = None) -> None:
     global client_groups
     client_groups[client][name] = _BiliAPIClientGroup(client, name)
     select_instance(name)
+    request_log.dispatch(
+        "SESSION_MANAGEMENT",
+        "会话管理",
+        {"msg": f"请求库 {name} 实例 {client} 创建成功。"},
+    )
 
 
 def remove_instance(name: str, client: str | None = None) -> None:
@@ -1941,6 +1956,11 @@ def remove_instance(name: str, client: str | None = None) -> None:
     global client_groups
     try:
         client_groups[client].pop(name)
+        request_log.dispatch(
+            "SESSION_MANAGEMENT",
+            "会话管理",
+            {"msg": f"请求库 {name} 实例 {client} 移除成功。"},
+        )
     except KeyError:
         raise ArgsException("未找到指定请求客户端实例。")
 
@@ -2085,10 +2105,18 @@ def get_client(client: str | None = None, instance: str | None = None) -> BiliAP
     Returns:
         BiliAPIClient: 请求客户端
     """
-    client = client if client else get_selected_client()[0]
-    instance = instance if instance else get_selected_instance()
+    client_msg, instance_msg = "", ""
+    client = client or get_selected_client()[1 - bool(client_msg := "(已选择)")] # type: ignore
+    instance = (
+        instance or (get_selected_instance(),)[1 - bool(instance_msg := "(已选择)")]
+    )
+    request_log.dispatch(
+        "SESSION_MANAGEMENT",
+        "会话管理",
+        {"msg": f"获取请求库 {client}{client_msg} 实例 {instance}{instance_msg}。"},
+    )
     try:
-        group = client_groups[client][instance]
+        group = client_groups[client][instance] # type: ignore
     except KeyError:
         raise Exception("未找到对应请求客户端实例")
     return group.get_client()  # type: ignore
