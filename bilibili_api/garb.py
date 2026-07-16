@@ -58,7 +58,7 @@ async def search_garb_dlc_raw(
     Returns:
         dict: 调用 API 返回的结果。
     """
-    credential = credential if credential else Credential()
+    credential = credential or Credential()
     api = API["common"]["search"]
     params = {
         "key_word": keyword,
@@ -86,7 +86,7 @@ class DLC:
         self.__act_id = act_id
         self.__lottery_id = None
         self.__basic_info = None
-        self.credential = credential if credential else Credential()
+        self.credential = credential or Credential()
         if dlc_lottery_id.get(self.__act_id):
             self.__lottery_id = dlc_lottery_id[self.__act_id]
 
@@ -173,7 +173,7 @@ class Garb:
             credential (Credential | None, optional): 凭据类. Defaults to None.
         """
         self.__item_id = item_id
-        self.credential = credential if credential else Credential()
+        self.credential = credential or Credential()
 
     def get_item_id(self) -> int:
         """
@@ -225,7 +225,7 @@ async def search_garb_dlc_obj(
     Returns:
         list[garb.DLC | garb.Garb]: 装扮/收藏集对象列表
     """
-    credential = credential if credential else Credential()
+    credential = credential or Credential()
     res = await search_garb_dlc_raw(
         keyword=keyword, pn=pn, ps=ps, credential=credential
     )
@@ -255,7 +255,7 @@ async def search_garb_dlc(
     Returns:
         list[tuple[dict, garb.DLC | garb.Garb]]: 装扮/收藏集信息与装扮/收藏集对象列表
     """
-    credential = credential if credential else Credential()
+    credential = credential or Credential()
     res = await search_garb_dlc_raw(
         keyword=keyword, pn=pn, ps=ps, credential=credential
     )
@@ -290,7 +290,7 @@ async def get_garb_dlc_items_raw(
     Returns:
         dict: 调用 API 返回的结果
     """
-    credential = credential if credential else Credential()
+    credential = credential or Credential()
     api = API["common"]["list"]
     params = {
         "sort_type": sort.value,
@@ -323,7 +323,7 @@ async def get_garb_dlc_items_obj(
     Returns:
         list[garb.DLC | garb.Garb]: 装扮/收藏集对象列表
     """
-    credential = credential if credential else Credential()
+    credential = credential or Credential()
     res = await get_garb_dlc_items_raw(
         type_=type_, sort=sort, pn=pn, ps=ps, credential=credential
     )
@@ -358,7 +358,7 @@ async def get_garb_dlc_items(
     Returns:
         list[tuple[dict, garb.DLC | garb.Garb]]: 装扮/收藏集信息与装扮/收藏集对象列表
     """
-    credential = credential if credential else Credential()
+    credential = credential or Credential()
     res = await get_garb_dlc_items_raw(
         type_=type_, sort=sort, pn=pn, ps=ps, credential=credential
     )

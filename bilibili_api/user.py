@@ -222,7 +222,7 @@ async def name2uid(
     Returns:
         dict: 调用 API 返回的结果
     """
-    credential = credential if credential else Credential()
+    credential = credential or Credential()
     credential.raise_for_no_sessdata()
     if isinstance(names, str):
         n = names

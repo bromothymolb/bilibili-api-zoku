@@ -100,7 +100,7 @@ class Vote:
             credential (Credential | None, optional): 凭据类，非必要. Defaults to None.
         """
         self.__vote_id = vote_id
-        self.credential: Credential = credential if credential else Credential()
+        self.credential: Credential = credential or Credential()
         self.title: str | None = None
 
     def get_vote_id(self) -> int:

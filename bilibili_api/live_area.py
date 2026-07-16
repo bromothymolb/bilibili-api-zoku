@@ -145,7 +145,7 @@ async def get_list_by_area(
     Returns:
         dict: 调用 API 返回的结果
     """
-    credential = credential if credential else Credential()
+    credential = credential or Credential()
     api = API["info"]["list"]
     parent_area_id = get_area_info_by_id(area_id)[0]["id"]  # type: ignore
     area_id = 0 if (get_area_info_by_id(area_id)[1] is None) else area_id

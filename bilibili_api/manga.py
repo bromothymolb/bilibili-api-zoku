@@ -148,7 +148,7 @@ class Manga:
             manga_id (int): 漫画 id
             credential (Credential | None, optional): 凭据类. Defaults to None.
         """
-        credential = credential if credential else Credential()
+        credential = credential or Credential()
         self.__manga_id = manga_id
         self.credential: Credential = credential
         self.__info: dict | None = None
@@ -420,7 +420,7 @@ async def get_followed_manga(
     Returns:
         list[manga.Manga]: 追漫列表
     """
-    credential = credential if credential else Credential()
+    credential = credential or Credential()
     credential.raise_for_no_sessdata()
     api = API["info"]["followed_manga"]
     params = {"device": "pc", "platform": "web", "nov": 25}
@@ -551,7 +551,7 @@ async def get_manga_update(
     Returns:
         list[manga.Manga]: 漫画列表
     """
-    credential = credential if credential else Credential()
+    credential = credential or Credential()
     api = API["info"]["update"]
     params = {"device": "pc", "platform": "web", "nov": 25}
     if isinstance(date, datetime.datetime):
@@ -580,7 +580,7 @@ async def get_manga_home_recommend(
     Returns:
         list[manga.Manga]: 漫画列表
     """
-    credential = credential if credential else Credential()
+    credential = credential or Credential()
     api = API["info"]["home_recommend"]
     params = {"device": "pc", "platform": "web", "nov": 25}
     data = {"page_num": pn, "seed": seed}

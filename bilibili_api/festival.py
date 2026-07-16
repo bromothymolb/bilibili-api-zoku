@@ -24,7 +24,7 @@ class Festival:
             credential (Credential | None, optional): 凭据类. Defaults to None.
         """
         self.fes_id = fes_id
-        self.credential: Credential = credential if credential else Credential()
+        self.credential: Credential = credential or Credential()
 
     async def get_info(self) -> dict:
         """

@@ -118,7 +118,7 @@ class WatchRoom:
             room_id (int): 放映室 id
             credential (Credential | None, optional): 凭据类 (大部分用户操作都需要与之匹配的 buvid3 值，务必在 credential 传入). Defaults to None.
         """
-        credential = credential if credential else Credential()
+        credential = credential or Credential()
         self.__room_id = room_id
         self.__season_id: int | None = None
         self.__episode_id: int | None = None

@@ -53,8 +53,8 @@ async def fetch_session_msgs(
         "talker_id": talker_id,
         "session_type": session_type,
         "size": size,
-        "begin_seqno": begin_seqno if begin_seqno else "",
-        "end_seqno": end_seqno if end_seqno else "",
+        "begin_seqno": begin_seqno or "",
+        "end_seqno": end_seqno or "",
     }
     api = API["session"]["fetch"]
 

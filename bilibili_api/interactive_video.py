@@ -637,7 +637,7 @@ class InteractiveVideo(Video):
         Returns:
             dict: 调用 API 返回的结果
         """
-        credential = self.credential if self.credential else Credential()
+        credential = self.credential or Credential()
         api = API["info"]["videolist"]
         params = {"bvid": self.get_bvid()}
         return await Api(**api, credential=credential).update_params(**params).result
@@ -652,7 +652,7 @@ class InteractiveVideo(Video):
         Returns:
             dict: 调用 API 返回的结果
         """
-        credential = self.credential if self.credential else Credential()
+        credential = self.credential or Credential()
         api = API["operate"]["savestory"]
         form_data = {"preview": "0", "data": story_tree, "csrf": credential.bili_jct}
         headers = {
@@ -847,7 +847,7 @@ class InteractiveVideoDownloader(AsyncEvent):
         super().__init__()
         self.__video = video
         self.__download_func = (
-            self_download_func if self_download_func else self.__download
+            self_download_func or self.__download
         )
         self.__task = None
         self.__out = out

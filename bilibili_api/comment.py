@@ -137,7 +137,7 @@ class Comment:
         self.__oid = oid
         self.__rpid = rpid
         self.__type = type_
-        self.credential: Credential = credential if credential else Credential()
+        self.credential: Credential = credential or Credential()
 
     def __get_data(self, status: bool) -> dict:
         """
@@ -441,7 +441,7 @@ async def get_comments(
     Returns:
         dict: 调用 API 返回的结果
     """
-    credential = credential if credential else Credential()
+    credential = credential or Credential()
     if page_index <= 0:
         raise ArgsException("page_index 必须大于或等于 1")
 
@@ -472,7 +472,7 @@ async def get_comments_lazy(
     Returns:
         dict: 调用 API 返回的结果
     """
-    credential = credential if credential else Credential()
+    credential = credential or Credential()
     offset = offset.replace('"', '\\"')
     offset = '{"offset":"' + offset + '"}'
     old_to_new = {0: 2, 2: 3}

@@ -646,13 +646,13 @@ class AudioUploader(AsyncEvent):
             "style_type_id": self.meta.style.value if self.meta.style else 0,
             "theme_type_id": self.meta.theme.value if self.meta.theme else 0,
             "language_type_id": self.meta.language.value if self.meta.language else 0,
-            "origin_title": self.meta.origin_title if self.meta.origin_title else "",
-            "origin_url": self.meta.origin_url if self.meta.origin_url else "",
-            "avid": self.meta.aid if self.meta.aid else "",
-            "tid": self.meta.tid if self.meta.tid else "",
-            "cid": self.meta.cid if self.meta.cid else "",
+            "origin_title": self.meta.origin_title or "",
+            "origin_url": self.meta.origin_url or "",
+            "avid": self.meta.aid or "",
+            "tid": self.meta.tid or "",
+            "cid": self.meta.cid or "",
             "compilation_id": (
-                self.meta.compilation_id if self.meta.compilation_id else ""
+                self.meta.compilation_id or ""
             ),
             "title": self.meta.title,
             "intro": self.meta.desc,
@@ -661,7 +661,7 @@ class AudioUploader(AsyncEvent):
                     "m_type": 1,  # 歌手
                     "members": [
                         {"name": singer.name, "mid": singer.uid}
-                        for singer in (self.meta.singer if self.meta.singer else [])
+                        for singer in (self.meta.singer or [])
                     ],
                 },
                 {
@@ -669,7 +669,7 @@ class AudioUploader(AsyncEvent):
                     "members": [
                         {"name": lyricist.name, "mid": lyricist.uid}
                         for lyricist in (
-                            self.meta.lyricist if self.meta.lyricist else []
+                            self.meta.lyricist or []
                         )
                     ],
                 },
@@ -678,7 +678,7 @@ class AudioUploader(AsyncEvent):
                     "members": [
                         {"name": composer.name, "mid": composer.uid}
                         for composer in (
-                            self.meta.composer if self.meta.composer else []
+                            self.meta.composer or []
                         )
                     ],
                 },  # 作曲
@@ -687,7 +687,7 @@ class AudioUploader(AsyncEvent):
                     "members": [
                         {"name": arranger.name, "mid": arranger.uid}
                         for arranger in (
-                            self.meta.arranger if self.meta.arranger else []
+                            self.meta.arranger or []
                         )
                     ],
                 },  # 编曲
@@ -695,7 +695,7 @@ class AudioUploader(AsyncEvent):
                     "m_type": 5,
                     "members": [
                         {"name": mixer.name, "mid": mixer.uid}
-                        for mixer in (self.meta.mixer if self.meta.mixer else [])
+                        for mixer in (self.meta.mixer or [])
                     ],
                 },  # 混音只能填一个人，你问我为什么我不知道
                 {
@@ -703,7 +703,7 @@ class AudioUploader(AsyncEvent):
                     "members": [
                         {"name": cover_maker.name, "mid": cover_maker.uid}
                         for cover_maker in (
-                            self.meta.cover_maker if self.meta.cover_maker else []
+                            self.meta.cover_maker or []
                         )
                     ],
                 },  # 本家作者
@@ -712,7 +712,7 @@ class AudioUploader(AsyncEvent):
                     "members": [
                         {"name": cover_maker.name, "mid": cover_maker.uid}
                         for cover_maker in (
-                            self.meta.cover_maker if self.meta.cover_maker else []
+                            self.meta.cover_maker or []
                         )
                     ],  # FIXME: 显然不对
                 },  # 封面
@@ -721,7 +721,7 @@ class AudioUploader(AsyncEvent):
                     "members": [
                         {"name": sound_source.name, "mid": sound_source.uid}
                         for sound_source in (
-                            self.meta.sound_source if self.meta.sound_source else []
+                            self.meta.sound_source or []
                         )
                     ],
                 },  # 音源
@@ -729,14 +729,14 @@ class AudioUploader(AsyncEvent):
                     "m_type": 9,
                     "members": [
                         {"name": tuning.name, "mid": tuning.uid}
-                        for tuning in (self.meta.tuning if self.meta.tuning else [])
+                        for tuning in (self.meta.tuning or [])
                     ],
                 },  # 调音
                 {
                     "m_type": 10,
                     "members": [
                         {"name": player.name, "mid": player.uid}
-                        for player in (self.meta.player if self.meta.player else [])
+                        for player in (self.meta.player or [])
                     ],
                 },  # 演奏
                 {
@@ -744,7 +744,7 @@ class AudioUploader(AsyncEvent):
                     "members": [
                         {"name": instrument}
                         for instrument in (
-                            self.meta.instrument if self.meta.instrument else []
+                            self.meta.instrument or []
                         )
                     ],
                 },  # 乐器

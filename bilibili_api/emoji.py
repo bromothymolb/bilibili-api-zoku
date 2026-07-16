@@ -23,7 +23,7 @@ async def get_emoji_list(
     Returns:
         dict: 调用 API 返回的结果
     """
-    credential = credential if credential else Credential()
+    credential = credential or Credential()
     api = API["list"]
     params = {"business": business}
     return await Api(**api, credential=credential).update_params(**params).result
@@ -61,7 +61,7 @@ async def get_all_emoji(
     Returns:
         dict: 调用 API 返回的结果
     """
-    credential = credential if credential else Credential()
+    credential = credential or Credential()
     credential.raise_for_no_sessdata()
     api = API["all"]
     params = {"business": business}
@@ -79,7 +79,7 @@ async def add_emoji(package_id: int, credential: Credential | None = None) -> di
     Returns:
         dict: 调用 API 返回的结果
     """
-    credential = credential if credential else Credential()
+    credential = credential or Credential()
     credential.raise_for_no_sessdata()
     api = API["add"]
     params = {

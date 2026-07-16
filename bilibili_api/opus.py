@@ -34,7 +34,7 @@ class Opus:
         """
         self.__id = opus_id
         self.__info = None
-        self.credential: Credential = credential if credential else Credential()
+        self.credential: Credential = credential or Credential()
 
     def get_opus_id(self) -> int:
         """

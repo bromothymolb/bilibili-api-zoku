@@ -134,7 +134,7 @@ async def get_zone_videos_count_today(
     Returns:
         dict: 调用 API 返回的结果
     """
-    credential = credential if credential else Credential()
+    credential = credential or Credential()
     api = API["count"]
     return (await Api(**api, credential=credential).result)["region_count"]
 

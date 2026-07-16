@@ -1322,7 +1322,7 @@ async def get_missions(tid: int = 0, credential: Credential | None = None) -> di
     Returns:
         dict: API 调用返回结果
     """
-    credential = credential if credential else Credential()
+    credential = credential or Credential()
     api = _API["missions"]
     params = {"tid": tid}
     return await Api(**api, credential=credential).update_params(**params).result
@@ -1418,7 +1418,7 @@ class VideoEditor(AsyncEvent):
         super().__init__()
         self.bvid = bvid
         self.meta = meta
-        self.credential: Credential = credential if credential else Credential()
+        self.credential: Credential = credential or Credential()
         self.cover_path = cover
         self.__old_configs = {}
         self.meta["aid"] = bvid2aid(bvid)

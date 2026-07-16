@@ -31,7 +31,7 @@ class Tag:
         """
         self.__tag_id = tag_id
         self.__tag_name = tag_name
-        credential = credential if credential else Credential()
+        credential = credential or Credential()
         self.credential: Credential = credential
 
     async def get_tag_id(self) -> int:

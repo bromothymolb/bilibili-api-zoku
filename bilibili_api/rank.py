@@ -363,7 +363,7 @@ async def get_manga_rank(
     Returns:
         dict: 调用 API 返回的结果
     """
-    credential = credential if credential else Credential()
+    credential = credential or Credential()
     credential.raise_for_no_sessdata()
 
     api = API["info"]["manga_rank"]
@@ -472,7 +472,7 @@ async def subscribe_music_rank(
     Returns:
         dict: 调用 API 返回的结果
     """
-    credential = credential if credential else Credential()
+    credential = credential or Credential()
     credential.raise_for_no_sessdata()
     credential.raise_for_no_bili_jct()
     api = API["operate"]["subscribe"]

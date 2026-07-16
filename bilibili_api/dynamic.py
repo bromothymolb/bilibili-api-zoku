@@ -1176,7 +1176,7 @@ async def get_new_dynamic_users(credential: Credential | None = None) -> dict:
     Returns:
         dict: 调用 API 返回的结果
     """
-    credential = credential if credential else Credential()
+    credential = credential or Credential()
     credential.raise_for_no_sessdata()
     api = API["info"]["attention_new_dynamic"]
     return await Api(**api, credential=credential).result
@@ -1193,7 +1193,7 @@ async def get_live_users(size: int = 10, credential: Credential | None = None) -
     Returns:
         dict: 调用 API 返回的结果
     """
-    credential = credential if credential else Credential()
+    credential = credential or Credential()
     credential.raise_for_no_sessdata()
     api = API["info"]["attention_live"]
     params = {"size": size}

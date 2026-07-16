@@ -1760,7 +1760,7 @@ class _BiliAPIClientGroup:
         self.__instance__ = name
 
     def ensure_client(self, loop: str | None = None) -> _BiliAPIClient:
-        loop = loop if loop else get_event_loop()
+        loop = loop or get_event_loop()
         with loop_lock[loop]:
             client = self.__session_pool.get(loop)
             if client is None:
@@ -1776,7 +1776,7 @@ class _BiliAPIClientGroup:
             return client
 
     def set_session(self, session: Any, loop: str | None = None) -> None:
-        loop = loop if loop else get_event_loop()
+        loop = loop or get_event_loop()
         settings = RequestSettings()
         settings.sets(self.__base_settings.get_all())
         client = _BiliAPIClient(
@@ -1786,7 +1786,7 @@ class _BiliAPIClientGroup:
         self.__set_session_pool[loop] = client
 
     def unset_session(self, loop: str | None = None) -> None:
-        loop = loop if loop else get_event_loop()
+        loop = loop or get_event_loop()
         if not self.__set_session_pool.get(loop):
             return
         del self.__set_session_pool[loop]
@@ -1933,7 +1933,7 @@ def new_instance(name: str, client: str | None = None) -> None:
         name (str): 名称
         client (str | None, optional): BiliAPIClient 类型. Defaults to None.
     """
-    client = client if client else get_selected_client()[0]
+    client = client or get_selected_client()[0]
     global client_groups
     client_groups[client][name] = _BiliAPIClientGroup(client, name)
     select_instance(name)
@@ -1952,7 +1952,7 @@ def remove_instance(name: str, client: str | None = None) -> None:
         name (str): 名称
         client (str | None, optional): BiliAPIClient 类型. Defaults to None.
     """
-    client = client if client else get_selected_client()[0]
+    client = client or get_selected_client()[0]
     global client_groups
     try:
         client_groups[client].pop(name)
@@ -1996,7 +1996,7 @@ def get_instances(client: str | None = None) -> list[str]:
     Returns:
         list[str]: 请求客户端实例名称列表
     """
-    client = client if client else get_selected_client()[0]
+    client = client or get_selected_client()[0]
     return list(client_groups[client].keys())
 
 
@@ -2023,7 +2023,7 @@ def get_available_settings(client: str | None = None) -> list[str]:
     Returns:
         list[str]: 支持的设置项名称
     """
-    client = client if client else get_selected_client()[0]
+    client = client or get_selected_client()[0]
     return client_settings[selected_client]
 
 
@@ -2050,8 +2050,8 @@ def get_instance_settings(
     Returns:
         RequestSettings: 设置类
     """
-    client = client if client else get_selected_client()[0]
-    instance = instance if instance else get_selected_instance()
+    client = client or get_selected_client()[0]
+    instance = instance or get_selected_instance()
     try:
         group = client_groups[client][instance]
     except KeyError:
@@ -2072,8 +2072,8 @@ def get_force_settings(
     Returns:
         RequestSettings: 设置类
     """
-    client = client if client else get_selected_client()[0]
-    instance = instance if instance else get_selected_instance()
+    client = client or get_selected_client()[0]
+    instance = instance or get_selected_instance()
     try:
         group = client_groups[client][instance]
     except KeyError:
@@ -2133,8 +2133,8 @@ def get_session(client: str | None = None, instance: str | None = None) -> objec
     Returns:
         object: 会话对象
     """
-    client = client if client else get_selected_client()[0]
-    instance = instance if instance else get_selected_instance()
+    client = client or get_selected_client()[0]
+    instance = instance or get_selected_instance()
     return get_client(client, instance).get_wrapped_session()
 
 
@@ -2153,8 +2153,8 @@ def set_session(
         instance (str | None, optional): 请求客户端实例名称. Defaults to None.
         loop (asyncio.AbstractEventLoop | None, optional): 事件循环，不提供则采用当前事件循环. Defaults to None.
     """
-    client = client if client else get_selected_client()[0]
-    instance = instance if instance else get_selected_instance()
+    client = client or get_selected_client()[0]
+    instance = instance or get_selected_instance()
     try:
         group = client_groups[client][instance]
     except KeyError:
@@ -2175,8 +2175,8 @@ def unset_session(
         instance (str | None, optional): 请求客户端实例名称. Defaults to None.
         loop (asyncio.AbstractEventLoop | None, optional): 事件循环，不提供则采用当前事件循环. Defaults to None.
     """
-    client = client if client else get_selected_client()[0]
-    instance = instance if instance else get_selected_instance()
+    client = client or get_selected_client()[0]
+    instance = instance or get_selected_instance()
     try:
         group = client_groups[client][instance]
     except KeyError:
@@ -2771,11 +2771,7 @@ class Credential:
         c.buvid4 = cookies.get("buvid4")
         c.dedeuserid = cookies.get("DedeUserID")
         c.dedeuserid_ckmd5 = cookies.get("DedeUserID__ckMd5")
-        c.ac_time_value = (
-            cookies.get("ac_time_value")
-            if cookies.get("ac_time_value")
-            else ac_time_value
-        )
+        c.ac_time_value = cookies.get("ac_time_value") or ac_time_value
         c.b_lsid = cookies.get("b_lsid")
         c.b_nut = cookies.get("b_nut")
         c.uuid_infoc = cookies.get("_uuid")
@@ -3350,7 +3346,7 @@ async def _active_buvid(
 
 
 async def _get_nav(credential: Credential | None = None) -> dict:
-    credential = credential if credential else Credential()
+    credential = credential or Credential()
     api = API["info"]["valid"]
     client = get_client()
     return (
@@ -3687,7 +3683,7 @@ async def ensure_buvid(credential: Credential | None = None) -> tuple[str, str, 
     Returns:
         tuple[str, str, str]: 第 0 项为 buvid3，第 1 项为 buvid4，第 2 项为 buvid_fp。
     """
-    credential = credential if credential else Credential()
+    credential = credential or Credential()
 
     if credential.is_buvid_generated():
         return (credential.buvid3, credential.buvid4, credential.buvid_fp)  # type: ignore
@@ -3733,7 +3729,7 @@ async def obtain_buvid(credential: Credential | None = None) -> tuple[str, str, 
     Returns:
         tuple[str, str, str]: 第 0 项为 buvid3，第 1 项为 buvid4，第 2 项为 buvid_fp。
     """
-    credential = credential if credential else Credential()
+    credential = credential or Credential()
 
     if credential.check_blank() or (
         bili_settings.get_enable_buvid_global_persistence()
@@ -3797,7 +3793,7 @@ async def ensure_bili_ticket(
     Returns:
         tuple[str, str]: bili_ticket, bili_ticket_expires
     """
-    credential = credential if credential else Credential()
+    credential = credential or Credential()
 
     if credential.is_bili_ticket_valid():
         return credential.bili_ticket, credential.bili_ticket_expires  # type: ignore
@@ -3837,7 +3833,7 @@ async def obtain_bili_ticket(
     Returns:
         tuple[str, str]: bili_ticket, bili_ticket_expires
     """
-    credential = credential if credential else Credential()
+    credential = credential or Credential()
 
     if credential.check_blank() or (
         bili_settings.get_enable_bili_ticket_global_persistence()
@@ -3959,7 +3955,7 @@ class Api:
             self.files.keys(), BiliAPIFile(path="", mime_type="")
         )
         self.headers = dict.fromkeys(self.headers.keys(), "")
-        self.credential = self.credential if self.credential else Credential()
+        self.credential = self.credential or Credential()
 
     def update_data(self, **kwargs) -> "Api":
         """
@@ -4081,7 +4077,7 @@ class Api:
         if "callback" in self.params:
             # JSONP 请求
             resp_data: dict = json.loads(
-                re.match("^.*?({.*}).*$", resp_text, re.S).group(1)  # type: ignore
+                re.match("^.*?({.*}).*$", resp_text, re.DOTALL).group(1)  # type: ignore
             )
         else:
             # JSON

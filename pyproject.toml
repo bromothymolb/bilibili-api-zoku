@@ -90,6 +90,7 @@ select = [
   "Q",     # flake8-quotes
   "TID",   # flake8-tidy-imports
   "RUF",   # Ruff-specific rules
+  "FURB",  # refurb
 ]
 ignore = [
   "E402",     # module-import-not-at-top-of-file
@@ -101,6 +102,7 @@ ignore = [
   "RUF002",   # ambiguous-unicode-character-docstring
   "RUF003",   # ambiguous-unicode-character-comment
   "ASYNC240", # blocking-path-method-in-async-function
+  "FURB116",  # f-string-number-format
 ]
 
 [tool.ruff.lint.isort]

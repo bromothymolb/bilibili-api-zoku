@@ -107,7 +107,7 @@ class ArticleList:
             credential (Credential | None, optional): 凭据类. Defaults to None.
         """
         self.__rlid = rlid
-        self.credential: Credential = credential if credential else Credential()
+        self.credential: Credential = credential or Credential()
 
     def get_rlid(self) -> int:
         """
@@ -928,7 +928,7 @@ class CodeNode(Node):
 
     def markdown(self):
         self.code = html.unescape(self.code)
-        return f"```{self.lang if self.lang else ''}\n{self.code}\n```\n\n"
+        return f"```{self.lang or ''}\n{self.code}\n```\n\n"
 
     def json(self):
         self.code = html.unescape(self.code)

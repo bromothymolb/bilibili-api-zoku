@@ -18,7 +18,7 @@ async def get_real_url(short_url: str, credential: Credential | None = None) -> 
     Returns:
         str: 目标链接（如果不是有效的链接会报错）
     """
-    credential = credential if credential else Credential()
+    credential = credential or Credential()
 
     try:
         resp = await get_client().request(method="HEAD", url=short_url)

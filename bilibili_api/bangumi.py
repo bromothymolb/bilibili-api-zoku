@@ -1001,7 +1001,7 @@ class Bangumi:
 
         if media_id == -1 and ssid == -1 and epid == -1:
             raise ValueError("需要 Media_id 或 Season_id 或 epid 中的一个 !")
-        self.credential: Credential = credential if credential else Credential()
+        self.credential: Credential = credential or Credential()
         self.__media_id = media_id
         self.__ssid = ssid
         self.__epid = epid
@@ -1355,7 +1355,7 @@ class Episode(Video):
             credential (Credential | None, optional): 凭据. Defaults to None.
         """
         global episode_data_cache
-        self.credential: Credential = credential if credential else Credential()
+        self.credential: Credential = credential or Credential()
         self.__epid: int = epid
         self.bangumi = None
         self.__ep_aid = None

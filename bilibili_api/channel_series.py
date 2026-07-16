@@ -76,7 +76,7 @@ class ChannelSeries:
         self.is_new = type_.value
         self.id_ = id_
         self.owner = User(self.__uid, credential=credential)
-        self.credential: Credential = credential if credential else Credential()
+        self.credential: Credential = credential or Credential()
         self.meta = None
         if f"{type_.value}-{id_}" in channel_meta_cache.keys():
             self.meta = channel_meta_cache[f"{type_.value}-{id_}"]
@@ -185,7 +185,7 @@ async def create_channel_series(
     """
     from .user import get_self_info
 
-    credential = credential if credential else Credential()
+    credential = credential or Credential()
     credential.raise_for_no_sessdata()
     credential.raise_for_no_bili_jct()
     api = API_USER["channel_series"]["create"]
@@ -308,7 +308,7 @@ async def set_follow_channel_season(
     Returns:
         dict: 调用 API 返回的结果
     """
-    credential = credential if credential else Credential()
+    credential = credential or Credential()
     api = API["operate"]["fav"] if status else API["operate"]["unfav"]
     data = {"season_id": season_id}
     return await Api(**api, credential=credential).update_data(**data).result

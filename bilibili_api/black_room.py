@@ -172,7 +172,7 @@ async def get_blocked_list(
     Returns:
         dict: 调用 API 返回的结果
     """
-    credential = credential if credential else Credential()
+    credential = credential or Credential()
     api = API["black_room"]["info"]
     params = {"pn": pn, "otype": type_.value}
     if from_.value is not None:
@@ -197,7 +197,7 @@ class BlackRoom:
             credential (Credential | None, optional): 凭据类. Defaults to None.
         """
         self.__id = black_room_id
-        self.credential: Credential = credential if credential else Credential()
+        self.credential: Credential = credential or Credential()
 
     async def get_details(self) -> dict:
         """

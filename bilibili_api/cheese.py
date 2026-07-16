@@ -56,7 +56,7 @@ class CheeseList:
             raise ValueError("season id 和 ep id 必须选一个")
         self.__season_id = season_id
         self.__ep_id = ep_id
-        self.credential: Credential = credential if credential else Credential()
+        self.credential: Credential = credential or Credential()
 
     async def __fetch_season_id(self) -> None:
         # self.season_id = str(sync(self.get_meta())["season_id"])
@@ -173,7 +173,7 @@ class CheeseVideo:
             self.__meta = meta
             self.__aid = meta["aid"]
             self.__cid = meta["cid"]
-        self.credential: Credential = credential if credential else Credential()
+        self.credential: Credential = credential or Credential()
 
     async def __fetch_meta(self) -> None:
         api = API["info"]["meta"]
@@ -655,7 +655,7 @@ class CheeseVideo:
             dict: 调用 API 返回的结果。
         """
 
-        danmaku = danmaku if danmaku else Danmaku("")
+        danmaku = danmaku or Danmaku("")
 
         self.credential.raise_for_no_sessdata()
         self.credential.raise_for_no_bili_jct()

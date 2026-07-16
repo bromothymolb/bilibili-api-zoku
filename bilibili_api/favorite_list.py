@@ -77,7 +77,7 @@ class FavoriteList:
         """
         self.__type = type_
         self.__media_id = media_id
-        self.credential: Credential = credential if credential else Credential()
+        self.credential: Credential = credential or Credential()
 
     def is_video_favorite_list(self) -> bool:
         """
@@ -220,7 +220,7 @@ async def get_video_favorite_list(
     Returns:
         dict: 调用 API 返回的结果
     """
-    credential = credential if credential else Credential()
+    credential = credential or Credential()
     api = API["info"]["list_list"]
     params = {"up_mid": uid, "type": 2, "web_location": "333.1387"}
 
@@ -256,7 +256,7 @@ async def get_video_favorite_list_content(
     Returns:
         dict: 调用 API 返回的结果
     """
-    credential = credential if credential else Credential()
+    credential = credential or Credential()
     api = API["info"]["list_content"]
     params = {
         "media_id": media_id,
@@ -594,7 +594,7 @@ async def get_favorite_collected(
     Returns:
         dict: 调用 API 返回的结果。
     """
-    credential = credential if credential else Credential()
+    credential = credential or Credential()
     api = API["info"]["collected"]
     params = {"up_mid": uid, "platform": "web", "pn": pn, "ps": ps}
     return await Api(**api, credential=credential).update_params(**params).result

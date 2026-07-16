@@ -34,7 +34,7 @@ async def get_links(credential: Credential | None = None) -> dict:
     Returns:
         dict: 调用 API 返回的结果
     """
-    credential = credential if credential else Credential()
+    credential = credential or Credential()
     api = API["info"]["links"]
     params = {"pf": 0, "ids": 4694}
     return await Api(**api, credential=credential).update_params(**params).result
@@ -51,7 +51,7 @@ async def get_popularize(credential: Credential | None = None) -> dict:
     Returns:
         dict: 调用 API 返回的结果
     """
-    credential = credential if credential else Credential()
+    credential = credential or Credential()
     api = API["info"]["popularize"]
     params = {"pf": 0, "ids": 34}
     return await Api(**api, credential=credential).update_params(**params).result
@@ -67,7 +67,7 @@ async def get_videos(credential: Credential | None = None) -> dict:
     Returns:
         dict: 调用 API 返回的结果
     """
-    credential = credential if credential else Credential()
+    credential = credential or Credential()
     api = API["info"]["videos"]
     return await Api(**api, credential=credential).result
 
@@ -104,7 +104,7 @@ async def get_favorite_list_content(
     Returns:
         dict: 调用 API 返回的结果
     """
-    credential = credential if credential else Credential()
+    credential = credential or Credential()
     api = API["list"]["resource"]
     params = {"web_location": "333.1007", "platform": "web", "media_id": media_id}
     return await Api(**api, credential=credential).update_params(**params).result

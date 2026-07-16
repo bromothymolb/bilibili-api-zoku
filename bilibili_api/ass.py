@@ -301,7 +301,7 @@ async def request_subtitle_languages(
         AssSubtitleObject: 字幕对象
     """
     # 目测必须得有 Credential 才能获取字幕
-    credential = credential if credential else Credential()
+    credential = credential or Credential()
     if credential.has_sessdata():
         obj.credential = credential
     elif not obj.credential.has_sessdata():
