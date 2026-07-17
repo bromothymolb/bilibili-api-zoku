@@ -86,7 +86,7 @@ from bilibili_api import session
 
 ## class Session()
 
-> Extend: `bilibili_api.utils.AsyncEvent.AsyncEvent`
+> Extend: `bilibili_api.utils.network.AsyncEvent`
 
 会话类，用来开启消息监听。
 
@@ -129,7 +129,7 @@ from bilibili_api import session
 
 | name | type | description |
 | - | - | - |
-| `event_type` | `EventType` | 事件类型 |
+| `event_type` | `str \| EventType` | 事件类型 |
 
 **Returns:** `Callable`:  装饰后的函数
 

@@ -4,20 +4,17 @@ bilibili_api.session
 消息相关
 """
 
-import asyncio
 from collections.abc import Callable
-import datetime
 from enum import Enum
 import json
 import logging
 import time
 
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
+import anyio
 
 from .exceptions import ApiException
 from .user import get_self_info
-from .utils.AsyncEvent import AsyncEvent
-from .utils.network import Api, Credential
+from .utils.network import Api, AsyncEvent, Credential
 from .utils.picture import Picture
 from .utils.utils import get_api
 from .video import Video
@@ -453,9 +450,6 @@ class Session(AsyncEvent):
         # 凭证
         self.credential: Credential = credential
 
-        # 异步定时任务框架
-        self.sched = AsyncIOScheduler(timezone="Asia/Shanghai")
-
         # 已接收的所有事件 用于撤回时找回
         self.events = {}
 
@@ -471,17 +465,21 @@ class Session(AsyncEvent):
             )
             self.logger.addHandler(handler)
 
-    def on(self, event_type: EventType) -> Callable:  # type: ignore
+    def on(self, event_type: str | EventType) -> Callable:  # type: ignore
         """
         重载装饰器注册事件监听器
 
         Args:
-            event_type (EventType): 事件类型
+            event_type (str | EventType): 事件类型
 
         Returns:
             Callable: 装饰后的函数
         """
-        return super().on(event_name=str(event_type.value))
+        return super().on(
+            event_name=str(
+                event_type.value if isinstance(event_type, EventType) else event_type
+            )
+        )
 
     def get_status(self) -> int:
         """
@@ -492,14 +490,14 @@ class Session(AsyncEvent):
         """
         return self.__status
 
-    async def run(self, exclude_self: bool = True) -> None:
+    async def start(self, exclude_self: bool = True) -> None:
         """
-        非阻塞异步爬虫 定时发送请求获取消息
+        阻塞异步启动 通过调用 self.close() 后可断开连接
 
         Args:
             exclude_self (bool, optional): 是否排除自己发出的消息，默认排除. Defaults to True.
         """
-
+        await self.get_task_group()
         # 获取自身UID 用于后续判断消息是发送还是接收
         self_info = await get_self_info(self.credential)
         self.uid = self_info["mid"]
@@ -512,79 +510,69 @@ class Session(AsyncEvent):
         }
 
         # 间隔 6 秒轮询消息列表 之前设置 3 秒询一次 跑了一小时给我账号冻结了
-        @self.sched.scheduled_job(
-            "interval",
-            id="query",
-            seconds=6,
-            max_instances=3,
-            next_run_time=datetime.datetime.now(),
-        )
         async def query():
             js: dict = await new_sessions(self.credential, self.maxTs)
             if js.get("session_list") is None:
                 return
 
-            pending = set()
-            for session in js["session_list"]:
-                self.maxTs = max(self.maxTs, session["session_ts"])
-                pending.add(
-                    asyncio.create_task(
-                        fetch_session_msgs(
+            async def fetch(talker_id, credential, session_type, max_seqno):
+                result = await fetch_session_msgs(
+                    talker_id, credential, session_type, max_seqno
+                )
+                if result is None or result.get("messages") is None:
+                    return
+                for message in result.get("messages", [])[::-1]:
+                    event = Event(message, self.uid)
+                    if event.msg_type == EventType.WITHDRAW.value:
+                        self.logger.info(
+                            str(self.events.get(event.content, f"key={event.content}"))
+                            + f" 被撤回({event.timestamp})"
+                        )
+                    else:
+                        self.logger.info(event)
+
+                    # 自己发出的消息不发布任务
+                    if event.sender_uid != self.uid or not exclude_self:
+                        self.dispatch(str(event.msg_type), event)
+
+                    self.events[str(event.msg_key)] = event
+
+            async with anyio.create_task_group() as tg:
+                for session in js["session_list"]:
+                    self.maxTs = max(self.maxTs, session["session_ts"])
+                    tg.create_task(
+                        fetch(
                             session["talker_id"],
                             self.credential,
                             session["session_type"],
                             self.maxSeqno.get(session["talker_id"]),  # type: ignore
                         )
                     )
-                )
-                self.maxSeqno[session["talker_id"]] = session["max_seqno"]
-
-            while pending:
-                done, pending = await asyncio.wait(pending)
-                for done_task in done:
-                    result: dict = await done_task
-                    if result is None or result.get("messages") is None:
-                        continue
-                    for message in result.get("messages", [])[::-1]:
-                        event = Event(message, self.uid)
-                        if event.msg_type == EventType.WITHDRAW.value:
-                            self.logger.info(
-                                str(
-                                    self.events.get(
-                                        event.content, f"key={event.content}"
-                                    )
-                                )
-                                + f" 被撤回({event.timestamp})"
-                            )
-                        else:
-                            self.logger.info(event)
-
-                        # 自己发出的消息不发布任务
-                        if event.sender_uid != self.uid or not exclude_self:
-                            self.dispatch(str(event.msg_type), event)
-
-                        self.events[str(event.msg_key)] = event
+                    self.maxSeqno[session["talker_id"]] = session["max_seqno"]
 
             self.logger.debug(f"maxTs = {self.maxTs}")
 
         self.__status = 1
-        self.sched.start()
         self.logger.info("开始轮询")
 
-    async def start(self, exclude_self: bool = True) -> None:
+        while self.get_status() < 2:
+            await query()
+            await anyio.sleep(6)
+
+        if self.get_status() == 2:
+            self.__status = 3
+
+        await self.clean_task_group()
+
+    async def run(self, exclude_self: bool = True) -> None:
         """
-        阻塞异步启动 通过调用 self.close() 后可断开连接
+        非阻塞异步爬虫 定时发送请求获取消息
 
         Args:
             exclude_self (bool, optional): 是否排除自己发出的消息，默认排除. Defaults to True.
         """
-
-        await self.run(exclude_self)
-        while self.get_status() < 2:  # noqa: ASYNC110
-            await asyncio.sleep(1)
-
-        if self.get_status() == 2:
-            self.__status = 3
+        task_group = await self.get_task_group()
+        task_group.start_soon(self.start, exclude_self)
 
     async def reply(self, event: Event, content: str | Picture) -> dict:  # type: ignore
         """
@@ -610,7 +598,5 @@ class Session(AsyncEvent):
         """
         结束轮询
         """
-
-        self.sched.remove_job("query")
         self.__status = 2
         self.logger.info("结束轮询")

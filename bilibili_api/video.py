@@ -6,7 +6,6 @@ bilibili_api.video
 注意，同时存在 page_index 和 cid 的参数，两者至少提供一个。
 """
 
-import asyncio
 from dataclasses import dataclass
 import datetime
 from enum import Enum
@@ -18,6 +17,7 @@ import re
 import struct
 from typing import Any
 
+import anyio
 from yarl import URL
 
 from . import user
@@ -28,10 +28,15 @@ from .exceptions import (
     ResponseException,
 )
 from .utils.aid_bvid_transformer import aid2bvid, bvid2aid
-from .utils.AsyncEvent import AsyncEvent
 from .utils.BytesReader import BytesReader
 from .utils.danmaku import Danmaku, SpecialDanmaku
-from .utils.network import Api, BiliWsMsgType, Credential, get_client
+from .utils.network import (
+    Api,
+    AsyncEvent,
+    BiliWsMsgType,
+    Credential,
+    get_client,
+)
 from .utils.utils import get_api, get_data, raise_for_statement
 
 API = get_api("video")
@@ -1996,12 +2001,13 @@ class VideoOnlineMonitor(AsyncEvent):
             self.logger.setLevel(logging.INFO if not debug else logging.DEBUG)
 
             self.__page_index = page_index
-            self.__tasks = []
+            self.__tasks: list[anyio.TaskHandle] = []
 
     async def connect(self) -> None:
         """
         连接服务器
         """
+        await self.get_task_group()
         await self.__main()
 
     async def disconnect(self) -> None:
@@ -2011,6 +2017,7 @@ class VideoOnlineMonitor(AsyncEvent):
         self.logger.info("主动断开连接。")
         self.dispatch("DISCONNECTED")
         await self.__cancel_all_tasks()
+        await self.clean_task_group()
         await self.__client.ws_close(cnt=self.__ws)
 
     async def __main(self):
@@ -2084,7 +2091,7 @@ class VideoOnlineMonitor(AsyncEvent):
                 # 服务器认证反馈。
                 if d["data"]["code"] == 0:
                     # 创建心跳 Task
-                    heartbeat = asyncio.create_task(self.__heartbeat_task())
+                    heartbeat = (await self.get_task_group()).create_task(self.__heartbeat_task())
                     self.__tasks.append(heartbeat)
 
                     self.logger.info("连接服务器并验证成功")
@@ -2136,7 +2143,7 @@ class VideoOnlineMonitor(AsyncEvent):
                 ),
             )
             index += 1
-            await asyncio.sleep(self.__heartbeat_interval)
+            await anyio.sleep(self.__heartbeat_interval)
 
     async def __cancel_all_tasks(self):
         """

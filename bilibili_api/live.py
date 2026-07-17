@@ -4,7 +4,6 @@ bilibili_api.live
 直播相关
 """
 
-import asyncio
 import base64
 from enum import Enum
 import json
@@ -13,14 +12,15 @@ import struct
 import time
 from typing import Any
 
+import anyio
 import brotli
 
 from .exceptions.LiveException import LiveException
-from .utils.AsyncEvent import AsyncEvent
 from .utils.BytesReader import BytesReader
 from .utils.danmaku import Danmaku
 from .utils.network import (
     Api,
+    AsyncEvent,
     BiliWsMsgType,
     Credential,
     ensure_buvid,
@@ -1408,6 +1408,8 @@ class LiveDanmaku(AsyncEvent):
         """
         连接直播间
         """
+        await self.get_task_group()
+
         if self.get_status() == self.STATUS_CONNECTING:
             raise LiveException("正在建立连接中")
 
@@ -1430,8 +1432,7 @@ class LiveDanmaku(AsyncEvent):
         self.logger.info("连接正在关闭")
 
         # 取消所有任务
-        while len(self.__tasks) > 0:
-            self.__tasks.pop().cancel()
+        await self.clean_task_group()
 
         self.__status = self.STATUS_CLOSED
         await self.__client.ws_close(cnt=self.__ws)  # type: ignore
@@ -1495,10 +1496,9 @@ class LiveDanmaku(AsyncEvent):
                 @self.on("VERIFICATION_SUCCESSFUL")
                 async def on_verification_successful(data):
                     # 新建心跳任务
-                    while len(self.__tasks) > 0:
-                        self.__tasks.pop().cancel()
-                    self.__tasks.append(asyncio.create_task(self.__heartbeat()))
-                    self.__tasks.append(asyncio.create_task(self.__heartbeat_web()))
+                    task_group = await self.get_task_group()
+                    self.__tasks.append(task_group.create_task(self.__heartbeat()))
+                    self.__tasks.append(task_group.create_task(self.__heartbeat_web()))
 
                 self.logger.debug("连接主机成功, 准备发送认证信息")
                 await self.__send_verify_data(conf["token"])
@@ -1524,9 +1524,7 @@ class LiveDanmaku(AsyncEvent):
                 # 正常断开情况下跳出循环
                 if self.__status != self.STATUS_CLOSED or self.err_reason:
                     # 非用户手动调用关闭，触发重连
-                    self.logger.warning(
-                        "非正常关闭连接" if not self.err_reason else self.err_reason
-                    )
+                    self.logger.warning(self.err_reason or "非正常关闭连接")
                 else:
                     break
 
@@ -1544,7 +1542,7 @@ class LiveDanmaku(AsyncEvent):
 
                 self.logger.warning(f"将在 {self.retry_after} 秒后重新连接...")
                 retry -= 1
-                await asyncio.sleep(self.retry_after)
+                await anyio.sleep(self.retry_after)
 
     async def __handle_data(self, data) -> None:
         """
@@ -1661,7 +1659,7 @@ class LiveDanmaku(AsyncEvent):
                         self.logger.warning(
                             f"获取用户信息失败，重试中... ({attempt + 1}/{self.max_retry_for_credential})\n{e}"
                         )
-                        await asyncio.sleep(self.retry_after)
+                        await anyio.sleep(self.retry_after)
                 if not self.credential.has_dedeuserid():
                     self.credential.dedeuserid = "0"
                     self.logger.warning("获取用户信息失败，使用匿名身份连接")
@@ -1703,7 +1701,7 @@ class LiveDanmaku(AsyncEvent):
                     .result
                 )
                 self.__heartbeat_timer_web = 60
-            await asyncio.sleep(1.0)
+            await anyio.sleep(1.0)
             self.__heartbeat_timer_web -= 1
 
     async def __heartbeat(self) -> None:
@@ -1723,7 +1721,7 @@ class LiveDanmaku(AsyncEvent):
                 # 视为已异常断开连接，发布 TIMEOUT 事件
                 self.dispatch("TIMEOUT")
                 break
-            await asyncio.sleep(1.0)
+            await anyio.sleep(1.0)
             self.__heartbeat_timer -= 1
 
     async def __send(

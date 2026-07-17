@@ -23,7 +23,9 @@ from bilibili_api import ...
 - [class AsyncEvent()](#class-AsyncEvent)
   - [def \_\_init\_\_()](#def-\_\_init\_\_)
   - [def add\_event\_listener()](#def-add\_event\_listener)
+  - [async def clean\_task\_group()](#async-def-clean\_task\_group)
   - [def dispatch()](#def-dispatch)
+  - [async def get\_task\_group()](#async-def-get\_task\_group)
   - [def ignore\_event()](#def-ignore\_event)
   - [def on()](#def-on)
   - [def remove\_all\_event\_listener()](#def-remove\_all\_event\_listener)
@@ -154,6 +156,7 @@ from bilibili_api import ...
   - [def get\_enable\_bili\_ticket\_global\_persistence()](#def-get\_enable\_bili\_ticket\_global\_persistence)
   - [def get\_enable\_buvid\_global\_persistence()](#def-get\_enable\_buvid\_global\_persistence)
   - [def get\_enable\_fpgen()](#def-get\_enable\_fpgen)
+  - [def get\_enable\_trio()](#def-get\_enable\_trio)
   - [def get\_fpgen\_args()](#def-get\_fpgen\_args)
   - [def get\_global\_credential()](#def-get\_global\_credential)
   - [def get\_wbi\_retry\_times()](#def-get\_wbi\_retry\_times)
@@ -162,6 +165,7 @@ from bilibili_api import ...
   - [def set\_enable\_bili\_ticket\_global\_persistence()](#def-set\_enable\_bili\_ticket\_global\_persistence)
   - [def set\_enable\_buvid\_global\_persistence()](#def-set\_enable\_buvid\_global\_persistence)
   - [def set\_enable\_fpgen()](#def-set\_enable\_fpgen)
+  - [def set\_enable\_trio()](#def-set\_enable\_trio)
   - [def set\_fpgen\_args()](#def-set\_fpgen\_args)
   - [def set\_global\_credential()](#def-set\_global\_credential)
   - [def set\_wbi\_retry\_times()](#def-set\_wbi\_retry\_times)
@@ -352,6 +356,15 @@ API 基类异常。
 
 
 
+### async def clean_task_group()
+
+如果存在，清理异步事件类的 TaskGroup。
+
+
+
+
+
+
 ### def dispatch()
 
 异步发布事件。
@@ -362,6 +375,17 @@ API 基类异常。
 | `name` | `str` | 事件名。 |
 | `args` | `Any` | 要传递给函数的参数。 *args 传递。 |
 | `kwargs` | `Any` | 要传递给函数的参数。 **kwargs 传递。 |
+
+
+
+
+### async def get_task_group()
+
+获取异步事件类使用的 TaskGroup，若无则新建
+
+
+
+**Returns:** `anyio.abc.TaskGroup`:  异步事件类使用的 TaskGroup
 
 
 
@@ -736,6 +760,7 @@ class BiliAPIClient(ABC):
 | `data` | `FilterData` | 用于数据交换的 FilterData 实例 |
 | `settings` | `dict` | 请求客户端相关设置 |
 | `event_loop` | `str` | 请求客户端的事件循环，对应模块内部编号 |
+| `loop` | `asyncio.AbstractEventLoop \| None` | 请求客户端的事件循环(仅 asyncio) |
 
 
 ---
@@ -2206,8 +2231,9 @@ AV 号转 BV 号。
 | `enable_buvid_global_persistence` | `bool` | `False` | 允许模块使用统一的全局 buvid |
 | `enable_bili_ticket_global_persistence` | `bool` | `False` | 允许模块使用统一的全局 bili_ticket |
 | `enable_fpgen` | `bool` | `False` | 是否启用 `fpgen` 进行指纹伪装 |
+| `enable_trio` | `bool` | `False` | 是否启用 `trio` 支持 |
 | `fpgen_args` | `dict` | `{}` | 传入 `fpgen.generate` 的 keyword args 参数 |
-| `global_credential` | `Credential | None` | 全局凭据类，所有请求都将传入此凭据类的 cookies |
+| `global_credential` | `Credential \| None` | `None` | 全局凭据类，所有请求都将传入此凭据类的 cookies |
 
 
 
@@ -2263,6 +2289,17 @@ AV 号转 BV 号。
 
 
 **Returns:** `bool`:  是否使用 fpgen. Defaults to False.
+
+
+
+
+### def get_enable_trio()
+
+获取是否启用 trio 支持
+
+
+
+**Returns:** `bool`:  是否启用 trio 支持
 
 
 
@@ -2356,6 +2393,18 @@ AV 号转 BV 号。
 | name | type | description |
 | - | - | - |
 | `enable_fpgen` | `bool` | 是否使用 fpgen |
+
+
+
+
+### def set_enable_trio()
+
+设置是否启用 trio 支持
+
+
+| name | type | description |
+| - | - | - |
+| `enable_trio` | `bool` | 是否启用 trio 支持 |
 
 
 

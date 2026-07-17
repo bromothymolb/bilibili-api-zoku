@@ -76,11 +76,11 @@ from .exceptions import (
     WbiRetryTimesExceedException,
 )
 from .utils.aid_bvid_transformer import aid2bvid, bvid2aid
-from .utils.AsyncEvent import AsyncEvent
 from .utils.danmaku import Danmaku, DmFontSize, DmMode, SpecialDanmaku
 from .utils.geetest import Geetest, GeetestMeta, GeetestType
 from .utils.network import (
     Api,
+    AsyncEvent,
     BiliAPIClient,
     BiliAPIFile,
     BiliAPIResponse,

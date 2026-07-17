@@ -6,8 +6,6 @@ bilibili_api.interactive_video
 
 # pylint: skip-file
 
-import asyncio
-from asyncio import CancelledError, create_task
 from collections.abc import Coroutine
 import copy
 import enum
@@ -20,10 +18,16 @@ from urllib import parse
 import zipfile
 
 import anyio
+import anyio.to_thread
 
 from .exceptions import ApiException
-from .utils.AsyncEvent import AsyncEvent
-from .utils.network import Api, Credential, get_bili_headers, get_client
+from .utils.network import (
+    Api,
+    AsyncEvent,
+    Credential,
+    get_bili_headers,
+    get_client,
+)
 from .utils.utils import get_api
 from .video import Video, VideoDownloadURLDataDetecter
 
@@ -1059,8 +1063,7 @@ class InteractiveVideoDownloader(AsyncEvent):
             zip.close()
             shutil.rmtree(tmp_dir_name)
 
-        loop = asyncio.get_event_loop()
-        await loop.run_in_executor(None, package_zip)
+        await anyio.to_thread.run_sync(package_zip)
 
         self.dispatch("SUCCESS")
 
@@ -1454,21 +1457,24 @@ class InteractiveVideoDownloader(AsyncEvent):
         """
         开始下载
         """
+        task_group = await self.get_task_group()
+
         if self.__mode.value == "ivi":
-            task = create_task(self.__main())
+            task = task_group.create_task(self.__main())
         elif self.__mode.value == "dot":
-            task = create_task(self.__dot_graph_main())
+            task = task_group.create_task(self.__dot_graph_main())
         elif self.__mode.value == "no_pack":
-            task = create_task(self.__no_packaging_main())
+            task = task_group.create_task(self.__no_packaging_main())
         else:
-            task = create_task(self.__node_videos_main())
+            task = task_group.create_task(self.__node_videos_main())
         self.__task = task
 
         try:
             result = await task
             self.__task = None
+            await self.clean_task_group()
             return result
-        except CancelledError:
+        except anyio.TaskCancelled:
             # 忽略 task 取消异常
             pass
         except Exception as e:
@@ -1480,7 +1486,7 @@ class InteractiveVideoDownloader(AsyncEvent):
         中断下载
         """
         if self.__task:
-            self.__task.cancel("用户手动取消")
+            self.__task.cancel()
 
         self.dispatch("ABORTED", None)
 

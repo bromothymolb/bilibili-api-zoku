@@ -7,7 +7,7 @@ HTTPXClient 实现
 from collections.abc import AsyncGenerator
 
 import anyio
-import httpx  # pylint: disable=E0401
+import httpx
 
 from ..exceptions import ApiException
 from ..utils.network import (
@@ -85,18 +85,19 @@ class HTTPXClient(BiliAPIClient):
         self.__need_update_session = True
 
     async def __auto_update_session(self) -> None:
-        await self.__session_update_lock.acquire()
         if self.__need_update_session:
-            await self.__session.aclose()
-            self.__session = httpx.AsyncClient(
-                timeout=self.__timeout,
-                proxy=self.__proxy if self.__proxy != "" else None,
-                verify=self.__verify_ssl,
-                trust_env=self.__trust_env,
-                http2=self.__http2,
-            )
-            self.__need_update_session = False
-        self.__session_update_lock.release()
+            async with self.__session_update_lock:
+                if not self.__need_update_session:
+                    return
+                await self.__session.aclose()
+                self.__session = httpx.AsyncClient(
+                    timeout=self.__timeout,
+                    proxy=self.__proxy if self.__proxy != "" else None,
+                    verify=self.__verify_ssl,
+                    trust_env=self.__trust_env,
+                    http2=self.__http2,
+                )
+                self.__need_update_session = False
 
     def set_http2(self, http2: bool = False) -> None:
         """

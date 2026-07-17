@@ -677,7 +677,7 @@ o----|xxx| (TEXT_RIGHT)
 
 ## class InteractiveVideoDownloader()
 
-> Extend: `bilibili_api.utils.AsyncEvent.AsyncEvent`
+> Extend: `bilibili_api.utils.network.AsyncEvent`
 
 互动视频下载类
 

@@ -36,6 +36,7 @@ from typing import Any
 import urllib.parse
 
 import anyio
+import anyio.abc
 from bs4 import BeautifulSoup
 import chompjs
 from Cryptodome.Cipher import PKCS1_OAEP
@@ -43,6 +44,7 @@ from Cryptodome.Hash import SHA256
 from Cryptodome.PublicKey import RSA
 
 from ..exceptions import (
+    ApiException,
     ArgsException,
     CookiesRefreshException,
     CredentialNoAcTimeValueException,
@@ -57,8 +59,161 @@ from ..exceptions import (
     ResponseCodeException,
     WbiRetryTimesExceedException,
 )
-from .AsyncEvent import AsyncEvent
 from .utils import get_api, raise_for_statement
+
+################################################## BEGIN AsyncEvent ##################################################
+
+
+class AsyncEvent:
+    """
+    发布-订阅模式异步事件类支持。
+
+    特殊事件：\\_\\_ALL\\_\\_ 所有事件均触发；\\_\\_TASK_EXCEPTION\\_\\_ 当订阅任务执行过程中抛出异常时发布的事件，不包含在 \\_\\_ALL\\_\\_ 中，订阅此事件的处理函数不再进行异常处理。
+    """
+
+    def __init__(self):
+        """ """
+        # don't remove this empty docstring
+        self.__handlers = {}
+        self.__ignore_events = []
+        self.task_group: anyio.abc.TaskGroup | None = None
+
+    async def get_task_group(self) -> anyio.abc.TaskGroup:
+        """
+        获取异步事件类使用的 TaskGroup，若无则新建
+
+        Returns:
+            anyio.abc.TaskGroup: 异步事件类使用的 TaskGroup
+        """
+        if not self.task_group:
+            self.task_group = anyio.create_task_group()
+            await self.task_group.__aenter__()
+        return self.task_group
+
+    async def clean_task_group(self) -> None:
+        """
+        如果存在，清理异步事件类的 TaskGroup。
+        """
+        if self.task_group:
+            self.task_group.cancel()
+            await self.task_group.__aexit__(None, None, None) # 都到这一步了估计就没有问题了
+
+    def add_event_listener(self, name: str, handler: Callable | Coroutine) -> None:
+        """
+        注册事件监听器。
+
+        Args:
+            name (str): 事件名。
+            handler (Callable | Coroutine): 回调函数。
+        """
+        name = name.upper()
+        if name not in self.__handlers:
+            self.__handlers[name] = []
+        self.__handlers[name].append(handler)
+
+    def on(self, event_name: str) -> Callable:
+        """
+        装饰器注册事件监听器。
+
+        Args:
+            event_name (str): 事件名。
+
+        Returns:
+            Callable: 传入函数的参数字典
+        """
+
+        def decorator(func: Callable | Coroutine):
+            self.add_event_listener(event_name, func)
+            return func
+
+        return decorator
+
+    def remove_all_event_listener(self) -> None:
+        """
+        移除所有事件监听函数
+        """
+        self.__handlers = {}
+
+    def remove_event_listener(self, name: str, handler: Callable | Coroutine) -> bool:
+        """
+        移除事件监听函数。
+
+        Args:
+            name (str): 事件名。
+            handler (Callable | Coroutine): 要移除的函数。
+
+        Returns:
+            bool: 是否移除成功。
+        """
+        name = name.upper()
+        if name in self.__handlers:
+            if handler in self.__handlers[name]:
+                self.__handlers[name].remove(handler)
+                return True
+        return False
+
+    def ignore_event(self, name: str) -> None:
+        """
+        忽略指定事件
+
+        Args:
+            name (str): 事件名。
+        """
+        name = name.upper()
+        self.__ignore_events.append(name)
+
+    def remove_ignore_events(self) -> None:
+        """
+        移除所有忽略事件
+        """
+        self.__ignore_events = []
+
+    async def __run_handler(self, coro: Coroutine, event_name: str) -> None:
+        """
+        执行异步函数，如果任务抛出异常，分发特殊异常事件，避免 `Task exception was never retrieved`。
+        """
+        try:
+            await coro
+        except Exception as e:
+            if event_name != "__TASK_EXCEPTION__":
+                self.dispatch("__TASK_EXCEPTION__", e)
+            else:
+                raise e
+
+    def dispatch(self, name: str, *args, **kwargs) -> None:
+        """
+        异步发布事件。
+
+        Args:
+            name (str): 事件名。
+            args (Any): 要传递给函数的参数。 *args 传递。
+            kwargs (Any): 要传递给函数的参数。 **kwargs 传递。
+        """
+        if len(args) == 0 and len(kwargs.keys()) == 0:
+            args = [{}]
+        if name.upper() in self.__ignore_events:
+            return
+
+        name = name.upper()
+        if name in self.__handlers:
+            for callableorcoroutine in self.__handlers[name]:
+                obj = callableorcoroutine(*args, **kwargs)
+                if isinstance(obj, Coroutine):
+                    if self.task_group:
+                        self.task_group.create_task(self.__run_handler(obj, name))
+                    else:
+                        self.dispatch(
+                            "__TASK_EXCEPTION__",
+                            ApiException("AsyncEvent 实例未提供 anyio.abc.TaskGroup"),
+                        )
+
+        if name != "__ALL__" and name != "__TASK_EXCEPTION__":
+            kwargs.update({"name": name, "data": args})
+            self.dispatch("__ALL__", kwargs)
+
+
+################################################## END AsyncEvent ##################################################
+
 
 ################################################## BEGIN Logger ##################################################
 
@@ -186,7 +341,7 @@ class RequestLog(AsyncEvent):
             client = real_data.pop("client")
             instance = real_data.pop("instance")
             loop = real_data.pop("event_loop")
-            info_str = f"#{act_id} [{client}/{instance}] {loop}"
+            info_str = f"#{act_id} [{client}/{instance}] <{loop}>"
             log_str = ""
             middle_str = " "
             if evt.startswith("WS_"):
@@ -314,6 +469,7 @@ class BiliSettings:
         self.__enable_fpgen = False
         self.__global_credential = None
         self.__fpgen_args = {}
+        self.__trio = False
 
     def get_wbi_retry_times(self) -> int:
         """
@@ -464,6 +620,24 @@ class BiliSettings:
             global_credential (Credential | None): 全局凭据类
         """
         self.__global_credential = global_credential
+
+    def get_enable_trio(self) -> bool:
+        """
+        获取是否启用 trio 支持
+
+        Returns:
+            bool: 是否启用 trio 支持
+        """
+        return self.__trio
+
+    def set_enable_trio(self, enable_trio: bool) -> None:
+        """
+        设置是否启用 trio 支持
+
+        Args:
+            enable_trio (bool): 是否启用 trio 支持
+        """
+        self.__trio = enable_trio
 
 
 class RequestSettings:
@@ -660,8 +834,9 @@ bili_settings = BiliSettings()
 | `enable_buvid_global_persistence` | `bool` | `False` | 允许模块使用统一的全局 buvid |
 | `enable_bili_ticket_global_persistence` | `bool` | `False` | 允许模块使用统一的全局 bili_ticket |
 | `enable_fpgen` | `bool` | `False` | 是否启用 `fpgen` 进行指纹伪装 |
+| `enable_trio` | `bool` | `False` | 是否启用 `trio` 支持 |
 | `fpgen_args` | `dict` | `{}` | 传入 `fpgen.generate` 的 keyword args 参数 |
-| `global_credential` | `Credential | None` | 全局凭据类，所有请求都将传入此凭据类的 cookies |
+| `global_credential` | `Credential \| None` | `None` | 全局凭据类，所有请求都将传入此凭据类的 cookies |
 """
 bili_settings.__doc__ = """
 模块通用设置
@@ -674,8 +849,9 @@ bili_settings.__doc__ = """
 | `enable_buvid_global_persistence` | `bool` | `False` | 允许模块使用统一的全局 buvid |
 | `enable_bili_ticket_global_persistence` | `bool` | `False` | 允许模块使用统一的全局 bili_ticket |
 | `enable_fpgen` | `bool` | `False` | 是否启用 `fpgen` 进行指纹伪装 |
+| `enable_trio` | `bool` | `False` | 是否启用 `trio` 支持 |
 | `fpgen_args` | `dict` | `{}` | 传入 `fpgen.generate` 的 keyword args 参数 |
-| `global_credential` | `Credential | None` | 全局凭据类，所有请求都将传入此凭据类的 cookies |
+| `global_credential` | `Credential \| None` | `None` | 全局凭据类，所有请求都将传入此凭据类的 cookies |
 """
 
 
@@ -1225,7 +1401,7 @@ client_lock = threading.Lock()
 loop_cnt = 0
 loop2id: dict[asyncio.AbstractEventLoop, str] = {}
 id2loop: dict[str, asyncio.AbstractEventLoop] = {}
-loop_lock: dict[str, threading.Lock] = {}
+loop_lock: dict[str, threading.Lock] = {"trio": threading.Lock()}
 loop_record_lock = threading.Lock()
 clean_tasks: set[asyncio.Task] = set()
 
@@ -1305,6 +1481,7 @@ class BiliFilterArgs:
         data (FilterData): 用于数据交换的 FilterData 实例
         settings (dict): 请求客户端相关设置
         event_loop (str): 请求客户端的事件循环，对应模块内部编号
+        loop (asyncio.AbstractEventLoop | None): 请求客户端的事件循环(仅 asyncio)
     """
 
     client: str
@@ -1317,6 +1494,7 @@ class BiliFilterArgs:
     data: BiliFilterData
     settings: dict
     event_loop: str
+    loop: asyncio.AbstractEventLoop | None
 
 
 class BiliFilterReturn:
@@ -1540,6 +1718,7 @@ class _BiliAPIClient:
                     data=self.__data,
                     settings=self.__base_settings.get_all(),
                     event_loop=self.__event_loop,
+                    loop=id2loop.get(self.__event_loop),
                 )
                 pres = get_registered_pre_filters(in_priority=True)
                 i = 0
@@ -1622,6 +1801,7 @@ class _BiliAPIClient:
                     data=self.__data,
                     settings=self.__base_settings.get_all(),
                     event_loop=self.__event_loop,
+                    loop=id2loop.get(self.__event_loop),
                 )
                 pres = get_registered_pre_filters(in_priority=True)
                 i = 0
@@ -1738,6 +1918,8 @@ def event_loop_to_str(loop: asyncio.AbstractEventLoop) -> str:
 
 
 def get_event_loop() -> str:
+    if bili_settings.get_enable_trio():
+        return "trio"
     return event_loop_to_str(ensure_event_loop())
 
 
@@ -2285,15 +2467,22 @@ def __clean() -> None:
     """
     程序退出清理操作。
     """
-    try:
-        loop = asyncio.get_event_loop()
-    except RuntimeError:
-        return
 
     async def __clean_task():
         for _, instances in client_groups.items():
             for _, instance in instances.items():
                 await instance.clean()
+
+    if bili_settings.get_enable_trio():
+        import trio
+
+        trio.run(__clean_task)
+        return
+
+    try:
+        loop = asyncio.get_event_loop()
+    except RuntimeError:
+        return
 
     if loop.is_running():
         task = loop.create_task(__clean_task())
