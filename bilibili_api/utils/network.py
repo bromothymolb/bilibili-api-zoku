@@ -44,7 +44,6 @@ from Cryptodome.Hash import SHA256
 from Cryptodome.PublicKey import RSA
 
 from ..exceptions import (
-    ApiException,
     ArgsException,
     CookiesRefreshException,
     CredentialNoAcTimeValueException,
@@ -96,7 +95,8 @@ class AsyncEvent:
         """
         if self.task_group:
             self.task_group.cancel()
-            await self.task_group.__aexit__(None, None, None) # 都到这一步了估计就没有问题了
+            await self.task_group.__aexit__(None, None, None)
+            self.task_group = None
 
     def add_event_listener(self, name: str, handler: Callable | Coroutine) -> None:
         """
@@ -198,14 +198,8 @@ class AsyncEvent:
         if name in self.__handlers:
             for callableorcoroutine in self.__handlers[name]:
                 obj = callableorcoroutine(*args, **kwargs)
-                if isinstance(obj, Coroutine):
-                    if self.task_group:
-                        self.task_group.create_task(self.__run_handler(obj, name))
-                    else:
-                        self.dispatch(
-                            "__TASK_EXCEPTION__",
-                            ApiException("AsyncEvent 实例未提供 anyio.abc.TaskGroup"),
-                        )
+                if isinstance(obj, Coroutine) and self.task_group:
+                    self.task_group.create_task(self.__run_handler(obj, name))
 
         if name != "__ALL__" and name != "__TASK_EXCEPTION__":
             kwargs.update({"name": name, "data": args})
@@ -836,7 +830,7 @@ bili_settings = BiliSettings()
 | `enable_fpgen` | `bool` | `False` | 是否启用 `fpgen` 进行指纹伪装 |
 | `enable_trio` | `bool` | `False` | 是否启用 `trio` 支持 |
 | `fpgen_args` | `dict` | `{}` | 传入 `fpgen.generate` 的 keyword args 参数 |
-| `global_credential` | `Credential \| None` | `None` | 全局凭据类，所有请求都将传入此凭据类的 cookies |
+| `global_credential` | `Credential \\| None` | `None` | 全局凭据类，所有请求都将传入此凭据类的 cookies |
 """
 bili_settings.__doc__ = """
 模块通用设置
@@ -851,7 +845,7 @@ bili_settings.__doc__ = """
 | `enable_fpgen` | `bool` | `False` | 是否启用 `fpgen` 进行指纹伪装 |
 | `enable_trio` | `bool` | `False` | 是否启用 `trio` 支持 |
 | `fpgen_args` | `dict` | `{}` | 传入 `fpgen.generate` 的 keyword args 参数 |
-| `global_credential` | `Credential \| None` | `None` | 全局凭据类，所有请求都将传入此凭据类的 cookies |
+| `global_credential` | `Credential \\| None` | `None` | 全局凭据类，所有请求都将传入此凭据类的 cookies |
 """
 
 
@@ -2474,9 +2468,7 @@ def __clean() -> None:
                 await instance.clean()
 
     if bili_settings.get_enable_trio():
-        import trio
-
-        trio.run(__clean_task)
+        anyio.run(__clean_task, backend="trio")
         return
 
     try:

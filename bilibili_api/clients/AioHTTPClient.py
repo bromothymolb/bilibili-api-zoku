@@ -87,7 +87,9 @@ class AioHTTPClient(BiliAPIClient):
                 self.__session = aiohttp.ClientSession(
                     loop=asyncio.get_event_loop(),
                     trust_env=self.__args["trust_env"],
-                    connector=aiohttp.TCPConnector(verify_ssl=self.__args["verify_ssl"]),
+                    connector=aiohttp.TCPConnector(
+                        verify_ssl=self.__args["verify_ssl"]
+                    ),
                 )
                 self.__need_update_session = False
 

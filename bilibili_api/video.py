@@ -2091,7 +2091,9 @@ class VideoOnlineMonitor(AsyncEvent):
                 # 服务器认证反馈。
                 if d["data"]["code"] == 0:
                     # 创建心跳 Task
-                    heartbeat = (await self.get_task_group()).create_task(self.__heartbeat_task())
+                    heartbeat = (await self.get_task_group()).create_task(
+                        self.__heartbeat_task()
+                    )
                     self.__tasks.append(heartbeat)
 
                     self.logger.info("连接服务器并验证成功")

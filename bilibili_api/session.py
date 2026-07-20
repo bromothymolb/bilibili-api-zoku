@@ -440,6 +440,7 @@ class Session(AsyncEvent):
         super().__init__()
         # 会话状态
         self.__status = 0
+        self.__wait_event = anyio.Event()
 
         # 已获取会话中最大的时间戳 默认当前时间
         self.maxTs = int(time.time() * 1000000)
@@ -552,17 +553,23 @@ class Session(AsyncEvent):
 
             self.logger.debug(f"maxTs = {self.maxTs}")
 
+        async def trigger_task():
+            await anyio.sleep(6)
+            self.__wait_event.set()
+
         self.__status = 1
         self.logger.info("开始轮询")
 
+        task_group = await self.get_task_group()
+
         while self.get_status() < 2:
             await query()
-            await anyio.sleep(6)
+            task_group.start_soon(trigger_task)
+            await self.__wait_event.wait()
+            self.__wait_event = anyio.Event()
 
         if self.get_status() == 2:
             self.__status = 3
-
-        await self.clean_task_group()
 
     async def run(self, exclude_self: bool = True) -> None:
         """
@@ -594,9 +601,11 @@ class Session(AsyncEvent):
             )
             return await send_msg(self.credential, event.sender_uid, msg_type, content)
 
-    def close(self) -> None:
+    async def close(self) -> None:
         """
         结束轮询
         """
         self.__status = 2
+        self.__wait_event.set()
         self.logger.info("结束轮询")
+        await self.clean_task_group()
