@@ -16,7 +16,7 @@ from copy import deepcopy
 from dataclasses import dataclass, field
 from email.utils import parsedate_to_datetime
 from enum import Enum
-from functools import reduce
+from functools import cmp_to_key, reduce
 import hashlib
 import hmac
 import inspect
@@ -348,12 +348,18 @@ class RequestLog(AsyncEvent):
                 action = real_data.pop("action")
                 name = real_data.pop("name")
                 priority = real_data.pop("priority")
-                log_str = f"{desc} {action}() <- {name}  (priority: {priority})"
+                filter_id = real_data.pop("filter_id")
+                log_str = (
+                    f"{desc} [{filter_id}] {action}() <- {name}  (priority: {priority})"
+                )
             elif evt == "DO_POST_FILTER":
                 action = real_data.pop("action")
                 name = real_data.pop("name")
                 priority = real_data.pop("priority")
-                log_str = f"{desc} {action}() -> {name}  (priority: {priority})"
+                filter_id = real_data.pop("filter_id")
+                log_str = (
+                    f"{desc} [{filter_id}] {action}() -> {name}  (priority: {priority})"
+                )
             log_str = log_str or f"{desc}: {real_data}"
             self.logger.info(info_str + middle_str + log_str)
 
@@ -1411,7 +1417,7 @@ class BiliFilterFlags(Enum):
     - RETURN_NOW: 直接作为函数返回值返回
     - BACK: 回到上一个过滤器
     - SKIP: 跳过下一个过滤器
-    - GOTO: 跳到任意一个过滤器 需通过 `get_registered_(pre|post)_filters` 查询对应过滤器的下标
+    - GOTO: 跳到任意一个过滤器 需通过 `get_registered_filters` 查询对应过滤器的下标
     """
 
     CONTINUE = 0
@@ -1430,33 +1436,41 @@ class BiliFilterData:
     """
 
     def __init__(self) -> None:
-        self.__data: dict[int, Any] = {}
+        self.__data: dict[str, Any] = {}
 
-    def _ensure_data(self, idx: int) -> None:
-        if self.__data.get(idx) is None:
-            self.__data[idx] = {}
-
-    def set_data(self, cnt: int, key: str, value: Any) -> None:
+    def set_data(self, key: str, value: Any) -> None:
         """
         设置数据
 
         Args:
-            cnt (int): 过滤器执行 cnt
             key (str): 键
             value (Any): 值
         """
-        self._ensure_data(cnt)
-        self.__data[cnt][key] = value
+        self.__data[key] = value
 
-    def get_data(self, cnt: int, key: str) -> Any:
+    def has_data(self, key: str) -> bool:
+        """
+        是否存在数据
+
+        Args:
+            key (str): 键
+
+        Returns:
+            bool: 是否存在数据
+        """
+        return key in self.__data.keys()
+
+    def get_data(self, key: str) -> Any:
         """
         获取数据
 
         Args:
-            cnt (int): 过滤器执行 cnt
             key (str): 键
+
+        Returns:
+            Any: 值
         """
-        return self.__data[cnt][key]
+        return self.__data[key]
 
 
 @dataclass
@@ -1495,6 +1509,8 @@ class BiliFilterReturn:
     """
     用于结束过滤器返回结果的工具类
     """
+
+    Returns = tuple[BiliFilterFlags, Any]
 
     @staticmethod
     def continue_exec() -> tuple[BiliFilterFlags, None]:
@@ -1589,9 +1605,9 @@ class BiliFilterReturn:
         return BiliFilterFlags.GOTO, idx
 
     @staticmethod
-    def goto_name_pre(name: str) -> tuple[BiliFilterFlags, int]:
+    def goto_name(name: str) -> tuple[BiliFilterFlags, int]:
         """
-        跳到任意一个前置过滤器
+        跳到任意一个过滤器
 
         Args:
             name (str): 对应过滤器名称
@@ -1599,23 +1615,7 @@ class BiliFilterReturn:
         Returns:
             tuple[BiliFilterFlags, int]: 过滤器函数返回值
         """
-        for idx, fil in enumerate(get_registered_pre_filters()):
-            if fil["name"] == name:
-                return BiliFilterFlags.GOTO, idx
-        raise ArgsException(f"未找到前置过滤器 {name}")
-
-    @staticmethod
-    def goto_name_post(name: str) -> tuple[BiliFilterFlags, int]:
-        """
-        跳到任意一个后置过滤器
-
-        Args:
-            name (str): 对应过滤器名称
-
-        Returns:
-            tuple[BiliFilterFlags, int]: 过滤器函数返回值
-        """
-        for idx, fil in enumerate(get_registered_post_filters()):
+        for idx, fil in enumerate(get_registered_filters()):
             if fil["name"] == name:
                 return BiliFilterFlags.GOTO, idx
         raise ArgsException(f"未找到前置过滤器 {name}")
@@ -1644,7 +1644,6 @@ class _BiliAPIClient:
         self.__base_settings = client_settings
         self.__base_settings._set_base()
         self.__force_settings = RequestSettings()
-        self.__data = BiliFilterData()
         self.__event_loop = event_loop
 
     def _get_base_settings(self) -> RequestSettings:
@@ -1682,7 +1681,7 @@ class _BiliAPIClient:
             client_func_cnt += 1
             cnt = client_func_cnt
 
-        def arg_convert(args, kwargs) -> dict:
+        def arg_convert(args, kwargs) -> dict[str, Any]:
             # convert args to kwargs
             # functions are not allowed to use *args or **kwargs
             ret: dict = kwargs
@@ -1699,192 +1698,207 @@ class _BiliAPIClient:
 
         def method_wrapper(method: Callable) -> Callable:
             def wrapped_method(*args, **kwargs) -> Any:
-                res = arg_convert(args, kwargs)
+                args = arg_convert(args, kwargs)
                 ins = self._get_bili_api_client()
-                filter_args = BiliFilterArgs(
-                    client=self.__client__,
-                    instance=self.__instance__,
-                    func=key,
-                    params=res.copy(),
-                    ret=None,
-                    ins=ins,
-                    cnt=cnt,
-                    data=self.__data,
-                    settings=self.__base_settings.get_all(),
-                    event_loop=self.__event_loop,
-                    loop=id2loop.get(self.__event_loop),
-                )
-                pres = get_registered_pre_filters(in_priority=True)
+                ret = None
+                data = BiliFilterData()
+                filter_args = {
+                    "client": self.__client__,
+                    "instance": self.__instance__,
+                    "func": key,
+                    "ins": ins,
+                    "cnt": cnt,
+                    "data": data,
+                    "settings": self.__base_settings.get_all(),
+                    "event_loop": self.__event_loop,
+                    "loop": id2loop.get(self.__event_loop),
+                }
+                filts = get_registered_filters(in_priority=True)
+                skip_pre = False
+                log_helper = {"pre": ["PRE", "前置"], "post": ["POST", "后置"]}
                 i = 0
-                while i < len(pres):
-                    pre = pres[i]
+                while i < len(filts):
+                    filt = filts[i]
+                    locate = filt["locate"]
                     log = {
                         "act_id": cnt,
-                        "name": pre["name"],
-                        "priority": pre["priority"],
+                        "name": filt["name"],
+                        "priority": filt["priority"],
                         "client": self.__client__,
                         "instance": self.__instance__,
                         "action": key,
                         "event_loop": self.__event_loop,
+                        "filter_id": i,
                     }
-                    request_log.dispatch("DO_PRE_FILTER", "执行前置过滤器", log)
+                    if not skip_pre:
+                        request_log.dispatch(
+                            f"DO_{log_helper[locate][0]}_FILTER",
+                            f"执行{log_helper[locate][1]}过滤器",
+                            log,
+                        )
+                    if locate == "pre" and skip_pre:
+                        result = None
+                    elif filt.get("function"):
+                        try:
+                            result = filt["function"](
+                                BiliFilterArgs(
+                                    **filter_args, params=args.copy(), ret=deepcopy(ret)
+                                )
+                            )
+                        except Exception as e:
+                            raise FilterException("pre", filt["name"], e)
+                    else:
+                        i += 1
+                        continue
                     try:
-                        flag, after_filter = pre["function"](filter_args)
-                    except Exception as e:
-                        raise FilterException("pre", pre["name"], e)
+                        if result is None:
+                            flag = BiliFilterFlags.CONTINUE
+                            after_filter: Any = None
+                        else:
+                            flag, after_filter = result[0], result[1]
+                    except Exception:
+                        raise ArgsException(
+                            "过滤器返回值不满足形式 tuple[BiliFilterFlags, Any]。"
+                        )
                     if flag == BiliFilterFlags.SET_PARAMS:
-                        res = after_filter
+                        args = deepcopy(after_filter)
+                    elif flag == BiliFilterFlags.SET_RETURN:
+                        ret = deepcopy(after_filter)
                     elif flag == BiliFilterFlags.EXECUTE_NOW:
-                        break
+                        skip_pre = True
                     elif flag == BiliFilterFlags.RETURN_NOW:
                         return after_filter
                     elif flag == BiliFilterFlags.BACK:
                         i = max(0, i - 1)
+                        continue
                     elif flag == BiliFilterFlags.SKIP:
-                        i += 1
+                        i += 2
+                        continue
                     elif flag == BiliFilterFlags.GOTO:
-                        i = after_filter - 1
+                        raise_for_statement(
+                            isinstance(after_filter, int),
+                            "执行 BiliFilterFlasg.GOTO 需同时传入整数值下标",
+                        )
+                        i = after_filter
+                        continue
                     i += 1
-                ret = method(**res)
-                filter_args.ret = deepcopy(ret)
-                posts = get_registered_post_filters(in_priority=True)
-                j = 0
-                while j < len(pres):
-                    post = posts[j]
-                    log = {
-                        "act_id": cnt,
-                        "name": post["name"],
-                        "priority": post["priority"],
-                        "client": self.__client__,
-                        "instance": self.__instance__,
-                        "action": key,
-                        "event_loop": self.__event_loop,
-                    }
-                    request_log.dispatch("DO_POST_FILTER", "执行后置过滤器", log)
-                    try:
-                        flag, after_filter = post["function"](filter_args)
-                    except Exception as e:
-                        raise FilterException("post", post["name"], e)
-                    if flag == BiliFilterFlags.SET_RETURN:
-                        ret = after_filter
-                    elif flag == BiliFilterFlags.RETURN_NOW:
-                        return after_filter
-                    elif flag == BiliFilterFlags.BACK:
-                        j = max(0, j - 1)
-                    elif flag == BiliFilterFlags.SKIP:
-                        j += 1
-                    elif flag == BiliFilterFlags.GOTO:
-                        j = after_filter - 1
-                    j += 1
+                    if locate == "pre" and (
+                        i >= len(filts) or filts[i]["locate"] == "post"
+                    ):
+                        ret = method(**args)
+                        skip_pre = False
                 return ret
 
             return wrapped_method
 
-        def coroutine_wrapper(coroutine: Coroutine) -> Coroutine:
+        def coroutine_wrapper(async_function: Callable) -> Callable:
             async def wrapped_amethod(*args, **kwargs) -> Any:
-                res = arg_convert(args, kwargs)
+                args = arg_convert(args, kwargs)
                 ins = self._get_bili_api_client()
-                filter_args = BiliFilterArgs(
-                    client=self.__client__,
-                    instance=self.__instance__,
-                    func=key,
-                    params=res.copy(),
-                    ret=None,
-                    ins=ins,
-                    cnt=cnt,
-                    data=self.__data,
-                    settings=self.__base_settings.get_all(),
-                    event_loop=self.__event_loop,
-                    loop=id2loop.get(self.__event_loop),
-                )
-                pres = get_registered_pre_filters(in_priority=True)
+                ret = None
+                data = BiliFilterData()
+                filter_args = {
+                    "client": self.__client__,
+                    "instance": self.__instance__,
+                    "func": key,
+                    "ins": ins,
+                    "cnt": cnt,
+                    "data": data,
+                    "settings": self.__base_settings.get_all(),
+                    "event_loop": self.__event_loop,
+                    "loop": id2loop.get(self.__event_loop),
+                }
+                filts = get_registered_filters(in_priority=True)
+                skip_pre = False
+                log_helper = {"pre": ["PRE", "前置"], "post": ["POST", "后置"]}
                 i = 0
-                while i < len(pres):
-                    pre = pres[i]
+                while i < len(filts):
+                    filt = filts[i]
+                    locate = filt["locate"]
                     log = {
                         "act_id": cnt,
-                        "name": pre["name"],
-                        "priority": pre["priority"],
+                        "name": filt["name"],
+                        "priority": filt["priority"],
                         "client": self.__client__,
                         "instance": self.__instance__,
                         "action": key,
                         "event_loop": self.__event_loop,
+                        "filter_id": i,
                     }
-                    request_log.dispatch("DO_PRE_FILTER", "执行前置过滤器", log)
-                    flag, after_filter = BiliFilterFlags.CONTINUE, None
-                    if pre["function"]:
+                    if not skip_pre:
+                        request_log.dispatch(
+                            f"DO_{log_helper[locate][0]}_FILTER",
+                            f"执行{log_helper[locate][1]}过滤器",
+                            log,
+                        )
+                    if locate == "pre" and skip_pre:
+                        result = None
+                    elif filt.get("function"):
                         try:
-                            flag, after_filter = pre["function"](filter_args)
-                        except Exception as e:
-                            raise FilterException("pre", pre["name"], e)
-                    if pre["async_function"]:
-                        try:
-                            flag, after_filter = await pre["async_function"](
-                                filter_args
+                            result = filt["function"](
+                                BiliFilterArgs(
+                                    **filter_args, params=args.copy(), ret=deepcopy(ret)
+                                )
                             )
                         except Exception as e:
-                            raise FilterException("pre", pre["name"], e)
+                            raise FilterException("pre", filt["name"], e)
+                    elif filt.get("async_function"):
+                        try:
+                            result = await filt["async_function"](
+                                BiliFilterArgs(
+                                    **filter_args, params=args.copy(), ret=deepcopy(ret)
+                                )
+                            )
+                        except Exception as e:
+                            raise FilterException("pre", filt["name"], e)
+                    else:
+                        i += 1
+                        continue
+                    try:
+                        if result is None:
+                            flag = BiliFilterFlags.CONTINUE
+                            after_filter: Any = None
+                        else:
+                            flag, after_filter = result[0], result[1]
+                    except Exception:
+                        raise ArgsException(
+                            "过滤器返回值不满足形式 tuple[BiliFilterFlags, Any]。"
+                        )
                     if flag == BiliFilterFlags.SET_PARAMS:
-                        res = after_filter
+                        args = deepcopy(after_filter)
+                    elif flag == BiliFilterFlags.SET_RETURN:
+                        ret = deepcopy(after_filter)
                     elif flag == BiliFilterFlags.EXECUTE_NOW:
-                        break
+                        skip_pre = True
                     elif flag == BiliFilterFlags.RETURN_NOW:
                         return after_filter
                     elif flag == BiliFilterFlags.BACK:
                         i = max(0, i - 1)
+                        continue
                     elif flag == BiliFilterFlags.SKIP:
-                        i += 1
+                        i += 2
+                        continue
                     elif flag == BiliFilterFlags.GOTO:
-                        i = after_filter - 1  # type: ignore
+                        raise_for_statement(
+                            isinstance(after_filter, int),
+                            "执行 BiliFilterFlasg.GOTO 需同时传入整数值下标",
+                        )
+                        i = after_filter
+                        continue
                     i += 1
-                ret = await coroutine(**res)  # type: ignore
-                filter_args.ret = deepcopy(ret)
-                posts = get_registered_post_filters(in_priority=True)
-                j = 0
-                while j < len(posts):
-                    post = posts[j]
-                    log = {
-                        "act_id": cnt,
-                        "name": post["name"],
-                        "priority": post["priority"],
-                        "client": self.__client__,
-                        "instance": self.__instance__,
-                        "action": key,
-                        "event_loop": self.__event_loop,
-                    }
-                    request_log.dispatch("DO_POST_FILTER", "执行后置过滤器", log)
-                    flag, after_filter = BiliFilterFlags.CONTINUE, None
-                    if post["function"]:
-                        try:
-                            flag, after_filter = post["function"](filter_args)
-                        except Exception as e:
-                            raise FilterException("post", post["name"], e)
-                    if post["async_function"]:
-                        try:
-                            flag, after_filter = await post["async_function"](
-                                filter_args
-                            )
-                        except Exception as e:
-                            raise FilterException("post", post["name"], e)
-                    if flag == BiliFilterFlags.SET_RETURN:
-                        ret = after_filter
-                    elif flag == BiliFilterFlags.RETURN_NOW:
-                        return after_filter
-                    elif flag == BiliFilterFlags.BACK:
-                        j = max(0, j - 1)
-                    elif flag == BiliFilterFlags.SKIP:
-                        j += 1
-                    elif flag == BiliFilterFlags.GOTO:
-                        j = after_filter - 1  # type: ignore
-                    j += 1
+                    if locate == "pre" and (
+                        i >= len(filts) or filts[i]["locate"] == "post"
+                    ):
+                        ret = await async_function(**args)  # type: ignore
+                        skip_pre = False
                 return ret
 
-            return wrapped_amethod  # type: ignore
+            return wrapped_amethod
 
-        if isfunction(obj):
-            return method_wrapper(obj)
         if iscoroutinefunction(obj):
             return coroutine_wrapper(obj)
+        elif isfunction(obj):
+            return method_wrapper(obj)
         return None
 
 
@@ -2002,8 +2016,7 @@ optional_settings: dict[str, dict] = {}
 selected_client: str = ""
 client_groups: dict[str, dict[str, _BiliAPIClientGroup]] = {}
 selected_instance: str = ""
-__registered_pre = []
-__registered_post = []
+__registered_filters = []
 
 
 ##### client #####
@@ -2333,7 +2346,6 @@ def unset_session(
 def register_pre_filter(
     name: str,
     func: Callable | None = None,
-    async_func: Callable[..., Coroutine] | None = None,
     priority: int = 0,
 ) -> None:
     """
@@ -2346,28 +2358,28 @@ def register_pre_filter(
     Args:
         name (str): 名称，若重复则为修改对应过滤器。
         func (Callable | None, optional): 执行的函数，参数传入 `FilterArgs` 对象. Defaults to None.
-        async_func (Callable[..., Coroutine] | None, optional): 执行的异步函数，参数传入 `FilterArgs` 对象. Defaults to None.
         priority (int, optional): 优先级，数字越小越优先执行. Defaults to 0.
     """
-    global __registered_pre
-    raise_for_statement(bool(func or async_func), "至少提供一个函数")
+    global __registered_filters
     filt = {
         "name": name,
-        "function": func,
-        "async_function": async_func,
         "priority": priority,
+        "locate": "pre",
     }
-    for i, pre in enumerate(__registered_pre):
+    if iscoroutinefunction(func):
+        filt["async_function"] = func
+    else:
+        filt["function"] = func
+    for i, pre in enumerate(__registered_filters):
         if pre["name"] == name:
-            __registered_pre[i] = filt
+            __registered_filters[i] = filt
             return
-    __registered_pre.append(filt)
+    __registered_filters.append(filt)
 
 
 def register_post_filter(
     name: str,
     func: Callable | None = None,
-    async_func: Callable[..., Coroutine] | None = None,
     priority: int = 0,
 ) -> None:
     """
@@ -2380,27 +2392,28 @@ def register_post_filter(
     Args:
         name (str): 名称，若重复则为修改对应过滤器。
         func (Callable | None, optional): 执行的函数，参数传入 `FilterArgs` 对象. Defaults to None.
-        async_func (Callable[..., Coroutine] | None, optional): 执行的异步函数，参数传入 `FilterArgs` 对象. Defaults to None.
         priority (int, optional): 优先级，数字越小越优先执行. Defaults to 0.
     """
-    global __registered_post
-    raise_for_statement(bool(func or async_func), "至少提供一个函数")
+    global __registered_filters
     filt = {
         "name": name,
-        "function": func,
-        "async_function": async_func,
         "priority": priority,
+        "locate": "post",
     }
-    for i, post in enumerate(__registered_post):
+    if iscoroutinefunction(func):
+        filt["async_function"] = func
+    else:
+        filt["function"] = func
+    for i, post in enumerate(__registered_filters):
         if post["name"] == name:
-            __registered_post[i] = filt
+            __registered_filters[i] = filt
             return
-    __registered_post.append(filt)
+    __registered_filters.append(filt)
 
 
-def get_registered_pre_filters(in_priority: bool = True) -> list[dict]:
+def get_registered_filters(in_priority: bool = True) -> list[dict]:
     """
-    获取所有已注册的前置过滤器
+    获取所有已注册的过滤器
 
     Args:
         in_priority (bool, optional): 是否排序. Defaults to True.
@@ -2409,50 +2422,28 @@ def get_registered_pre_filters(in_priority: bool = True) -> list[dict]:
         list[dict]: 已注册的前置过滤器
     """
     if in_priority:
-        return sorted(__registered_pre, key=lambda pre: pre["priority"])
-    return __registered_pre
+
+        def cmp(filt1: dict, filt2: dict) -> int:
+            locate = ["pre", "post"]
+            if filt1["locate"] != filt2["locate"]:
+                return locate.index(filt1["locate"]) - locate.index(filt2["locate"])
+            return filt1["priority"] - filt2["priority"]
+
+        return sorted(__registered_filters, key=cmp_to_key(cmp))
+    return __registered_filters
 
 
-def get_registered_post_filters(in_priority: bool = True) -> list[dict]:
-    """
-    获取所有已注册的后置过滤器
-
-    Args:
-        in_priority (bool, optional): 是否排序. Defaults to True.
-
-    Returns:
-        list[dict]: 已注册的后置过滤器
-    """
-    if in_priority:
-        return sorted(__registered_post, key=lambda post: post["priority"])
-    return __registered_post
-
-
-def unregister_pre_filter(name: str) -> None:
+def unregister_filter(name: str) -> None:
     """
     取消注册前置过滤器
 
     Args:
         name (str): 过滤器名称
     """
-    global __registered_pre
-    for i, pre in enumerate(__registered_pre):
-        if pre["name"] == name:
-            del __registered_pre[i]
-            return
-
-
-def unregister_post_filter(name: str) -> None:
-    """
-    取消注册后置过滤器
-
-    Args:
-        name (str): 过滤器名称
-    """
-    global __registered_post
-    for i, post in enumerate(__registered_post):
-        if post["name"] == name:
-            del __registered_post[i]
+    global __registered_filters
+    for i, filt in enumerate(__registered_filters):
+        if filt["name"] == name:
+            del __registered_filters[i]
             return
 
 
@@ -3732,8 +3723,8 @@ def __register_builtin_log_filters():
                 )
         return BiliFilterReturn.continue_exec()
 
-    register_pre_filter(name="__builtin_log", func=log_pre, priority=998244353)
-    register_post_filter(name="__builtin_log", func=log_post, priority=-998244353)
+    register_pre_filter(name="__builtin_log_pre", func=log_pre, priority=998244353)
+    register_post_filter(name="__builtin_log_post", func=log_post, priority=-998244353)
 
 
 def __register_global_credential_filter():
@@ -3773,7 +3764,7 @@ def __register_global_credential_filter():
 
     register_pre_filter(
         name="__builtin_global_credential",
-        async_func=add_credential,
+        func=add_credential,
         priority=0,
     )
 

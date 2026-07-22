@@ -40,6 +40,7 @@ from bilibili_api import ...
 - [class BiliFilterData()](#class-BiliFilterData)
   - [def \_\_init\_\_()](#def-\_\_init\_\_)
   - [def get\_data()](#def-get\_data)
+  - [def has\_data()](#def-has\_data)
   - [def set\_data()](#def-set\_data)
 - [class BiliFilterFlags()](#class-BiliFilterFlags)
 - [class BiliFilterReturn()](#class-BiliFilterReturn)
@@ -47,8 +48,7 @@ from bilibili_api import ...
   - [def continue\_exec()](#def-continue\_exec)
   - [def execute\_now()](#def-execute\_now)
   - [def goto\_idx()](#def-goto\_idx)
-  - [def goto\_name\_post()](#def-goto\_name\_post)
-  - [def goto\_name\_pre()](#def-goto\_name\_pre)
+  - [def goto\_name()](#def-goto\_name)
   - [def return\_now()](#def-return\_now)
   - [def set\_params()](#def-set\_params)
   - [def set\_return()](#def-set\_return)
@@ -184,8 +184,7 @@ from bilibili_api import ...
 - [async def get\_real\_url()](#async-def-get\_real\_url)
 - [def get\_registered\_available\_settings()](#def-get\_registered\_available\_settings)
 - [def get\_registered\_clients()](#def-get\_registered\_clients)
-- [def get\_registered\_post\_filters()](#def-get\_registered\_post\_filters)
-- [def get\_registered\_pre\_filters()](#def-get\_registered\_pre\_filters)
+- [def get\_registered\_filters()](#def-get\_registered\_filters)
 - [def get\_selected\_client()](#def-get\_selected\_client)
 - [def get\_selected\_instance()](#def-get\_selected\_instance)
 - [def get\_session()](#def-get\_session)
@@ -212,8 +211,7 @@ from bilibili_api import ...
 - [def set\_session()](#def-set\_session)
 - [def sync()](#def-sync)
 - [def unregister\_client()](#def-unregister\_client)
-- [def unregister\_post\_filter()](#def-unregister\_post\_filter)
-- [def unregister\_pre\_filter()](#def-unregister\_pre\_filter)
+- [def unregister\_filter()](#def-unregister\_filter)
 - [def unset\_session()](#def-unset\_session)
 
 ---
@@ -785,8 +783,23 @@ class BiliAPIClient(ABC):
 
 | name | type | description |
 | - | - | - |
-| `cnt` | `int` | 过滤器执行 cnt |
 | `key` | `str` | 键 |
+
+**Returns:** `Any`:  值
+
+
+
+
+### def has_data()
+
+是否存在数据
+
+
+| name | type | description |
+| - | - | - |
+| `key` | `str` | 键 |
+
+**Returns:** `bool`:  是否存在数据
 
 
 
@@ -798,7 +811,6 @@ class BiliAPIClient(ABC):
 
 | name | type | description |
 | - | - | - |
-| `cnt` | `int` | 过滤器执行 cnt |
 | `key` | `str` | 键 |
 | `value` | `Any` | 值 |
 
@@ -820,7 +832,7 @@ class BiliAPIClient(ABC):
 - RETURN_NOW: 直接作为函数返回值返回
 - BACK: 回到上一个过滤器
 - SKIP: 跳过下一个过滤器
-- GOTO: 跳到任意一个过滤器 需通过 `get_registered_(pre|post)_filters` 查询对应过滤器的下标
+- GOTO: 跳到任意一个过滤器 需通过 `get_registered_filters` 查询对应过滤器的下标
 
 
 
@@ -889,27 +901,11 @@ class BiliAPIClient(ABC):
 
 
 
-### def goto_name_post()
+### def goto_name()
 
 > `@staticmethod` 
 
-跳到任意一个后置过滤器
-
-
-| name | type | description |
-| - | - | - |
-| `name` | `str` | 对应过滤器名称 |
-
-**Returns:** `tuple[BiliFilterFlags, int]`:  过滤器函数返回值
-
-
-
-
-### def goto_name_pre()
-
-> `@staticmethod` 
-
-跳到任意一个前置过滤器
+跳到任意一个过滤器
 
 
 | name | type | description |
@@ -2692,25 +2688,9 @@ BV 号转 AV 号。
 
 ---
 
-## def get_registered_post_filters()
+## def get_registered_filters()
 
-获取所有已注册的后置过滤器
-
-
-| name | type | description |
-| - | - | - |
-| `in_priority` | `bool, optional` | 是否排序. Defaults to True. |
-
-**Returns:** `list[dict]`:  已注册的后置过滤器
-
-
-
-
----
-
-## def get_registered_pre_filters()
-
-获取所有已注册的前置过滤器
+获取所有已注册的过滤器
 
 
 | name | type | description |
@@ -2888,7 +2868,6 @@ BV 号转 AV 号。
 | - | - | - |
 | `name` | `str` | 名称，若重复则为修改对应过滤器。 |
 | `func` | `Callable \| None, optional` | 执行的函数，参数传入 `FilterArgs` 对象. Defaults to None. |
-| `async_func` | `Callable[..., Coroutine] \| None, optional` | 执行的异步函数，参数传入 `FilterArgs` 对象. Defaults to None. |
 | `priority` | `int, optional` | 优先级，数字越小越优先执行. Defaults to 0. |
 
 
@@ -2909,7 +2888,6 @@ BV 号转 AV 号。
 | - | - | - |
 | `name` | `str` | 名称，若重复则为修改对应过滤器。 |
 | `func` | `Callable \| None, optional` | 执行的函数，参数传入 `FilterArgs` 对象. Defaults to None. |
-| `async_func` | `Callable[..., Coroutine] \| None, optional` | 执行的异步函数，参数传入 `FilterArgs` 对象. Defaults to None. |
 | `priority` | `int, optional` | 优先级，数字越小越优先执行. Defaults to 0. |
 
 
@@ -3138,21 +3116,7 @@ async def handle(desc: str, data: dict) -> None:
 
 ---
 
-## def unregister_post_filter()
-
-取消注册后置过滤器
-
-
-| name | type | description |
-| - | - | - |
-| `name` | `str` | 过滤器名称 |
-
-
-
-
----
-
-## def unregister_pre_filter()
+## def unregister_filter()
 
 取消注册前置过滤器
 
