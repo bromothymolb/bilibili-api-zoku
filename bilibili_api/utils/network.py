@@ -119,7 +119,7 @@ class AsyncEvent:
             event_name (str): 事件名。
 
         Returns:
-            Callable: 传入函数的参数字典
+            Callable: 装饰器。
         """
 
         def decorator(func: Callable | Coroutine):

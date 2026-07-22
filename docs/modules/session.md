@@ -15,7 +15,7 @@ from bilibili_api import session
 - [class EventType()](#class-EventType)
 - [class Session()](#class-Session)
   - [def \_\_init\_\_()](#def-\_\_init\_\_)
-  - [def close()](#def-close)
+  - [async def close()](#async-def-close)
   - [def get\_status()](#def-get\_status)
   - [def on()](#def-on)
   - [async def reply()](#async-def-reply)
@@ -102,7 +102,7 @@ from bilibili_api import session
 | `debug` | `bool, optional` | 调试模式，将输出更多信息. Defaults to False. |
 
 
-### def close()
+### async def close()
 
 结束轮询
 

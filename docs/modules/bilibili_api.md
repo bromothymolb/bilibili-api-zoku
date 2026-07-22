@@ -411,7 +411,7 @@ API 基类异常。
 | - | - | - |
 | `event_name` | `str` | 事件名。 |
 
-**Returns:** `Callable`:  传入函数的参数字典
+**Returns:** `Callable`:  装饰器。
 
 
 
