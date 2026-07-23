@@ -6,6 +6,7 @@ bilibili_api.interactive_video
 
 # pylint: skip-file
 
+import asyncio
 from collections.abc import Coroutine
 import copy
 import enum
@@ -1474,7 +1475,7 @@ class InteractiveVideoDownloader(AsyncEvent):
             self.__task = None
             await self.clean_task_group()
             return result
-        except anyio.TaskCancelled:
+        except asyncio.CancelledError:
             # 忽略 task 取消异常
             pass
         except Exception as e:
@@ -1485,8 +1486,7 @@ class InteractiveVideoDownloader(AsyncEvent):
         """
         中断下载
         """
-        if self.__task:
-            self.__task.cancel()
+        await self.clean_task_group()
 
         self.dispatch("ABORTED", None)
 

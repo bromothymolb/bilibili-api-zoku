@@ -206,6 +206,51 @@ class AsyncEvent:
             self.dispatch("__ALL__", kwargs)
 
 
+"""
+使用 anyio.TaskGroup 后编写 AsyncEvent 类相关调用代码，可参考如下写法:
+
+``` python
+async def __main(self, ...) -> ...:
+    '''
+    异步主程序
+    '''
+    task_group = await self.get_task_group()
+    # 此行作用为保证 TaskGroup 可用
+    # 接下来函数内部可调用 task_group.create_task
+    # 亦可保证绑定的异步回调函数的执行
+    ...
+
+async def start(self, ...) -> ...:
+    '''
+    阻塞式异步爬虫
+    '''
+    task_group = await self.get_task_group()
+    self.__task = task_group.create_task(self.__main)
+    try:
+        result = await self.__task
+        self.__task = None
+        await self.clean_task_group()
+    except asyncio.CancelledError:
+        pass
+    except Exception as e:
+        raise e
+
+async def run(self, ...) -> ...:
+    '''
+    非阻塞式异步爬虫
+    '''
+    task_group = await self.get_task_group()
+    task_group.start_soon(self.start)
+
+async def close(self) -> ...:
+    '''
+    结束爬虫
+    '''
+    await self.clean_task_group()
+```
+"""
+
+
 ################################################## END AsyncEvent ##################################################
 
 

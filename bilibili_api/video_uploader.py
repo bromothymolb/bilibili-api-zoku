@@ -4,6 +4,7 @@ bilibili_api.video_uploader
 视频上传
 """
 
+import asyncio
 import base64
 from copy import copy, deepcopy
 from datetime import datetime
@@ -990,7 +991,7 @@ class VideoUploader(AsyncEvent):
             self.__task = None
             await self.clean_task_group()
             return result
-        except anyio.TaskCancelled:
+        except asyncio.CancelledError:
             # 忽略 task 取消异常
             pass
         except Exception as e:
@@ -1310,8 +1311,7 @@ class VideoUploader(AsyncEvent):
         """
         中断上传
         """
-        if self.__task:
-            self.__task.cancel()
+        await self.clean_task_group()
 
         self.dispatch(VideoUploaderEvents.ABORTED.value, None)
 
@@ -1532,7 +1532,7 @@ class VideoEditor(AsyncEvent):
             self.__task = None
             await self.clean_task_group()
             return result
-        except anyio.TaskCancelled:
+        except asyncio.CancelledError:
             # 忽略 task 取消异常
             pass
         except Exception as e:
@@ -1543,7 +1543,6 @@ class VideoEditor(AsyncEvent):
         """
         中断更改
         """
-        if self.__task:
-            self.__task.cancel()
+        await self.clean_task_group()
 
         self.dispatch(VideoEditorEvents.ABORTED.value, None)
