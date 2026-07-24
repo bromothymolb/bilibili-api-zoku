@@ -65,7 +65,7 @@ from bilibili_api import interactive_video
   - [async def up\_submit\_story\_tree()](#async-def-up\_submit\_story\_tree)
 - [class InteractiveVideoDownloader()](#class-InteractiveVideoDownloader)
   - [def \_\_init\_\_()](#def-\_\_init\_\_)
-  - [async def abort()](#async-def-abort)
+  - [def abort()](#def-abort)
   - [async def start()](#async-def-start)
 - [class InteractiveVideoDownloaderEvents()](#class-InteractiveVideoDownloaderEvents)
 - [class InteractiveVideoDownloaderMode()](#class-InteractiveVideoDownloaderMode)
@@ -699,7 +699,7 @@ o----|xxx| (TEXT_RIGHT)
 | `fetching_nodes_retry_times` | `int, optional` | 获取节点时的最大重试次数. Defaults to 3. |
 
 
-### async def abort()
+### def abort()
 
 中断下载
 

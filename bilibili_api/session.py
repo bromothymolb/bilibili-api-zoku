@@ -5,6 +5,7 @@ bilibili_api.session
 """
 
 from collections.abc import Callable
+from contextlib import AbstractAsyncContextManager
 from enum import Enum
 import json
 import logging
@@ -491,14 +492,7 @@ class Session(AsyncEvent):
         """
         return self.__status
 
-    async def start(self, exclude_self: bool = True) -> None:
-        """
-        阻塞异步启动 通过调用 self.close() 后可断开连接
-
-        Args:
-            exclude_self (bool, optional): 是否排除自己发出的消息，默认排除. Defaults to True.
-        """
-        await self.get_task_group()
+    async def __main(self, exclude_self: bool = True) -> None:
         # 获取自身UID 用于后续判断消息是发送还是接收
         self_info = await get_self_info(self.credential)
         self.uid = self_info["mid"]
@@ -560,26 +554,37 @@ class Session(AsyncEvent):
         self.__status = 1
         self.logger.info("开始轮询")
 
-        task_group = await self.get_task_group()
-
         while self.get_status() < 2:
             await query()
-            task_group.start_soon(trigger_task)
+            self.task_group.start_soon(trigger_task)
             await self.__wait_event.wait()
             self.__wait_event = anyio.Event()
 
         if self.get_status() == 2:
             self.__status = 3
 
-    async def run(self, exclude_self: bool = True) -> None:
+    async def start(self, exclude_self: bool = True) -> None:
+        """
+        阻塞异步启动 通过调用 self.close() 后可断开连接
+
+        Args:
+            exclude_self (bool, optional): 是否排除自己发出的消息，默认排除. Defaults to True.
+        """
+        return await self.async_event_start(self.__main(exclude_self=exclude_self))
+
+    async def run(
+        self, exclude_self: bool = True
+    ) -> AbstractAsyncContextManager[anyio.TaskHandle]:
         """
         非阻塞异步爬虫 定时发送请求获取消息
 
         Args:
             exclude_self (bool, optional): 是否排除自己发出的消息，默认排除. Defaults to True.
+
+        Returns:
+            AbstractAsyncContextManager: 上下文管理器
         """
-        task_group = await self.get_task_group()
-        task_group.start_soon(self.start, exclude_self)
+        return self.async_event_run(self.__main(exclude_self=exclude_self))
 
     async def reply(self, event: Event, content: str | Picture) -> dict:  # type: ignore
         """
@@ -601,11 +606,11 @@ class Session(AsyncEvent):
             )
             return await send_msg(self.credential, event.sender_uid, msg_type, content)
 
-    async def close(self) -> None:
+    def close(self) -> None:
         """
         结束轮询
         """
         self.__status = 2
         self.__wait_event.set()
         self.logger.info("结束轮询")
-        await self.clean_task_group()
+        self.async_event_cancel()

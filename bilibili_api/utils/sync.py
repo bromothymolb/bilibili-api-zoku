@@ -11,6 +11,10 @@ from concurrent.futures import Future as ConcurrentFuture
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any, TypeVar
 
+import anyio
+
+from .network import bili_settings
+
 T = TypeVar("T")
 
 
@@ -23,17 +27,26 @@ def __ensure_event_loop() -> asyncio.AbstractEventLoop:
 
 
 def sync(
-    coroutine: Coroutine[Any, Any, T] | AsyncioFuture | ConcurrentFuture,
+    coroutine: Coroutine[Any, Any, T]
+    | AsyncioFuture
+    | ConcurrentFuture
+    | anyio.TaskHandle,
 ) -> T:
     """
     同步执行异步函数，使用可参考 [同步执行异步代码](https://bromothymolb.github.io/bilibili-api-zoku/#/sync-executor)
 
     Args:
-        coroutine (Coroutine[Any, Any, ~T] | _asyncio.Future | concurrent.futures._base.Future): 异步函数
+        coroutine (Coroutine | Future | anyio.TaskHandle): 异步函数
 
     Returns:
         ~T: 该异步函数的返回值
     """
+    if bili_settings.get_enable_trio():
+
+        async def sync_task() -> T:
+            return await coroutine  # type: ignore
+
+        return anyio.run(sync_task, backend="trio")
     try:
         asyncio.get_running_loop()
     except RuntimeError:

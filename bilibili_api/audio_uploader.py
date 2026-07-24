@@ -4,7 +4,6 @@ bilibili_api.audio_uploader
 音频上传
 """
 
-import asyncio
 from dataclasses import dataclass, field
 from enum import Enum
 import json
@@ -765,28 +764,17 @@ class AudioUploader(AsyncEvent):
         Returns:
             int | None: 歌曲 auid
         """
-        task_group = await self.get_task_group()
-        task = task_group.create_task(self._main())
-        self.__task = task
-
         try:
-            result = await task
-            self.__task = None
-            await self.clean_task_group()
-            return result
-        except asyncio.CancelledError:
-            # 忽略 task 取消异常
-            pass
+            return await self.async_event_start(self._main())
         except Exception as e:
             self.dispatch(AudioUploaderEvents.FAILED.value, {"err": e})
             raise e
 
-    async def abort(self) -> None:
+    def abort(self) -> None:
         """
         中断更改
         """
-        await self.clean_task_group()
-
+        self.async_event_cancel()
         self.dispatch(AudioUploaderEvents.ABORTED.value, None)
 
 

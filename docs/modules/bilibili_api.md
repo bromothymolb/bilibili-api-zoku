@@ -23,9 +23,9 @@ from bilibili_api import ...
 - [class AsyncEvent()](#class-AsyncEvent)
   - [def \_\_init\_\_()](#def-\_\_init\_\_)
   - [def add\_event\_listener()](#def-add\_event\_listener)
-  - [async def clean\_task\_group()](#async-def-clean\_task\_group)
+  - [def async\_event\_cancel()](#def-async\_event\_cancel)
+  - [async def async\_event\_start()](#async-def-async\_event\_start)
   - [def dispatch()](#def-dispatch)
-  - [async def get\_task\_group()](#async-def-get\_task\_group)
   - [def ignore\_event()](#def-ignore\_event)
   - [def on()](#def-on)
   - [def remove\_all\_event\_listener()](#def-remove\_all\_event\_listener)
@@ -333,6 +333,9 @@ API 基类异常。
 特殊事件：\_\_ALL\_\_ 所有事件均触发；\_\_TASK_EXCEPTION\_\_ 当订阅任务执行过程中抛出异常时发布的事件，不包含在 \_\_ALL\_\_ 中，订阅此事件的处理函数不再进行异常处理。
 
 
+| name | type | description |
+| - | - | - |
+| `task_group` | `anyio.abc.TaskGroup` | 可用于创建 Task 的 TaskGroup 实例。 |
 
 
 ### def \_\_init\_\_()
@@ -354,11 +357,25 @@ API 基类异常。
 
 
 
-### async def clean_task_group()
+### def async_event_cancel()
 
-如果存在，清理异步事件类的 TaskGroup。
+取消异步事件类主任务
 
 
+
+
+
+
+### async def async_event_start()
+
+阻塞启动异步事件类
+
+
+| name | type | description |
+| - | - | - |
+| `coro` | `Coroutine` | 主程序 |
+
+**Returns:** `Any`:  主程序返回值
 
 
 
@@ -373,17 +390,6 @@ API 基类异常。
 | `name` | `str` | 事件名。 |
 | `args` | `Any` | 要传递给函数的参数。 *args 传递。 |
 | `kwargs` | `Any` | 要传递给函数的参数。 **kwargs 传递。 |
-
-
-
-
-### async def get_task_group()
-
-获取异步事件类使用的 TaskGroup，若无则新建
-
-
-
-**Returns:** `anyio.abc.TaskGroup`:  异步事件类使用的 TaskGroup
 
 
 
@@ -3093,7 +3099,7 @@ async def handle(desc: str, data: dict) -> None:
 
 | name | type | description |
 | - | - | - |
-| `coroutine` | `Coroutine[Any, Any, ~T] \| _asyncio.Future \| concurrent.futures._base.Future` | 异步函数 |
+| `coroutine` | `Coroutine \| Future \| anyio.TaskHandle` | 异步函数 |
 
 **Returns:** `~T`:  该异步函数的返回值
 

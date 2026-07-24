@@ -4,7 +4,6 @@ bilibili_api.video_uploader
 视频上传
 """
 
-import asyncio
 import base64
 from copy import copy, deepcopy
 from datetime import datetime
@@ -755,7 +754,6 @@ class VideoUploader(AsyncEvent):
         )
         self.line_choice = line
         self.line: dict = {}
-        self.__task: anyio.TaskHandle | None = None
 
     async def _preupload(self, page: VideoUploaderPage) -> dict:
         """
@@ -982,18 +980,9 @@ class VideoUploader(AsyncEvent):
             dict: 返回带有 bvid 和 aid 的字典。
         """
         self.line = await _choose_line(self.line_choice)
-        task_group = await self.get_task_group()
-        task = task_group.create_task(self._main())
-        self.__task = task
 
         try:
-            result = await task
-            self.__task = None
-            await self.clean_task_group()
-            return result
-        except asyncio.CancelledError:
-            # 忽略 task 取消异常
-            pass
+            return await self.async_event_start(self._main())
         except Exception as e:
             self.dispatch(VideoUploaderEvents.FAILED.value, {"err": e})
             raise e
@@ -1307,12 +1296,11 @@ class VideoUploader(AsyncEvent):
             self.dispatch(VideoUploaderEvents.SUBMIT_FAILED.value, {"err": err})
             raise err
 
-    async def abort(self) -> None:
+    def abort(self) -> None:
         """
         中断上传
         """
-        await self.clean_task_group()
-
+        self.async_event_cancel()
         self.dispatch(VideoUploaderEvents.ABORTED.value, None)
 
 
@@ -1427,7 +1415,6 @@ class VideoEditor(AsyncEvent):
         self.cover_path = cover
         self.__old_configs = {}
         self.meta["aid"] = bvid2aid(bvid)
-        self.__task: anyio.TaskHandle | None = None
 
     async def _fetch_configs(self):
         """
@@ -1523,26 +1510,15 @@ class VideoEditor(AsyncEvent):
         Returns:
             dict: 返回带有 bvid 和 aid 的字典。
         """
-        task_group = await self.get_task_group()
-        task = task_group.create_task(self._main())
-        self.__task = task
-
         try:
-            result = await task
-            self.__task = None
-            await self.clean_task_group()
-            return result
-        except asyncio.CancelledError:
-            # 忽略 task 取消异常
-            pass
+            return await self.async_event_start(self._main())
         except Exception as e:
             self.dispatch(VideoEditorEvents.FAILED.value, {"err": e})
             raise e
 
-    async def abort(self) -> None:
+    def abort(self) -> None:
         """
         中断更改
         """
-        await self.clean_task_group()
-
+        self.async_event_cancel()
         self.dispatch(VideoEditorEvents.ABORTED.value, None)

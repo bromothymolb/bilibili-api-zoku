@@ -1408,8 +1408,6 @@ class LiveDanmaku(AsyncEvent):
         """
         连接直播间
         """
-        await self.get_task_group()
-
         if self.get_status() == self.STATUS_CONNECTING:
             raise LiveException("正在建立连接中")
 
@@ -1419,7 +1417,7 @@ class LiveDanmaku(AsyncEvent):
         if self.get_status() == self.STATUS_CLOSING:
             raise LiveException("正在关闭连接，不可调用")
 
-        await self.__main()
+        await self.async_event_start(self.__main())
 
     async def disconnect(self) -> None:
         """
@@ -1432,7 +1430,7 @@ class LiveDanmaku(AsyncEvent):
         self.logger.info("连接正在关闭")
 
         # 取消所有任务
-        await self.clean_task_group()
+        self.async_event_cancel()
 
         self.__status = self.STATUS_CLOSED
         await self.__client.ws_close(cnt=self.__ws)  # type: ignore
@@ -1496,9 +1494,10 @@ class LiveDanmaku(AsyncEvent):
                 @self.on("VERIFICATION_SUCCESSFUL")
                 async def on_verification_successful(data):
                     # 新建心跳任务
-                    task_group = await self.get_task_group()
-                    self.__tasks.append(task_group.create_task(self.__heartbeat()))
-                    self.__tasks.append(task_group.create_task(self.__heartbeat_web()))
+                    self.__tasks.append(self.task_group.create_task(self.__heartbeat()))
+                    self.__tasks.append(
+                        self.task_group.create_task(self.__heartbeat_web())
+                    )
 
                 self.logger.debug("连接主机成功, 准备发送认证信息")
                 await self.__send_verify_data(conf["token"])

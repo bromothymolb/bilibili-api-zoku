@@ -6,7 +6,6 @@ bilibili_api.interactive_video
 
 # pylint: skip-file
 
-import asyncio
 from collections.abc import Coroutine
 import copy
 import enum
@@ -852,7 +851,6 @@ class InteractiveVideoDownloader(AsyncEvent):
         super().__init__()
         self.__video = video
         self.__download_func = self_download_func or self.__download
-        self.__task = None
         self.__out = out
         self.__mode = downloader_mode
         self.__detect_params = stream_detecting_params
@@ -1454,40 +1452,31 @@ class InteractiveVideoDownloader(AsyncEvent):
 
         self.dispatch("SUCCESS")
 
+    async def __start(self) -> None:
+        if self.__mode.value == "ivi":
+            return await self.__main()
+        elif self.__mode.value == "dot":
+            return await self.__dot_graph_main()
+        elif self.__mode.value == "no_pack":
+            return await self.__no_packaging_main()
+        else:
+            return await self.__node_videos_main()
+
     async def start(self) -> None:
         """
         开始下载
         """
-        task_group = await self.get_task_group()
-
-        if self.__mode.value == "ivi":
-            task = task_group.create_task(self.__main())
-        elif self.__mode.value == "dot":
-            task = task_group.create_task(self.__dot_graph_main())
-        elif self.__mode.value == "no_pack":
-            task = task_group.create_task(self.__no_packaging_main())
-        else:
-            task = task_group.create_task(self.__node_videos_main())
-        self.__task = task
-
         try:
-            result = await task
-            self.__task = None
-            await self.clean_task_group()
-            return result
-        except asyncio.CancelledError:
-            # 忽略 task 取消异常
-            pass
+            return await self.async_event_start(self.__main())
         except Exception as e:
             self.dispatch("FAILED", {"err": e})
             raise e
 
-    async def abort(self) -> None:
+    def abort(self) -> None:
         """
         中断下载
         """
-        await self.clean_task_group()
-
+        self.async_event_cancel()
         self.dispatch("ABORTED", None)
 
 

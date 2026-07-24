@@ -2007,8 +2007,7 @@ class VideoOnlineMonitor(AsyncEvent):
         """
         连接服务器
         """
-        await self.get_task_group()
-        await self.__main()
+        return await self.async_event_start(self.__main())
 
     async def disconnect(self) -> None:
         """
@@ -2016,8 +2015,8 @@ class VideoOnlineMonitor(AsyncEvent):
         """
         self.logger.info("主动断开连接。")
         self.dispatch("DISCONNECTED")
-        await self.__cancel_all_tasks()
-        await self.clean_task_group()
+        self.__cancel_all_tasks()
+        self.async_event_cancel()
         await self.__client.ws_close(cnt=self.__ws)
 
     async def __main(self):
@@ -2069,7 +2068,7 @@ class VideoOnlineMonitor(AsyncEvent):
                 data, flag = await self.__client.ws_recv(cnt=self.__ws)
             except Exception:
                 self.logger.warning("连接被异常断开")
-                await self.__cancel_all_tasks()
+                self.__cancel_all_tasks()
                 self.dispatch("ERROR", "")
                 continue
             if flag == BiliWsMsgType.BINARY:
@@ -2091,9 +2090,7 @@ class VideoOnlineMonitor(AsyncEvent):
                 # 服务器认证反馈。
                 if d["data"]["code"] == 0:
                     # 创建心跳 Task
-                    heartbeat = (await self.get_task_group()).create_task(
-                        self.__heartbeat_task()
-                    )
+                    heartbeat = self.task_group.create_task(self.__heartbeat_task())
                     self.__tasks.append(heartbeat)
 
                     self.logger.info("连接服务器并验证成功")
@@ -2147,7 +2144,7 @@ class VideoOnlineMonitor(AsyncEvent):
             index += 1
             await anyio.sleep(self.__heartbeat_interval)
 
-    async def __cancel_all_tasks(self):
+    def __cancel_all_tasks(self):
         """
         取消所有 Task。
         """

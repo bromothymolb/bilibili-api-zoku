@@ -11,7 +11,8 @@ import asyncio
 import atexit
 import base64
 import binascii
-from collections.abc import Callable, Coroutine
+from collections.abc import AsyncGenerator, Callable, Coroutine
+from contextlib import asynccontextmanager
 from copy import deepcopy
 from dataclasses import dataclass, field
 from email.utils import parsedate_to_datetime
@@ -68,6 +69,9 @@ class AsyncEvent:
     发布-订阅模式异步事件类支持。
 
     特殊事件：\\_\\_ALL\\_\\_ 所有事件均触发；\\_\\_TASK_EXCEPTION\\_\\_ 当订阅任务执行过程中抛出异常时发布的事件，不包含在 \\_\\_ALL\\_\\_ 中，订阅此事件的处理函数不再进行异常处理。
+
+    Attributes:
+        task_group (anyio.abc.TaskGroup): 可用于创建 Task 的 TaskGroup 实例。
     """
 
     def __init__(self):
@@ -75,28 +79,54 @@ class AsyncEvent:
         # don't remove this empty docstring
         self.__handlers = {}
         self.__ignore_events = []
-        self.task_group: anyio.abc.TaskGroup | None = None
+        self.task_group: anyio.abc.TaskGroup
+        self.__exit_event: anyio.Event
+        self.__task: anyio.TaskHandle
 
-    async def get_task_group(self) -> anyio.abc.TaskGroup:
+    async def async_event_start(self, coro: Coroutine) -> Any:
         """
-        获取异步事件类使用的 TaskGroup，若无则新建
+        阻塞启动异步事件类
+
+        Args:
+            coro (Coroutine): 主程序
 
         Returns:
-            anyio.abc.TaskGroup: 异步事件类使用的 TaskGroup
+            Any: 主程序返回值
         """
-        if not self.task_group:
-            self.task_group = anyio.create_task_group()
-            await self.task_group.__aenter__()
-        return self.task_group
+        self.task_group = anyio.create_task_group()
+        self.__exit_event = anyio.Event()
+        try:
+            async with self.task_group as task_group:
+                async def cancel_handle() -> None:
+                    await self.__exit_event.wait()
+                    task_group.cancel()
+                task_group.start_soon(cancel_handle)
+                self.__task = task_group.create_task(coro)
+                await self.__task
+        except asyncio.CancelledError:
+            pass
+        del self.task_group
 
-    async def clean_task_group(self) -> None:
+    @asynccontextmanager
+    async def async_event_run(self, coro: Coroutine) -> AsyncGenerator[anyio.TaskHandle]:
         """
-        如果存在，清理异步事件类的 TaskGroup。
+        非阻塞启动异步事件类
+
+        Args:
+            coro (Coroutine): 主程序
+
+        Returns:
+            Any: 主程序返回值
         """
-        if self.task_group:
-            self.task_group.cancel()
-            await self.task_group.__aexit__(None, None, None)
-            self.task_group = None
+        async with anyio.create_task_group() as btg:
+            background_task = btg.create_task(self.async_event_start(coro))
+            yield background_task
+
+    def async_event_cancel(self) -> None:
+        """
+        取消异步事件类主任务
+        """
+        self.__exit_event.set()
 
     def add_event_listener(self, name: str, handler: Callable | Coroutine) -> None:
         """
@@ -198,7 +228,7 @@ class AsyncEvent:
         if name in self.__handlers:
             for callableorcoroutine in self.__handlers[name]:
                 obj = callableorcoroutine(*args, **kwargs)
-                if isinstance(obj, Coroutine) and self.task_group:
+                if isinstance(obj, Coroutine) and getattr(self, "task_group"):
                     self.task_group.create_task(self.__run_handler(obj, name))
 
         if name != "__ALL__" and name != "__TASK_EXCEPTION__":
@@ -214,39 +244,38 @@ async def __main(self, ...) -> ...:
     '''
     异步主程序
     '''
-    task_group = await self.get_task_group()
-    # 此行作用为保证 TaskGroup 可用
-    # 接下来函数内部可调用 task_group.create_task
-    # 亦可保证绑定的异步回调函数的执行
+    # 此处可直接正常调用 self.task_group
     ...
 
 async def start(self, ...) -> ...:
     '''
     阻塞式异步爬虫
     '''
-    task_group = await self.get_task_group()
-    self.__task = task_group.create_task(self.__main)
+    # 异常处理：除 asyncio.CancelledError 其他异常均会 raise
+    # 如有必要请添加异常处理逻辑
     try:
-        result = await self.__task
-        self.__task = None
-        await self.clean_task_group()
-    except asyncio.CancelledError:
-        pass
+        return await self.async_event_start(self.__main())
     except Exception as e:
+        # 异常处理
         raise e
 
 async def run(self, ...) -> ...:
     '''
     非阻塞式异步爬虫
     '''
-    task_group = await self.get_task_group()
-    task_group.start_soon(self.start)
+    # 1. 运行 async_event_start (AsyncEvent)
+    return self.async_event_run(self.__main(...))
+    # 2. 运行 start (AsyncEvent 子类)
+    async with anyio.create_task_group() as btg:
+        background_task = btg.create_task(self.start(coro))
+        yield background_task
 
 async def close(self) -> ...:
     '''
     结束爬虫
     '''
-    await self.clean_task_group()
+    self.async_event_cancel()
+    # 仍需完成其他清理工作
 ```
 """
 

@@ -13,7 +13,7 @@ from bilibili_api import video_uploader
 - [class Lines()](#class-Lines)
 - [class VideoEditor()](#class-VideoEditor)
   - [def \_\_init\_\_()](#def-\_\_init\_\_)
-  - [async def abort()](#async-def-abort)
+  - [def abort()](#def-abort)
   - [async def start()](#async-def-start)
 - [class VideoEditorEvents()](#class-VideoEditorEvents)
 - [class VideoMeta()](#class-VideoMeta)
@@ -26,7 +26,7 @@ from bilibili_api import video_uploader
 - [class VideoPorderType()](#class-VideoPorderType)
 - [class VideoUploader()](#class-VideoUploader)
   - [def \_\_init\_\_()](#def-\_\_init\_\_)
-  - [async def abort()](#async-def-abort)
+  - [def abort()](#def-abort)
   - [async def start()](#async-def-start)
 - [class VideoUploaderEvents()](#class-VideoUploaderEvents)
 - [class VideoUploaderPage()](#class-VideoUploaderPage)
@@ -106,7 +106,7 @@ meta 参数示例: (保留 video, cover, tid, aid 字段)
 | `credential` | `Credential \| None, optional` | 凭据类. Defaults to None. |
 
 
-### async def abort()
+### def abort()
 
 中断更改
 
@@ -352,7 +352,7 @@ meta 保留字段：videos, cover
 | `line` | `video_uploader.Lines \| None, optional` | 线路.  不选择则自动测速选择. Defaults to None. |
 
 
-### async def abort()
+### def abort()
 
 中断上传
 
