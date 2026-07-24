@@ -1467,7 +1467,7 @@ class InteractiveVideoDownloader(AsyncEvent):
         开始下载
         """
         try:
-            return await self.async_event_start(self.__main())
+            return await self.async_event_start(self.__start())
         except Exception as e:
             self.dispatch("FAILED", {"err": e})
             raise e

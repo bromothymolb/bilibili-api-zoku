@@ -88,7 +88,7 @@ class UposFileUploader:
             chunk_number += 1
 
         while chunks_pending:
-            tasks = []
+            tasks: list[anyio.TaskHandle] = []
             async with anyio.create_task_group() as tg:
                 while (
                     len(tasks) < self.preupload["threads"] and len(chunks_pending) > 0
