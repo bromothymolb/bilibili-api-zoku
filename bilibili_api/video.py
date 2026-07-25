@@ -1912,8 +1912,7 @@ class VideoOnlineMonitor(AsyncEvent):
     示例代码：
 
     ```python
-    import asyncio
-    from bilibili_api import video
+    from bilibili_api import sync, video
 
     # 实例化
     r = video.VideoOnlineMonitor("BV1Bf4y1Q7QP")
@@ -1929,7 +1928,7 @@ class VideoOnlineMonitor(AsyncEvent):
 
     r.add_event_listener("ONLINE", handler2)
 
-    asyncio.get_event_loop().run_until_complete(r.connect())
+    sync(r.connect())
     ```
 
     Extends: AsyncEvent

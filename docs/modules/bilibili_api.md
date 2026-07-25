@@ -3099,7 +3099,7 @@ async def handle(desc: str, data: dict) -> None:
 
 | name | type | description |
 | - | - | - |
-| `coroutine` | `Coroutine \| Future \| anyio.TaskHandle` | 异步函数 |
+| `coroutine` | `Coroutine \| Future` | 异步函数 |
 
 **Returns:** `~T`:  该异步函数的返回值
 
