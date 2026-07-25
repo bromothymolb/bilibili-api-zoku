@@ -3,7 +3,188 @@ bilibili_api.utils.network
 
 与网络请求相关的模块。能对会话进行管理（复用 TCP 连接）。
 
-现在已经变成核心功能大杂烩了
+现在已经变成核心功能大杂烩了 2025.11.25 @Nemo2011
+
+bilibili-api 一切行为的核心即在网络请求上。自然，掌管网络请求的部分是模块的核心，重中之重。
+
+适合改为 bilibili_api.utils.core ，但改起来太麻烦了。
+
+碎碎念到此。network.py 整体由多个部分组成，代码中各个部分用了一条条注释互相分隔。
+
+## 1. AsyncEvent
+
+- `AsyncEvent`
+
+提供发布-订阅模式异步事件类支持。
+
+## 2. Logger
+
+- `request_log` (`RequestLog`)
+
+提供日志支持。整个 network.py 中的功能日志均由此发出。
+
+## 3. Settings
+
+- `bili_settings` (`BiliSettings`)
+- `RequestSettings`
+
+设置支持。设置分为两类，一类为 `BiliSettings`，一类为 `RequestSettings`。
+
+前者将传入第三方网络请求库应用，自然是网络请求相关的设置。
+
+后者是模块功能设置，此处功能自然是网络请求以外的功能，如 wbi 自动刷新，风控 cookies 自动获取。
+
+## 4. BiliAPIClient
+
+- `BiliAPIClient`
+- `BiliAPIResponse`
+- `BiliWsMsgType`
+- `BiliAPIFile`
+
+此处实现了用于接入第三方请求客户端的抽象类。同时实现了相应帮助类。
+
+## 5. Session Management
+
+### 1. 会话封装 (过滤器相关)
+
+- `BiliFilterFlags`
+- `BiliFilterData`
+- `BiliFilterArgs`
+- `BiliFilterReturn`
+
+### 2. 会话调度 (事件循环相关)
+
+- (`ensure_event_loop`)
+- (`event_loop_to_str`)
+- (`get_event_loop`)
+- (`_BiliAPIClientGroup`)
+
+### 3. `client` 管理
+
+- `register_client`
+- `unregister_client`
+- `select_client`
+- `get_selected_client`
+- `get_registered_clients`
+
+### 4. `instance` 管理
+
+- `new_instance`
+- `remove_instance`
+- `select_instance`
+- `get_selected_instance`
+- `get_instances`
+- `get_exist_instances`
+
+### 5. 设置获取
+
+- `get_available_settings`
+- `get_registered_available_settings`
+- `get_instance_settings`
+- `get_force_settings`
+- `get_settings`
+
+### 6. 高层级调度管理函数
+
+- `get_client`
+- `get_session`
+- `set_session`
+- `unset_session`
+
+此处功能较为复杂，实现了多请求客户端的管理。
+
+为什么需要多个请求客户端?
+
+1. 模块支持不同第三方库，产生不同请求客户端。
+2. asyncio 事件循环不唯一时，需要每个事件循环配对一个请求客户端。
+3. 用户对多个请求客户端的需求，例如需要设置互不相同的多个请求客户端。
+
+模块将所有请求客户端如下分类：
+
+1. 第一层按第三方请求库，内部使用 `client` 指代此层。
+2. 第二层按设置项分类，称每一类请求客户端为一个 `instance`。
+3. 第三层，在 `instance` 内部，每一个事件循环匹配一个 `session`。
+
+事实上，`session` `instance` 分别对应 `_BiliAPIClient` `_BiliAPIClientGroup`。
+
+第一二层均通过 `client_groups` 字典进行维护，第三层通过 `_BiliAPIClientGroup` 维护。
+
+`_BiliAPIClientGroup` 负责不同事件循环间的调度。每个事件循环将被编号后维护。
+
+如果使用 trio 作为异步后端，则事件循环编号将统一分发 `<trio>`。
+
+`_BiliAPIClient` 事实上为一个单独 `BiliAPIClient` 的包装，重写了其 getter。
+
+在其 getter 中，模块将完成过滤器功能的执行应用。
+
+对于 `instance` 设置的维护，其采取懒维护策略，仅获取实例时由上到下依次传递、更新并应用。
+
+`_BiliAPIClientGroup` -> `_BiliAPIClient` -> `BiliAPIClient`
+
+`get_instance_settings` `get_force_settings` 获取的均为 `instance` 设置。
+
+`get_settings` 获取全局设置，其将在 `_BiliAPIClientGroup` 中应用。
+
+事实上，如需绕过所有高层级类直接修改设置项，可调用 `session.set_xxx()` 函数直接设置。
+
+模块支持自行设置 `session`，设置需指定对应 `client` `instance` 和事件循环。
+
+## 6. Credential
+
+- `Credential`
+
+此处实现凭据类，用于维护 cookies ，提供网络请求风控 cookies 获取功能以及 cookies 刷新功能。
+
+## 7. Anti-Spider
+
+- `get_browser_fingerprint`
+- `get_bili_headers`
+
+反爬虫相关函数，部分需要进行网络请求获取风控参数。
+
+此外，浏览器指纹伪装功能亦在此处应用。
+
+## 8. Builtin-Filters
+
+模块内置的过滤器，提供常用功能。
+
+目前支持过滤器提供功能：
+
+- 请求日志
+- 全局凭据类
+
+目前存在以下过滤器：
+
+- `__builtin_log_pre` 前置 `priority=998244353`
+- `__builtin_log_post` 后置 `priority=-998244353`
+- `__builtin_global_credential` 前置 `priority=0`
+
+## 9. Credential-AntiSpider
+
+- `ensure_buvid`
+- `obtain_buvid`
+- `ensure_bili_ticket`
+- `obtain_bili_ticket`
+
+此部分负责维护凭据类的 buvid / bili_ticket ，即网络请求风控 cookies。
+
+相关信息请前往此部分开头注释查看。
+
+## 10. Api
+
+- `recalculate_wbi`
+- `get_wbi_mixin_key`
+- `Api`
+- `bili_simple_download`
+- `configure_dynamic_fingerprint`
+
+此部分提供真正意义上的高层级 API ，模块 90% 的网络请求直接使用此部分功能发起。
+
+主要为 `Api` 类，提供便捷的参数应用风控选项，如 wbi 风控。
+
+终于写完了，这边代码没有任何说明真的很难看懂啊。希望这段注释对将来的阅览者有所帮助。
+
+2026.07.25 added by @bromothymolb
 """
 
 from abc import ABC, abstractmethod
@@ -33,7 +214,7 @@ import re
 import struct
 import threading
 import time
-from typing import Any
+from typing import Any, TypeVar
 import urllib.parse
 
 import anyio
@@ -64,6 +245,9 @@ from .utils import get_api, raise_for_statement
 ################################################## BEGIN AsyncEvent ##################################################
 
 
+T = TypeVar("T")
+
+
 class AsyncEvent:
     """
     发布-订阅模式异步事件类支持。
@@ -82,51 +266,6 @@ class AsyncEvent:
         self.task_group: anyio.abc.TaskGroup
         self.__exit_event: anyio.Event
         self.__task: anyio.TaskHandle
-
-    async def async_event_start(self, coro: Coroutine) -> Any:
-        """
-        阻塞启动异步事件类
-
-        Args:
-            coro (Coroutine): 主程序
-
-        Returns:
-            Any: 主程序返回值
-        """
-        self.task_group = anyio.create_task_group()
-        self.__exit_event = anyio.Event()
-        try:
-            async with self.task_group as task_group:
-                async def cancel_handle() -> None:
-                    await self.__exit_event.wait()
-                    task_group.cancel()
-                task_group.start_soon(cancel_handle)
-                self.__task = task_group.create_task(coro)
-                await self.__task
-        except asyncio.CancelledError:
-            pass
-        del self.task_group
-
-    @asynccontextmanager
-    async def async_event_run(self, coro: Coroutine) -> AsyncGenerator[anyio.TaskHandle]:
-        """
-        非阻塞启动异步事件类
-
-        Args:
-            coro (Coroutine): 主程序
-
-        Returns:
-            Any: 主程序返回值
-        """
-        async with anyio.create_task_group() as btg:
-            background_task = btg.create_task(self.async_event_start(coro))
-            yield background_task
-
-    def async_event_cancel(self) -> None:
-        """
-        取消异步事件类主任务
-        """
-        self.__exit_event.set()
 
     def add_event_listener(self, name: str, handler: Callable | Coroutine) -> None:
         """
@@ -234,6 +373,56 @@ class AsyncEvent:
         if name != "__ALL__" and name != "__TASK_EXCEPTION__":
             kwargs.update({"name": name, "data": args})
             self.dispatch("__ALL__", kwargs)
+
+    async def async_event_start(self, coro: Coroutine[Any, Any, T]) -> T | None:
+        """
+        阻塞启动异步事件类
+
+        Args:
+            coro (Coroutine[Any, Any, ~T]): 主程序
+
+        Returns:
+            ~T | None: 主程序返回值，若中途取消则返回 None
+        """
+        self.task_group = anyio.create_task_group()
+        self.__exit_event = anyio.Event()
+        try:
+            async with self.task_group as task_group:
+
+                async def cancel_handle() -> None:
+                    await self.__exit_event.wait()
+                    task_group.cancel()
+
+                task_group.start_soon(cancel_handle)
+                self.__task = task_group.create_task(coro)
+                return await self.__task
+        except asyncio.CancelledError:
+            pass
+
+    @asynccontextmanager
+    async def async_event_run(
+        self, coro: Coroutine[Any, Any, T]
+    ) -> AsyncGenerator[anyio.TaskHandle[T | None]]:
+        """
+        非阻塞启动异步事件类
+
+        此函数将返回异步上下文管理器。
+
+        Args:
+            coro (Coroutine[Any, Any, ~T]): 主程序
+
+        Returns:
+            AsyncGenerator[anyio.TaskHandle[~T | None]]: 运行主程序的 TaskHandle，若中途取消则返回 None
+        """
+        async with anyio.create_task_group() as btg:
+            background_task = btg.create_task(self.async_event_start(coro))
+            yield background_task
+
+    def async_event_cancel(self) -> None:
+        """
+        取消异步事件类主任务
+        """
+        self.__exit_event.set()
 
 
 """
@@ -3876,14 +4065,6 @@ class GlobalCredential(Credential):
 _credential = GlobalCredential(sessdata="ujimatsu", bili_jct="chiya")
 
 
-def recalculate_wbi() -> None:
-    """
-    重新计算 wbi 的参数
-    """
-    global __wbi_mixin_key
-    __wbi_mixin_key = None
-
-
 async def ensure_buvid(credential: Credential | None = None) -> tuple[str, str, str]:
     """
     确认凭据类的 buvid3 与 buvid4，若未提供则生成新 buvid3 与 buvid4 并设置相关字段。
@@ -4082,6 +4263,14 @@ async def obtain_bili_ticket(
 
 
 __wbi_mixin_key: str | None = None
+
+
+def recalculate_wbi() -> None:
+    """
+    重新计算 wbi 的参数
+    """
+    global __wbi_mixin_key
+    __wbi_mixin_key = None
 
 
 async def get_wbi_mixin_key(credential: Credential | None = None) -> str:

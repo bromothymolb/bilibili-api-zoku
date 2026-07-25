@@ -121,7 +121,7 @@ meta 参数示例: (保留 video, cover, tid, aid 字段)
 
 
 
-**Returns:** `dict`:  返回带有 bvid 和 aid 的字典。
+**Returns:** `dict | None`:  返回带有 bvid 和 aid 的字典。若取消或失败返回 None。
 
 
 
@@ -367,7 +367,7 @@ meta 保留字段：videos, cover
 
 
 
-**Returns:** `dict`:  返回带有 bvid 和 aid 的字典。
+**Returns:** `dict | None`:  返回带有 bvid 和 aid 的字典。若取消或失败返回 None。
 
 
 

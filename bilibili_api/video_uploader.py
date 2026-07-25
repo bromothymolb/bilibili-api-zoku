@@ -972,12 +972,12 @@ class VideoUploader(AsyncEvent):
         self.dispatch(VideoUploaderEvents.COMPLETED.value, result)
         return result
 
-    async def start(self) -> dict:  # type: ignore
+    async def start(self) -> dict | None:
         """
         开始上传
 
         Returns:
-            dict: 返回带有 bvid 和 aid 的字典。
+            dict | None: 返回带有 bvid 和 aid 的字典。若取消或失败返回 None。
         """
         self.line = await _choose_line(self.line_choice)
 
@@ -1503,12 +1503,12 @@ class VideoEditor(AsyncEvent):
         self.dispatch(VideoEditorEvents.COMPLETED.value)
         return {"bvid": self.bvid}
 
-    async def start(self) -> dict:  # type: ignore
+    async def start(self) -> dict | None:
         """
         开始更改
 
         Returns:
-            dict: 返回带有 bvid 和 aid 的字典。
+            dict | None: 返回带有 bvid 和 aid 的字典。若取消或失败返回 None。
         """
         try:
             return await self.async_event_start(self._main())

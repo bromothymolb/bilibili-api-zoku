@@ -373,9 +373,9 @@ API 基类异常。
 
 | name | type | description |
 | - | - | - |
-| `coro` | `Coroutine` | 主程序 |
+| `coro` | `Coroutine[Any, Any, ~T]` | 主程序 |
 
-**Returns:** `Any`:  主程序返回值
+**Returns:** `~T | None`:  主程序返回值，若中途取消则返回 None
 
 
 
@@ -3099,7 +3099,7 @@ async def handle(desc: str, data: dict) -> None:
 
 | name | type | description |
 | - | - | - |
-| `coroutine` | `Coroutine \| Future` | 异步函数 |
+| `coroutine` | `Coroutine[Any, Any, ~T] \| Future[~T]` | 异步函数 |
 
 **Returns:** `~T`:  该异步函数的返回值
 

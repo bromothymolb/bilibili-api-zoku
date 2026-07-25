@@ -1,5 +1,5 @@
 """
-bilibili_api.utils.Danmaku
+bilibili_api.utils.danmaku
 
 弹幕类。
 """
