@@ -4,18 +4,24 @@ bilibili_api.audio_uploader
 音频上传
 """
 
-import asyncio
 from dataclasses import dataclass, field
 from enum import Enum
 import json
 import os
 import time
 
+import anyio
+
 from . import user
 from .exceptions.ApiException import ApiException
 from .exceptions.NetworkException import NetworkException
-from .utils.AsyncEvent import AsyncEvent
-from .utils.network import Api, Credential, get_bili_headers, get_client
+from .utils.network import (
+    Api,
+    AsyncEvent,
+    Credential,
+    get_bili_headers,
+    get_client,
+)
 from .utils.picture import Picture
 from .utils.upos import UposFile, UposFileUploader
 from .utils.utils import get_api, raise_for_statement
@@ -474,7 +480,7 @@ class AudioUploader(AsyncEvent):
 
     __song_id: int
     __upos_file: UposFile
-    __task: asyncio.Task | None
+    __task: anyio.TaskHandle | None
 
     def _check_meta(self):
         raise_for_statement(self.meta.content_type is not None)
@@ -758,27 +764,17 @@ class AudioUploader(AsyncEvent):
         Returns:
             int | None: 歌曲 auid
         """
-        task = asyncio.create_task(self._main())
-        self.__task = task
-
         try:
-            result = await task
-            self.__task = None
-            return result
-        except asyncio.CancelledError:
-            # 忽略 task 取消异常
-            pass
+            return await self.async_event_start(self._main())
         except Exception as e:
             self.dispatch(AudioUploaderEvents.FAILED.value, {"err": e})
             raise e
 
-    async def abort(self) -> None:
+    def abort(self) -> None:
         """
         中断更改
         """
-        if self.__task:
-            self.__task.cancel("用户手动取消")
-
+        self.async_event_cancel()
         self.dispatch(AudioUploaderEvents.ABORTED.value, None)
 
 

@@ -13,7 +13,7 @@ import anyio
 from .bangumi import Episode
 from .cheese import CheeseVideo
 from .exceptions.ArgsException import ArgsException
-from .utils.danmaku2ass import Danmaku2ASS
+from .third_party.danmaku2ass import Danmaku2ASS
 from .utils.network import Api, Credential
 from .video import Video
 

@@ -2,8 +2,6 @@
 bilibili_api.utils.upos
 """
 
-import asyncio
-from asyncio.tasks import create_task
 import json
 import os
 from typing import Any
@@ -90,12 +88,15 @@ class UposFileUploader:
             chunk_number += 1
 
         while chunks_pending:
-            tasks = []
-
-            while len(tasks) < self.preupload["threads"] and len(chunks_pending) > 0:
-                tasks.append(create_task(chunks_pending.pop()))
-
-            result = await asyncio.gather(*tasks)
+            tasks: list[anyio.TaskHandle] = []
+            async with anyio.create_task_group() as tg:
+                while (
+                    len(tasks) < self.preupload["threads"] and len(chunks_pending) > 0
+                ):
+                    tasks.append(tg.create_task(chunks_pending.pop()))
+            result = []
+            for task in tasks:
+                result.append(task.return_value)
 
             for r in result:
                 if not r["ok"]:

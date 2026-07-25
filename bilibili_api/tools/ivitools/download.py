@@ -56,7 +56,7 @@ def download_interactive_video(bvid: str, out: str):
     try:
         sync(downloader.start())
     except KeyboardInterrupt:
-        sync(downloader.abort())
+        downloader.abort()
         print(Fore.YELLOW + "[WRN]: Aborted by user. " + Fore.RESET)
     except Exception as e:
         raise e

@@ -76,11 +76,11 @@ from .exceptions import (
     WbiRetryTimesExceedException,
 )
 from .utils.aid_bvid_transformer import aid2bvid, bvid2aid
-from .utils.AsyncEvent import AsyncEvent
 from .utils.danmaku import Danmaku, DmFontSize, DmMode, SpecialDanmaku
 from .utils.geetest import Geetest, GeetestMeta, GeetestType
 from .utils.network import (
     Api,
+    AsyncEvent,
     BiliAPIClient,
     BiliAPIFile,
     BiliAPIResponse,
@@ -105,8 +105,7 @@ from .utils.network import (
     get_instances,
     get_registered_available_settings,
     get_registered_clients,
-    get_registered_post_filters,
-    get_registered_pre_filters,
+    get_registered_filters,
     get_selected_client,
     get_selected_instance,
     get_session,
@@ -124,8 +123,7 @@ from .utils.network import (
     select_instance,
     set_session,
     unregister_client,
-    unregister_post_filter,
-    unregister_pre_filter,
+    unregister_filter,
     unset_session,
 )
 from .utils.parse_link import ResourceType, parse_link
@@ -133,7 +131,7 @@ from .utils.picture import Picture
 from .utils.short import get_real_url
 from .utils.sync import sync
 
-BILIBILI_API_VERSION = "18.0.0.a2"
+BILIBILI_API_VERSION = "18.0.0.b0"
 
 
 def __register_all_clients():
@@ -238,8 +236,7 @@ __all__ = [
     "get_real_url",
     "get_registered_available_settings",
     "get_registered_clients",
-    "get_registered_post_filters",
-    "get_registered_pre_filters",
+    "get_registered_filters",
     "get_selected_client",
     "get_selected_instance",
     "get_session",
@@ -274,8 +271,7 @@ __all__ = [
     "sync",
     "topic",
     "unregister_client",
-    "unregister_post_filter",
-    "unregister_pre_filter",
+    "unregister_filter",
     "unset_session",
     "user",
     "video",

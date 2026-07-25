@@ -23,6 +23,8 @@ from bilibili_api import ...
 - [class AsyncEvent()](#class-AsyncEvent)
   - [def \_\_init\_\_()](#def-\_\_init\_\_)
   - [def add\_event\_listener()](#def-add\_event\_listener)
+  - [def async\_event\_cancel()](#def-async\_event\_cancel)
+  - [async def async\_event\_start()](#async-def-async\_event\_start)
   - [def dispatch()](#def-dispatch)
   - [def ignore\_event()](#def-ignore\_event)
   - [def on()](#def-on)
@@ -38,6 +40,7 @@ from bilibili_api import ...
 - [class BiliFilterData()](#class-BiliFilterData)
   - [def \_\_init\_\_()](#def-\_\_init\_\_)
   - [def get\_data()](#def-get\_data)
+  - [def has\_data()](#def-has\_data)
   - [def set\_data()](#def-set\_data)
 - [class BiliFilterFlags()](#class-BiliFilterFlags)
 - [class BiliFilterReturn()](#class-BiliFilterReturn)
@@ -45,8 +48,7 @@ from bilibili_api import ...
   - [def continue\_exec()](#def-continue\_exec)
   - [def execute\_now()](#def-execute\_now)
   - [def goto\_idx()](#def-goto\_idx)
-  - [def goto\_name\_post()](#def-goto\_name\_post)
-  - [def goto\_name\_pre()](#def-goto\_name\_pre)
+  - [def goto\_name()](#def-goto\_name)
   - [def return\_now()](#def-return\_now)
   - [def set\_params()](#def-set\_params)
   - [def set\_return()](#def-set\_return)
@@ -154,6 +156,7 @@ from bilibili_api import ...
   - [def get\_enable\_bili\_ticket\_global\_persistence()](#def-get\_enable\_bili\_ticket\_global\_persistence)
   - [def get\_enable\_buvid\_global\_persistence()](#def-get\_enable\_buvid\_global\_persistence)
   - [def get\_enable\_fpgen()](#def-get\_enable\_fpgen)
+  - [def get\_enable\_trio()](#def-get\_enable\_trio)
   - [def get\_fpgen\_args()](#def-get\_fpgen\_args)
   - [def get\_global\_credential()](#def-get\_global\_credential)
   - [def get\_wbi\_retry\_times()](#def-get\_wbi\_retry\_times)
@@ -162,6 +165,7 @@ from bilibili_api import ...
   - [def set\_enable\_bili\_ticket\_global\_persistence()](#def-set\_enable\_bili\_ticket\_global\_persistence)
   - [def set\_enable\_buvid\_global\_persistence()](#def-set\_enable\_buvid\_global\_persistence)
   - [def set\_enable\_fpgen()](#def-set\_enable\_fpgen)
+  - [def set\_enable\_trio()](#def-set\_enable\_trio)
   - [def set\_fpgen\_args()](#def-set\_fpgen\_args)
   - [def set\_global\_credential()](#def-set\_global\_credential)
   - [def set\_wbi\_retry\_times()](#def-set\_wbi\_retry\_times)
@@ -180,8 +184,7 @@ from bilibili_api import ...
 - [async def get\_real\_url()](#async-def-get\_real\_url)
 - [def get\_registered\_available\_settings()](#def-get\_registered\_available\_settings)
 - [def get\_registered\_clients()](#def-get\_registered\_clients)
-- [def get\_registered\_post\_filters()](#def-get\_registered\_post\_filters)
-- [def get\_registered\_pre\_filters()](#def-get\_registered\_pre\_filters)
+- [def get\_registered\_filters()](#def-get\_registered\_filters)
 - [def get\_selected\_client()](#def-get\_selected\_client)
 - [def get\_selected\_instance()](#def-get\_selected\_instance)
 - [def get\_session()](#def-get\_session)
@@ -208,8 +211,7 @@ from bilibili_api import ...
 - [def set\_session()](#def-set\_session)
 - [def sync()](#def-sync)
 - [def unregister\_client()](#def-unregister\_client)
-- [def unregister\_post\_filter()](#def-unregister\_post\_filter)
-- [def unregister\_pre\_filter()](#def-unregister\_pre\_filter)
+- [def unregister\_filter()](#def-unregister\_filter)
 - [def unset\_session()](#def-unset\_session)
 
 ---
@@ -331,6 +333,9 @@ API 基类异常。
 特殊事件：\_\_ALL\_\_ 所有事件均触发；\_\_TASK_EXCEPTION\_\_ 当订阅任务执行过程中抛出异常时发布的事件，不包含在 \_\_ALL\_\_ 中，订阅此事件的处理函数不再进行异常处理。
 
 
+| name | type | description |
+| - | - | - |
+| `task_group` | `anyio.abc.TaskGroup` | 可用于创建 Task 的 TaskGroup 实例。 |
 
 
 ### def \_\_init\_\_()
@@ -348,6 +353,29 @@ API 基类异常。
 | - | - | - |
 | `name` | `str` | 事件名。 |
 | `handler` | `Callable \| Coroutine` | 回调函数。 |
+
+
+
+
+### def async_event_cancel()
+
+取消异步事件类主任务
+
+
+
+
+
+
+### async def async_event_start()
+
+阻塞启动异步事件类
+
+
+| name | type | description |
+| - | - | - |
+| `coro` | `Coroutine[Any, Any, ~T]` | 主程序 |
+
+**Returns:** `~T | None`:  主程序返回值，若中途取消则返回 None
 
 
 
@@ -387,7 +415,7 @@ API 基类异常。
 | - | - | - |
 | `event_name` | `str` | 事件名。 |
 
-**Returns:** `Callable`:  传入函数的参数字典
+**Returns:** `Callable`:  装饰器。
 
 
 
@@ -736,6 +764,7 @@ class BiliAPIClient(ABC):
 | `data` | `FilterData` | 用于数据交换的 FilterData 实例 |
 | `settings` | `dict` | 请求客户端相关设置 |
 | `event_loop` | `str` | 请求客户端的事件循环，对应模块内部编号 |
+| `loop` | `asyncio.AbstractEventLoop \| None` | 请求客户端的事件循环(仅 asyncio) |
 
 
 ---
@@ -760,8 +789,23 @@ class BiliAPIClient(ABC):
 
 | name | type | description |
 | - | - | - |
-| `cnt` | `int` | 过滤器执行 cnt |
 | `key` | `str` | 键 |
+
+**Returns:** `Any`:  值
+
+
+
+
+### def has_data()
+
+是否存在数据
+
+
+| name | type | description |
+| - | - | - |
+| `key` | `str` | 键 |
+
+**Returns:** `bool`:  是否存在数据
 
 
 
@@ -773,7 +817,6 @@ class BiliAPIClient(ABC):
 
 | name | type | description |
 | - | - | - |
-| `cnt` | `int` | 过滤器执行 cnt |
 | `key` | `str` | 键 |
 | `value` | `Any` | 值 |
 
@@ -795,7 +838,7 @@ class BiliAPIClient(ABC):
 - RETURN_NOW: 直接作为函数返回值返回
 - BACK: 回到上一个过滤器
 - SKIP: 跳过下一个过滤器
-- GOTO: 跳到任意一个过滤器 需通过 `get_registered_(pre|post)_filters` 查询对应过滤器的下标
+- GOTO: 跳到任意一个过滤器 需通过 `get_registered_filters` 查询对应过滤器的下标
 
 
 
@@ -864,27 +907,11 @@ class BiliAPIClient(ABC):
 
 
 
-### def goto_name_post()
+### def goto_name()
 
 > `@staticmethod` 
 
-跳到任意一个后置过滤器
-
-
-| name | type | description |
-| - | - | - |
-| `name` | `str` | 对应过滤器名称 |
-
-**Returns:** `tuple[BiliFilterFlags, int]`:  过滤器函数返回值
-
-
-
-
-### def goto_name_pre()
-
-> `@staticmethod` 
-
-跳到任意一个前置过滤器
+跳到任意一个过滤器
 
 
 | name | type | description |
@@ -2206,8 +2233,9 @@ AV 号转 BV 号。
 | `enable_buvid_global_persistence` | `bool` | `False` | 允许模块使用统一的全局 buvid |
 | `enable_bili_ticket_global_persistence` | `bool` | `False` | 允许模块使用统一的全局 bili_ticket |
 | `enable_fpgen` | `bool` | `False` | 是否启用 `fpgen` 进行指纹伪装 |
+| `enable_trio` | `bool` | `False` | 是否启用 `trio` 支持 |
 | `fpgen_args` | `dict` | `{}` | 传入 `fpgen.generate` 的 keyword args 参数 |
-| `global_credential` | `Credential | None` | 全局凭据类，所有请求都将传入此凭据类的 cookies |
+| `global_credential` | `Credential \| None` | `None` | 全局凭据类，所有请求都将传入此凭据类的 cookies |
 
 
 
@@ -2263,6 +2291,17 @@ AV 号转 BV 号。
 
 
 **Returns:** `bool`:  是否使用 fpgen. Defaults to False.
+
+
+
+
+### def get_enable_trio()
+
+获取是否启用 trio 支持
+
+
+
+**Returns:** `bool`:  是否启用 trio 支持
 
 
 
@@ -2356,6 +2395,18 @@ AV 号转 BV 号。
 | name | type | description |
 | - | - | - |
 | `enable_fpgen` | `bool` | 是否使用 fpgen |
+
+
+
+
+### def set_enable_trio()
+
+设置是否启用 trio 支持
+
+
+| name | type | description |
+| - | - | - |
+| `enable_trio` | `bool` | 是否启用 trio 支持 |
 
 
 
@@ -2643,25 +2694,9 @@ BV 号转 AV 号。
 
 ---
 
-## def get_registered_post_filters()
+## def get_registered_filters()
 
-获取所有已注册的后置过滤器
-
-
-| name | type | description |
-| - | - | - |
-| `in_priority` | `bool, optional` | 是否排序. Defaults to True. |
-
-**Returns:** `list[dict]`:  已注册的后置过滤器
-
-
-
-
----
-
-## def get_registered_pre_filters()
-
-获取所有已注册的前置过滤器
+获取所有已注册的过滤器
 
 
 | name | type | description |
@@ -2839,7 +2874,6 @@ BV 号转 AV 号。
 | - | - | - |
 | `name` | `str` | 名称，若重复则为修改对应过滤器。 |
 | `func` | `Callable \| None, optional` | 执行的函数，参数传入 `FilterArgs` 对象. Defaults to None. |
-| `async_func` | `Callable[..., Coroutine] \| None, optional` | 执行的异步函数，参数传入 `FilterArgs` 对象. Defaults to None. |
 | `priority` | `int, optional` | 优先级，数字越小越优先执行. Defaults to 0. |
 
 
@@ -2860,7 +2894,6 @@ BV 号转 AV 号。
 | - | - | - |
 | `name` | `str` | 名称，若重复则为修改对应过滤器。 |
 | `func` | `Callable \| None, optional` | 执行的函数，参数传入 `FilterArgs` 对象. Defaults to None. |
-| `async_func` | `Callable[..., Coroutine] \| None, optional` | 执行的异步函数，参数传入 `FilterArgs` 对象. Defaults to None. |
 | `priority` | `int, optional` | 优先级，数字越小越优先执行. Defaults to 0. |
 
 
@@ -3066,7 +3099,7 @@ async def handle(desc: str, data: dict) -> None:
 
 | name | type | description |
 | - | - | - |
-| `coroutine` | `Coroutine[Any, Any, ~T] \| _asyncio.Future \| concurrent.futures._base.Future` | 异步函数 |
+| `coroutine` | `Coroutine[Any, Any, ~T] \| Future[~T]` | 异步函数 |
 
 **Returns:** `~T`:  该异步函数的返回值
 
@@ -3089,21 +3122,7 @@ async def handle(desc: str, data: dict) -> None:
 
 ---
 
-## def unregister_post_filter()
-
-取消注册后置过滤器
-
-
-| name | type | description |
-| - | - | - |
-| `name` | `str` | 过滤器名称 |
-
-
-
-
----
-
-## def unregister_pre_filter()
+## def unregister_filter()
 
 取消注册前置过滤器
 

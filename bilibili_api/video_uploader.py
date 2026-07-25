@@ -4,9 +4,6 @@ bilibili_api.video_uploader
 视频上传
 """
 
-import asyncio
-from asyncio.exceptions import CancelledError
-from asyncio.tasks import Task, create_task
 import base64
 from copy import copy, deepcopy
 from datetime import datetime
@@ -24,8 +21,13 @@ from .exceptions.NetworkException import NetworkException
 from .exceptions.ResponseCodeException import ResponseCodeException
 from .topic import Topic
 from .utils.aid_bvid_transformer import bvid2aid
-from .utils.AsyncEvent import AsyncEvent
-from .utils.network import Api, Credential, get_client, request_settings
+from .utils.network import (
+    Api,
+    AsyncEvent,
+    Credential,
+    get_client,
+    get_instance_settings,
+)
 from .utils.picture import Picture
 from .utils.utils import get_api, get_data
 from .video import Video
@@ -84,8 +86,9 @@ async def _probe() -> dict:
     # api = _API["probe"]
     # info = await Api(**api).update_params(r="probe").result # 不实时获取线路直接用 LINES_INFO
     min_cost, fastest_line = 30, None
-    legacy_timeout = request_settings.get_timeout()
-    request_settings.set_timeout(30)  # 测试时设置为 30
+    settings = get_instance_settings()
+    legacy_timeout = settings.get_timeout()
+    settings.set_timeout(30)  # 测试时设置为 30
     min_cost, fastest_line = 432432432, {}
     for line in LINES_INFO.values():
         start = time.perf_counter()
@@ -99,10 +102,10 @@ async def _probe() -> dict:
             )
             cost_time = time.perf_counter() - start
         except Exception:
-            cost_time = request_settings.get_timeout()
+            cost_time = settings.get_timeout()
         if cost_time < min_cost:
             min_cost, fastest_line = cost_time, line
-    request_settings.set_timeout(legacy_timeout)
+    settings.set_timeout(legacy_timeout)
     return fastest_line
 
 
@@ -751,7 +754,6 @@ class VideoUploader(AsyncEvent):
         )
         self.line_choice = line
         self.line: dict = {}
-        self.__task: Task | None = None
 
     async def _preupload(self, page: VideoUploaderPage) -> dict:
         """
@@ -970,25 +972,17 @@ class VideoUploader(AsyncEvent):
         self.dispatch(VideoUploaderEvents.COMPLETED.value, result)
         return result
 
-    async def start(self) -> dict:  # type: ignore
+    async def start(self) -> dict | None:
         """
         开始上传
 
         Returns:
-            dict: 返回带有 bvid 和 aid 的字典。
+            dict | None: 返回带有 bvid 和 aid 的字典。若取消或失败返回 None。
         """
-
         self.line = await _choose_line(self.line_choice)
-        task = create_task(self._main())
-        self.__task = task
 
         try:
-            result = await task
-            self.__task = None
-            return result
-        except CancelledError:
-            # 忽略 task 取消异常
-            pass
+            return await self.async_event_start(self._main())
         except Exception as e:
             self.dispatch(VideoUploaderEvents.FAILED.value, {"err": e})
             raise e
@@ -1043,12 +1037,13 @@ class VideoUploader(AsyncEvent):
             chunk_number += 1
 
         while chunks_pending:
-            tasks = []
-
-            while len(tasks) < preupload["threads"] and len(chunks_pending) > 0:
-                tasks.append(create_task(chunks_pending.pop()))
-
-            result = await asyncio.gather(*tasks)
+            tasks: list[anyio.TaskHandle] = []
+            async with anyio.create_task_group() as tg:
+                while len(tasks) < preupload["threads"] and len(chunks_pending) > 0:
+                    tasks.append(tg.create_task(chunks_pending.pop()))
+            result = []
+            for task in tasks:
+                result.append(task.return_value)
 
             for r in result:
                 if not r["ok"]:
@@ -1301,13 +1296,11 @@ class VideoUploader(AsyncEvent):
             self.dispatch(VideoUploaderEvents.SUBMIT_FAILED.value, {"err": err})
             raise err
 
-    async def abort(self) -> None:
+    def abort(self) -> None:
         """
         中断上传
         """
-        if self.__task:
-            self.__task.cancel("用户手动取消")
-
+        self.async_event_cancel()
         self.dispatch(VideoUploaderEvents.ABORTED.value, None)
 
 
@@ -1422,7 +1415,6 @@ class VideoEditor(AsyncEvent):
         self.cover_path = cover
         self.__old_configs = {}
         self.meta["aid"] = bvid2aid(bvid)
-        self.__task: Task | None = None
 
     async def _fetch_configs(self):
         """
@@ -1511,33 +1503,22 @@ class VideoEditor(AsyncEvent):
         self.dispatch(VideoEditorEvents.COMPLETED.value)
         return {"bvid": self.bvid}
 
-    async def start(self) -> dict:  # type: ignore
+    async def start(self) -> dict | None:
         """
         开始更改
 
         Returns:
-            dict: 返回带有 bvid 和 aid 的字典。
+            dict | None: 返回带有 bvid 和 aid 的字典。若取消或失败返回 None。
         """
-
-        task = create_task(self._main())
-        self.__task = task
-
         try:
-            result = await task
-            self.__task = None
-            return result
-        except CancelledError:
-            # 忽略 task 取消异常
-            pass
+            return await self.async_event_start(self._main())
         except Exception as e:
             self.dispatch(VideoEditorEvents.FAILED.value, {"err": e})
             raise e
 
-    async def abort(self) -> None:
+    def abort(self) -> None:
         """
         中断更改
         """
-        if self.__task:
-            self.__task.cancel("用户手动取消")
-
+        self.async_event_cancel()
         self.dispatch(VideoEditorEvents.ABORTED.value, None)

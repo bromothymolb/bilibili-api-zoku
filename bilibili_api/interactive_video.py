@@ -6,8 +6,6 @@ bilibili_api.interactive_video
 
 # pylint: skip-file
 
-import asyncio
-from asyncio import CancelledError, create_task
 from collections.abc import Coroutine
 import copy
 import enum
@@ -20,10 +18,16 @@ from urllib import parse
 import zipfile
 
 import anyio
+import anyio.to_thread
 
 from .exceptions import ApiException
-from .utils.AsyncEvent import AsyncEvent
-from .utils.network import Api, Credential, get_bili_headers, get_client
+from .utils.network import (
+    Api,
+    AsyncEvent,
+    Credential,
+    get_bili_headers,
+    get_client,
+)
 from .utils.utils import get_api
 from .video import Video, VideoDownloadURLDataDetecter
 
@@ -847,7 +851,6 @@ class InteractiveVideoDownloader(AsyncEvent):
         super().__init__()
         self.__video = video
         self.__download_func = self_download_func or self.__download
-        self.__task = None
         self.__out = out
         self.__mode = downloader_mode
         self.__detect_params = stream_detecting_params
@@ -1059,8 +1062,7 @@ class InteractiveVideoDownloader(AsyncEvent):
             zip.close()
             shutil.rmtree(tmp_dir_name)
 
-        loop = asyncio.get_event_loop()
-        await loop.run_in_executor(None, package_zip)
+        await anyio.to_thread.run_sync(package_zip)
 
         self.dispatch("SUCCESS")
 
@@ -1450,38 +1452,31 @@ class InteractiveVideoDownloader(AsyncEvent):
 
         self.dispatch("SUCCESS")
 
+    async def __start(self) -> None:
+        if self.__mode.value == "ivi":
+            return await self.__main()
+        elif self.__mode.value == "dot":
+            return await self.__dot_graph_main()
+        elif self.__mode.value == "no_pack":
+            return await self.__no_packaging_main()
+        else:
+            return await self.__node_videos_main()
+
     async def start(self) -> None:
         """
         开始下载
         """
-        if self.__mode.value == "ivi":
-            task = create_task(self.__main())
-        elif self.__mode.value == "dot":
-            task = create_task(self.__dot_graph_main())
-        elif self.__mode.value == "no_pack":
-            task = create_task(self.__no_packaging_main())
-        else:
-            task = create_task(self.__node_videos_main())
-        self.__task = task
-
         try:
-            result = await task
-            self.__task = None
-            return result
-        except CancelledError:
-            # 忽略 task 取消异常
-            pass
+            return await self.async_event_start(self.__start())
         except Exception as e:
             self.dispatch("FAILED", {"err": e})
             raise e
 
-    async def abort(self) -> None:
+    def abort(self) -> None:
         """
         中断下载
         """
-        if self.__task:
-            self.__task.cancel("用户手动取消")
-
+        self.async_event_cancel()
         self.dispatch("ABORTED", None)
 
 
