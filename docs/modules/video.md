@@ -216,9 +216,9 @@ MP4 视频流
 
 | name | type | description |
 | - | - | - |
-| `bvid` | `None \| str, optional` | BV 号. bvid 和 aid 必须提供其中之一. Defaults to None. |
-| `aid` | `None \| int, optional` | AV 号. bvid 和 aid 必须提供其中之一. Defaults to None. |
-| `credential` | `None \| Credential, optional` | Credential 类. Defaults to None. |
+| `bvid` | `str \| None, optional` | BV 号. bvid 和 aid 必须提供其中之一. Defaults to None. |
+| `aid` | `int \| None, optional` | AV 号. bvid 和 aid 必须提供其中之一. Defaults to None. |
+| `credential` | `Credential \| None, optional` | Credential 类. Defaults to None. |
 
 
 ### async def add_tag()
@@ -457,7 +457,7 @@ page_index 和 cid 至少提供其中一个，其中 cid 优先级最高
 | `date` | `datetime.date \| None, optional` | 精确到年月. Defaults to None. |
 | `cid` | `int \| None, optional` | 分 P 的 ID. Defaults to None. |
 
-**Returns:** `None | list[str]`:  调用 API 返回的结果。不存在时为 None。
+**Returns:** `list[str] | None`:  调用 API 返回的结果。不存在时为 None。
 
 
 
@@ -1333,9 +1333,9 @@ page_index 和 cid 至少提供其中一个，其中 cid 优先级最高
 | `audio_max_quality` | `AudioQuality, optional` | 设置提取的音频流清晰度最大值. 设置此参数绝对不会禁止 Hi-Res/杜比. Defaults to AudioQuality._192K. |
 | `video_min_quality` | `VideoQuality, optional` | 设置提取的视频流清晰度最小值，设置此参数绝对不会禁止 HDR/杜比. Defaults to VideoQuality._360P. |
 | `audio_min_quality` | `AudioQuality, optional` | 设置提取的音频流清晰度最小值. 设置此参数绝对不会禁止 Hi-Res/杜比. Defaults to AudioQuality._64K. |
-| `video_accepted_qualities` | `list[video.VideoQuality], optional` | 设置允许的所有视频流清晰度. Defaults to ALL. |
-| `audio_accepted_qualities` | `list[video.AudioQuality], optional` | 设置允许的所有音频清晰度. Defaults to ALL. |
-| `codecs` | `list[video.VideoCodecs], optional` | 设置所有允许提取出来的视频编码. 此项不会忽略 HDR/杜比. Defaults to ALL. |
+| `video_accepted_qualities` | `list[video.VideoQuality] \| None, optional` | 设置允许的所有视频流清晰度. Defaults to None. (即全部允许) |
+| `audio_accepted_qualities` | `list[video.AudioQuality] \| None, optional` | 设置允许的所有音频清晰度. Defaults to ALL. (即全部允许) |
+| `codecs` | `list[video.VideoCodecs] \| None, optional` | 设置所有允许提取出来的视频编码. 此项不会忽略 HDR/杜比. Defaults to ALL. (即全部允许) |
 | `no_dolby_video` | `bool, optional` | 是否禁止提取杜比视界视频流. Defaults to False. |
 | `no_dolby_audio` | `bool, optional` | 是否禁止提取杜比全景声音频流. Defaults to False. |
 | `no_hdr` | `bool, optional` | 是否禁止提取 HDR 视频流. Defaults to False. |
@@ -1370,9 +1370,9 @@ page_index 和 cid 至少提供其中一个，其中 cid 优先级最高
 | `audio_max_quality` | `AudioQuality, optional` | 设置提取的音频流清晰度最大值. 设置此参数绝对不会禁止 Hi-Res/杜比. Defaults to AudioQuality._192K. |
 | `video_min_quality` | `VideoQuality, optional` | 设置提取的视频流清晰度最小值，设置此参数绝对不会禁止 HDR/杜比. Defaults to VideoQuality._360P. |
 | `audio_min_quality` | `AudioQuality, optional` | 设置提取的音频流清晰度最小值. 设置此参数绝对不会禁止 Hi-Res/杜比. Defaults to AudioQuality._64K. |
-| `video_accepted_qualities` | `list[video.VideoQuality], optional` | 设置允许的所有视频流清晰度. Defaults to [VideoQuality._360P |
-| `audio_accepted_qualities` | `list[video.AudioQuality], optional` | 设置允许的所有音频清晰度. Defaults to [AudioQuality._64K |
-| `codecs` | `list[video.VideoCodecs], optional` | 设置所有允许提取出来的视频编码. 在数组中越靠前的编码选择优先级越高. 此项不会忽略 HDR/杜比. Defaults to [VideoCodecs.AV1 |
+| `video_accepted_qualities` | `list[video.VideoQuality] \| None, optional` | 设置允许的所有视频流清晰度. Defaults to None. (即全部允许) |
+| `audio_accepted_qualities` | `list[video.AudioQuality] \| None, optional` | 设置允许的所有音频清晰度. Defaults to ALL. (即全部允许) |
+| `codecs` | `list[video.VideoCodecs] \| None, optional` | 设置所有允许提取出来的视频编码. 此项不会忽略 HDR/杜比. Defaults to ALL. (即全部允许) 优先级 |
 | `no_dolby_video` | `bool, optional` | 是否禁止提取杜比视界视频流. Defaults to False. |
 | `no_dolby_audio` | `bool, optional` | 是否禁止提取杜比全景声音频流. Defaults to False. |
 | `no_hdr` | `bool, optional` | 是否禁止提取 HDR 视频流. Defaults to False. |

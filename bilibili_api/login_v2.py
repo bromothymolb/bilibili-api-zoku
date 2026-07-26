@@ -168,7 +168,7 @@ def have_code(code: str | int) -> bool:
         try:
             int_code = int(code)
         except ValueError:
-            raise ValueError("地区代码参数错误")
+            raise ValueError("地区代码参数错误") from None
     elif isinstance(code, int):
         int_code = code
     else:

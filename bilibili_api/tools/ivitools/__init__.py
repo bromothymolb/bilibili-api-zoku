@@ -1,9 +1,11 @@
 """
-IVITools
+ IVITools - A Simple IVI file manager & toolbox.
 
-A Simple IVI file manager & toolbox.
+Commands: download, extract, help, play, scan, touch
 
-BY Nemo2011 <yimoxia@outlook.com>
-
-Licensed under the GNU General Public License v3+.
+ivitools download [BVID] [OUT]
+ivitools extract [IVI] [DIR]
+ivitools help
+ivitools play [IVI] (PyQT6 require)
+ivitools touch [IVI]
 """

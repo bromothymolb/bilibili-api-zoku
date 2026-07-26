@@ -229,10 +229,10 @@ class BuildDynamic:
     @staticmethod
     def create_by_args(
         text: str = "",
-        pics: list[Picture] = [],
-        topic_id: int = -1,
-        vote_id: int = -1,
-        live_reserve_id: int = -1,
+        pics: list[Picture] | None = None,
+        topic_id: int | None = None,
+        vote_id: int | None = None,
+        live_reserve_id: int | None = None,
         send_time: datetime | None = None,
     ) -> "BuildDynamic":
         """
@@ -240,10 +240,10 @@ class BuildDynamic:
 
         Args:
             text (str, optional): 动态文字. Defaults to ''.
-            pics (list[Picture], optional): 动态图片列表. Defaults to [].
-            topic_id (int, optional): 动态话题 id. Defaults to -1.
-            vote_id (int, optional): 动态中的投票的 id. 将放在整个动态的最后面. Defaults to -1.
-            live_reserve_id (int, optional): 直播预约 oid. 通过 `live.create_live_reserve` 获取. Defaults to -1.
+            pics (list[Picture] | None, optional): 动态图片列表. Defaults to None.
+            topic_id (int | None, optional): 动态话题 id. Defaults to None.
+            vote_id (int | None, optional): 动态中的投票的 id. 将放在整个动态的最后面. Defaults to None.
+            live_reserve_id (int | None, optional): 直播预约 oid. 通过 `live.create_live_reserve` 获取. Defaults to None.
             send_time (datetime.datetime | None, optional): 发送时间. Defaults to None.
 
         Returns:
@@ -251,12 +251,13 @@ class BuildDynamic:
         """
         dyn = BuildDynamic()
         dyn.add_text(text)
-        dyn.add_image(pics)
-        if topic_id != -1:
+        if pics:
+            dyn.add_image(pics)
+        if topic_id:
             dyn.set_topic(topic_id)
-        if vote_id != -1:
+        if vote_id:
             dyn.add_vote(vote_id)
-        if live_reserve_id != -1:
+        if live_reserve_id:
             dyn.set_attach_card(live_reserve_id)
         if send_time is not None:
             dyn.set_send_time(send_time)
@@ -370,7 +371,7 @@ class BuildDynamic:
                 names.append(match.group())
             data = []
             last_index = 0
-            for i, name in enumerate(names):
+            for _, name in enumerate(names):
                 index = text.index(f"@{name}", last_index)
                 last_index = index + 1
                 length = 2 + len(name)
@@ -394,7 +395,7 @@ class BuildDynamic:
                 emotes.append(f"[{emote}]")
             data = []
             last_index = 0
-            for i, emoji in enumerate(emotes):
+            for _, emoji in enumerate(emotes):
                 index = text.index(emoji, last_index)
                 last_index = index + 1
                 length = len(emoji)
@@ -574,7 +575,7 @@ class BuildDynamic:
                 contents[idx]["raw_text"] = (
                     await vote.Vote(vote_id=content["biz_id"]).get_info()
                 )["info"]["title"]
-        for idx, content in enumerate(contents):
+        for idx in range(len(contents)):
             contents[idx]["biz_id"] = str(contents[idx]["biz_id"])
         return contents
 

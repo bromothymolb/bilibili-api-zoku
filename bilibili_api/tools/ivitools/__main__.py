@@ -1,11 +1,5 @@
 """
-IVITools
-
-A Simple IVI file manager & toolbox.
-
-BY Nemo2011 <yimoxia@outlook.com>
-
-Licensed under the GNU General Public License v3+.
+ivitools.__main__
 """
 
 __author__ = "Nemo2011 <yimoxia@outlook.com>"
@@ -16,9 +10,10 @@ import warnings
 
 from colorama import Fore
 
+from bilibili_api import sync
+
 from .download import download_interactive_video
-from .extract import extract_ivi
-from .touch import touch_ivi
+from .utils import extract_ivi, touch_ivi
 
 
 def run_args(command: str, args: list[str]):
@@ -39,13 +34,14 @@ ivitools touch [IVI]"
     elif command == "touch":
         touch_ivi(args[0])
     elif command == "download":
-        download_interactive_video(args[0], args[1])
+        sync(download_interactive_video(args[0], args[1]))
     elif command == "play":
         try:
             import PyQt6  # noqa: F401
         except ImportError:
             warnings.warn(
-                "IVITools Built-in Player require PyQt6 but IVITools can't find it. \nYou can install it by `pip3 install PyQt6`. "
+                "IVITools Built-in Player require PyQt6 but IVITools can't find it. \nYou can install it by `pip3 install PyQt6`. ",
+                stacklevel=2,
             )
             return
         from .player import main, prepopen

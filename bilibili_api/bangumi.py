@@ -1489,18 +1489,22 @@ class Episode(Video):
         return self.bangumi  # type: ignore
 
     async def set_favorite(
-        self, add_media_ids: list[int] = [], del_media_ids: list[int] = []
+        self,
+        add_media_ids: list[int] | None = None,
+        del_media_ids: list[int] | None = None,
     ) -> dict:
         """
         设置视频收藏状况。
 
         Args:
-            add_media_ids (list[int], optional): 要添加到的收藏夹 ID. Defaults to [].
-            del_media_ids (list[int], optional): 要移出的收藏夹 ID. Defaults to [].
+            add_media_ids (list[int] | None, optional): 要添加到的收藏夹 ID. Defaults to None.
+            del_media_ids (list[int] | None, optional): 要移出的收藏夹 ID. Defaults to None.
 
         Returns:
             dict: 调用 API 返回结果。
         """
+        add_media_ids = add_media_ids or []
+        del_media_ids = del_media_ids or []
         if len(add_media_ids) + len(del_media_ids) == 0:
             raise ArgsException(
                 "对收藏夹无修改。请至少提供 add_media_ids 和 del_media_ids 中的其中一个。"
@@ -1588,7 +1592,7 @@ class Episode(Video):
 
     async def get_history_danmaku_index(  # type: ignore
         self, date: datetime.date | None = None
-    ) -> None | list[str]:
+    ) -> list[str] | None:
         """
         获取特定月份存在历史弹幕的日期。
 
@@ -1596,7 +1600,7 @@ class Episode(Video):
             date (datetime.date | None, optional): 精确到年月. Defaults to None.
 
         Returns:
-            None | list[str]: 调用 API 返回的结果。不存在时为 None。
+            list[str] | None: 调用 API 返回的结果。不存在时为 None。
         """
         return await super().get_history_danmaku_index(0, date)
 

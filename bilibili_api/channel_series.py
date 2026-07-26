@@ -165,8 +165,8 @@ class ChannelSeries:
 
 async def create_channel_series(
     name: str,
-    aids: list[int] = [],
-    keywords: list[str] = [],
+    aids: list[int] | None = None,
+    keywords: list[str] | None = None,
     description: str = "",
     credential: Credential | None = None,
 ) -> dict:
@@ -175,14 +175,17 @@ async def create_channel_series(
 
     Args:
         name (str): 列表名称。
-        aids (list[int], optional): 要加入列表的视频的 aid 列表. Defaults to [].
-        keywords (list[str], optional): 列表的关键词. Defaults to [].
+        aids (list[int] | None, optional): 要加入列表的视频的 aid 列表. Defaults to None.
+        keywords (list[str] | None, optional): 列表的关键词. Defaults to None.
         description (str, optional): 列表的描述. Defaults to ''.
         credential (Credential | None, optional): 凭据类. Defaults to None.
 
     Returns:
         dict: 调用 API 返回的结果
     """
+    aids = aids or []
+    keywords = keywords or []
+
     from .user import get_self_info
 
     credential = credential or Credential()

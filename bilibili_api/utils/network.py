@@ -365,9 +365,11 @@ class AsyncEvent:
 
         name = name.upper()
         if name in self.__handlers:
-            for callableorcoroutine in self.__handlers[name]:
-                obj = callableorcoroutine(*args, **kwargs)
-                if isinstance(obj, Coroutine) and getattr(self, "task_group"):
+            for func in self.__handlers[name]:
+                if iscoroutinefunction(func) and not hasattr(self, "task_group"):
+                    continue
+                obj = func(*args, **kwargs)
+                if isinstance(obj, Coroutine):
                     self.task_group.create_task(self.__run_handler(obj, name))
 
         if name != "__ALL__" and name != "__TASK_EXCEPTION__":
@@ -395,7 +397,9 @@ class AsyncEvent:
 
                 task_group.start_soon(cancel_handle)
                 self.__task = task_group.create_task(coro)
-                return await self.__task
+                ret = await self.__task
+                self.__exit_event.set()
+                return ret
         except asyncio.CancelledError:
             pass
 
@@ -1208,14 +1212,10 @@ class BiliAPIFile:
 
 class BiliAPIClient(ABC):
     '''
-    请求客户端抽象类。通过对第三方模块请求客户端的封装令模块可对其进行调用。
+    请求客户端抽象类。
 
     ``` python
     class BiliAPIClient(ABC):
-        """
-        请求客户端抽象类。通过对第三方模块请求客户端的封装令模块可对其进行调用。
-        """
-
         @abstractmethod
         def __init__(
             self,
@@ -1223,7 +1223,7 @@ class BiliAPIClient(ABC):
             timeout: float = 0.0,
             verify_ssl: bool = True,
             trust_env: bool = True,
-            session: Optional[object] = None,
+            session: object | None = None,
         ) -> None:
             """
             Args:
@@ -1292,11 +1292,11 @@ class BiliAPIClient(ABC):
             self,
             method: str = "",
             url: str = "",
-            params: dict = {},
-            data: Union[dict, str, bytes] = {},
-            files: Dict[str, BiliAPIFile] = {},
-            headers: dict = {},
-            cookies: dict = {},
+            params: dict | None = None,
+            data: dict | str | bytes | None = None,
+            files: dict[str, BiliAPIFile] | None = None,
+            headers: dict | None = None,
+            cookies: dict | None = None,
             allow_redirects: bool = True,
         ) -> BiliAPIResponse:
             """
@@ -1305,11 +1305,11 @@ class BiliAPIClient(ABC):
             Args:
                 method (str, optional): 请求方法. Defaults to "".
                 url (str, optional): 请求地址. Defaults to "".
-                params (dict, optional): 请求参数. Defaults to {}.
-                data (Union[dict, str, bytes], optional): 请求数据. Defaults to {}.
-                files (Dict[str, BiliAPIFile], optional): 请求文件. Defaults to {}.
-                headers (dict, optional): 请求头. Defaults to {}.
-                cookies (dict, optional): 请求 Cookies. Defaults to {}.
+                params (dict | None, optional): 请求参数. Defaults to None.
+                data (dict | str | bytes | None, optional): 请求数据. Defaults to None.
+                files (dict[str, BiliAPIFile] | None, optional): 请求文件. Defaults to None.
+                headers (dict | None, optional): 请求头. Defaults to None.
+                cookies (dict | None, optional): 请求 Cookies. Defaults to None.
                 allow_redirects (bool, optional): 是否允许重定向. Defaults to True.
 
             Returns:
@@ -1317,24 +1317,30 @@ class BiliAPIClient(ABC):
 
             Note: 无需实现 data 为 str 且 files 不为空的情况。
             """
+            params = params or {}
+            data = data or {}
+            files = files or {}
+            headers = headers or {}
+            cookies = cookies or {}
             raise NotImplementedError
 
         @abstractmethod
         async def download_create(
             self,
             url: str = "",
-            headers: dict = {},
+            headers: dict | None = None,
         ) -> int:
             """
             开始下载文件
 
             Args:
-                url     (str, optional) : 请求地址. Defaults to "".
-                headers (dict, optional): 请求头. Defaults to {}.
+                url     (str, optional)        : 请求地址. Defaults to "".
+                headers (dict | None, optional): 请求头. Defaults to None.
 
             Returns:
                 int: 下载编号，用于后续操作。
             """
+            headers = headers or {}
             raise NotImplementedError
 
         @abstractmethod
@@ -1375,19 +1381,21 @@ class BiliAPIClient(ABC):
 
         @abstractmethod
         async def ws_create(
-            self, url: str = "", params: dict = {}, headers: dict = {}
+            self, url: str = "", params: dict | None = None, headers: dict | None = None
         ) -> int:
             """
             创建 WebSocket 连接
 
             Args:
                 url (str, optional): WebSocket 地址. Defaults to "".
-                params (dict, optional): WebSocket 参数. Defaults to {}.
-                headers (dict, optional): WebSocket 头. Defaults to {}.
+                params (dict | None, optional): WebSocket 参数. Defaults to None.
+                headers (dict | None, optional): WebSocket 头. Defaults to None.
 
             Returns:
                 int: WebSocket 连接编号，用于后续操作。
             """
+            params = params or {}
+            headers = headers or {}
             raise NotImplementedError
 
         @abstractmethod
@@ -1402,7 +1410,7 @@ class BiliAPIClient(ABC):
             raise NotImplementedError
 
         @abstractmethod
-        async def ws_recv(self, cnt: int) -> Tuple[bytes, BiliWsMsgType]:
+        async def ws_recv(self, cnt: int) -> tuple[bytes, BiliWsMsgType]:
             """
             接受 WebSocket 数据
 
@@ -1511,11 +1519,11 @@ class BiliAPIClient(ABC):
         self,
         method: str = "",
         url: str = "",
-        params: dict = {},
-        data: dict | str | bytes = {},
-        files: dict[str, BiliAPIFile] = {},
-        headers: dict = {},
-        cookies: dict = {},
+        params: dict | None = None,
+        data: dict | str | bytes | None = None,
+        files: dict[str, BiliAPIFile] | None = None,
+        headers: dict | None = None,
+        cookies: dict | None = None,
         allow_redirects: bool = True,
     ) -> BiliAPIResponse:
         """
@@ -1524,11 +1532,11 @@ class BiliAPIClient(ABC):
         Args:
             method (str, optional): 请求方法. Defaults to "".
             url (str, optional): 请求地址. Defaults to "".
-            params (dict, optional): 请求参数. Defaults to {}.
-            data (Union[dict, str, bytes], optional): 请求数据. Defaults to {}.
-            files (Dict[str, BiliAPIFile], optional): 请求文件. Defaults to {}.
-            headers (dict, optional): 请求头. Defaults to {}.
-            cookies (dict, optional): 请求 Cookies. Defaults to {}.
+            params (dict | None, optional): 请求参数. Defaults to None.
+            data (dict | str | bytes | None, optional): 请求数据. Defaults to None.
+            files (dict[str, BiliAPIFile] | None, optional): 请求文件. Defaults to None.
+            headers (dict | None, optional): 请求头. Defaults to None.
+            cookies (dict | None, optional): 请求 Cookies. Defaults to None.
             allow_redirects (bool, optional): 是否允许重定向. Defaults to True.
 
         Returns:
@@ -1536,24 +1544,30 @@ class BiliAPIClient(ABC):
 
         Note: 无需实现 data 为 str 且 files 不为空的情况。
         """
+        params = params or {}
+        data = data or {}
+        files = files or {}
+        headers = headers or {}
+        cookies = cookies or {}
         raise NotImplementedError
 
     @abstractmethod
     async def download_create(
         self,
         url: str = "",
-        headers: dict = {},
+        headers: dict | None = None,
     ) -> int:
         """
         开始下载文件
 
         Args:
-            url     (str, optional) : 请求地址. Defaults to "".
-            headers (dict, optional): 请求头. Defaults to {}.
+            url     (str, optional)        : 请求地址. Defaults to "".
+            headers (dict | None, optional): 请求头. Defaults to None.
 
         Returns:
             int: 下载编号，用于后续操作。
         """
+        headers = headers or {}
         raise NotImplementedError
 
     @abstractmethod
@@ -1594,19 +1608,21 @@ class BiliAPIClient(ABC):
 
     @abstractmethod
     async def ws_create(
-        self, url: str = "", params: dict = {}, headers: dict = {}
+        self, url: str = "", params: dict | None = None, headers: dict | None = None
     ) -> int:
         """
         创建 WebSocket 连接
 
         Args:
             url (str, optional): WebSocket 地址. Defaults to "".
-            params (dict, optional): WebSocket 参数. Defaults to {}.
-            headers (dict, optional): WebSocket 头. Defaults to {}.
+            params (dict | None, optional): WebSocket 参数. Defaults to None.
+            headers (dict | None, optional): WebSocket 头. Defaults to None.
 
         Returns:
             int: WebSocket 连接编号，用于后续操作。
         """
+        params = params or {}
+        headers = headers or {}
         raise NotImplementedError
 
     @abstractmethod
@@ -1646,7 +1662,7 @@ class BiliAPIClient(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def close(self):
+    async def close(self) -> None:
         """
         关闭请求客户端，即关闭封装的第三方会话对象
         """
@@ -1950,7 +1966,7 @@ class _BiliAPIClient:
             ret: dict = kwargs
             args = list(args)
             sig = inspect.signature(obj)
-            for name, param in list(sig.parameters.items()):
+            for name, _ in list(sig.parameters.items()):
                 if len(args) == 0:
                     break
                 ret[name] = args.pop(0)
@@ -2009,7 +2025,7 @@ class _BiliAPIClient:
                                 )
                             )
                         except Exception as e:
-                            raise FilterException("pre", filt["name"], e)
+                            raise FilterException("pre", filt["name"], e) from e
                     else:
                         i += 1
                         continue
@@ -2022,7 +2038,7 @@ class _BiliAPIClient:
                     except Exception:
                         raise ArgsException(
                             "过滤器返回值不满足形式 tuple[BiliFilterFlags, Any]。"
-                        )
+                        ) from None
                     if flag == BiliFilterFlags.SET_PARAMS:
                         args = deepcopy(after_filter)
                     elif flag == BiliFilterFlags.SET_RETURN:
@@ -2104,7 +2120,7 @@ class _BiliAPIClient:
                                 )
                             )
                         except Exception as e:
-                            raise FilterException("pre", filt["name"], e)
+                            raise FilterException("pre", filt["name"], e) from e
                     elif filt.get("async_function"):
                         try:
                             result = await filt["async_function"](
@@ -2113,7 +2129,7 @@ class _BiliAPIClient:
                                 )
                             )
                         except Exception as e:
-                            raise FilterException("pre", filt["name"], e)
+                            raise FilterException("pre", filt["name"], e) from e
                     else:
                         i += 1
                         continue
@@ -2126,7 +2142,7 @@ class _BiliAPIClient:
                     except Exception:
                         raise ArgsException(
                             "过滤器返回值不满足形式 tuple[BiliFilterFlags, Any]。"
-                        )
+                        ) from None
                     if flag == BiliFilterFlags.SET_PARAMS:
                         args = deepcopy(after_filter)
                     elif flag == BiliFilterFlags.SET_RETURN:
@@ -2285,14 +2301,14 @@ __registered_filters = []
 ##### client #####
 
 
-def register_client(name: str, cls: type, settings: dict = {}) -> None:
+def register_client(name: str, cls: type, settings: dict | None = None) -> None:
     """
     注册请求客户端并切换，可用于用户自定义请求客户端。
 
     Args:
         name (str): 请求客户端类型名称，用户自定义命名。
         cls (type): 基于 BiliAPIClient 重写后的请求客户端类。
-        settings (dict, optional): 请求客户端在基础设置外的其他设置，键为设置名称，值为设置默认值. Defaults to {}.
+        settings (dict | None, optional): 请求客户端在基础设置外的其他设置，键为设置名称，值为设置默认值. Defaults to None.
     """
     global sessions, client_groups
     raise_for_statement(
@@ -2302,6 +2318,7 @@ def register_client(name: str, cls: type, settings: dict = {}) -> None:
     client_groups[name] = {}
     select_client(name)
     client_settings[name] = list(DEFAULT_SETTINGS.keys())
+    settings = settings or {}
     client_settings[name] += list(settings.keys())
     optional_settings[name] = settings
     new_instance("default", name)
@@ -2318,8 +2335,8 @@ def unregister_client(name: str) -> None:
     try:
         sessions.pop(name)
         client_groups.pop(name)
-    except KeyError:
-        raise ArgsException("未找到指定请求客户端。")
+    except KeyError as e:
+        raise ArgsException("未找到指定请求客户端。") from e
 
 
 def select_client(name: str) -> None:
@@ -2388,8 +2405,8 @@ def remove_instance(name: str, client: str | None = None) -> None:
     global client_groups
     try:
         client_groups[client].pop(name)
-    except KeyError:
-        raise ArgsException("未找到指定请求客户端实例。")
+    except KeyError as e:
+        raise ArgsException("未找到指定请求客户端实例。") from e
 
 
 def select_instance(name: str) -> None:
@@ -2481,8 +2498,8 @@ def get_instance_settings(
     instance = instance or get_selected_instance()
     try:
         group = client_groups[client][instance]
-    except KeyError:
-        raise Exception("未找到对应请求客户端实例")
+    except KeyError as e:
+        raise Exception("未找到对应请求客户端实例") from e
     return group.get_client()._get_base_settings()
 
 
@@ -2503,8 +2520,8 @@ def get_force_settings(
     instance = instance or get_selected_instance()
     try:
         group = client_groups[client][instance]
-    except KeyError:
-        raise Exception("未找到对应请求客户端实例")
+    except KeyError as e:
+        raise Exception("未找到对应请求客户端实例") from e
     return group.get_client()._get_force_settings()
 
 
@@ -2536,8 +2553,8 @@ def get_client(client: str | None = None, instance: str | None = None) -> BiliAP
     instance = instance or get_selected_instance()
     try:
         group = client_groups[client][instance]  # type: ignore
-    except KeyError:
-        raise Exception("未找到对应请求客户端实例")
+    except KeyError as e:
+        raise Exception("未找到对应请求客户端实例") from e
     return group.get_client()  # type: ignore
 
 
@@ -2576,8 +2593,8 @@ def set_session(
     instance = instance or get_selected_instance()
     try:
         group = client_groups[client][instance]
-    except KeyError:
-        raise Exception("未找到对应请求客户端实例")
+    except KeyError as e:
+        raise Exception("未找到对应请求客户端实例") from e
     group.set_session(session, event_loop_to_str(loop) if loop else get_event_loop())
 
 
@@ -2598,8 +2615,8 @@ def unset_session(
     instance = instance or get_selected_instance()
     try:
         group = client_groups[client][instance]
-    except KeyError:
-        raise Exception("未找到对应请求客户端实例")
+    except KeyError as e:
+        raise Exception("未找到对应请求客户端实例") from e
     group.unset_session(event_loop_to_str(loop) if loop else get_event_loop())
 
 

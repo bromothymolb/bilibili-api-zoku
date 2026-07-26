@@ -226,14 +226,14 @@ class InteractiveJumpingCondition:
     """
 
     def __init__(
-        self, var: list[InteractiveVariable] = [], condition: str = "True"
+        self, var: list[InteractiveVariable] | None = None, condition: str = "True"
     ) -> None:
         """
         Args:
-            var (list[interactive_video.InteractiveVariable], optional): 所有变量. Defaults to [].
+            var (list[interactive_video.InteractiveVariable] | None, optional): 所有变量. Defaults to None.
             condition (str, optional): 公式. Defaults to 'True'.
         """
-        self.__vars = var
+        self.__vars = var or []
         self.__command = condition
 
     def get_vars(self) -> list[InteractiveVariable]:
@@ -286,13 +286,15 @@ class InteractiveJumpingCommand:
     节点跳转对变量的操作
     """
 
-    def __init__(self, var: list[InteractiveVariable] = [], command: str = "") -> None:
+    def __init__(
+        self, var: list[InteractiveVariable] | None = None, command: str = ""
+    ) -> None:
         """
         Args:
-            var (list[interactive_video.InteractiveVariable], optional): 所有变量. Defaults to [].
+            var (list[interactive_video.InteractiveVariable] | None, optional): 所有变量. Defaults to None.
             command (str, optional): 公式. Defaults to ''.
         """
-        self.__vars = var
+        self.__vars = var or []
         self.__command = command
 
     def get_vars(self) -> list[InteractiveVariable]:
@@ -354,8 +356,8 @@ class InteractiveNode:
         cid: int,
         vars: list[InteractiveVariable],
         button: InteractiveButton | None = None,
-        condition: InteractiveJumpingCondition = InteractiveJumpingCondition(),
-        native_command: InteractiveJumpingCommand = InteractiveJumpingCommand(),
+        condition: InteractiveJumpingCondition | None = None,
+        native_command: InteractiveJumpingCommand | None = None,
         is_default: bool = False,
     ) -> None:
         """
@@ -373,10 +375,10 @@ class InteractiveNode:
         self.__id = node_id
         self.__cid = cid
         self.__button = button
-        self.__jumping_command = condition
+        self.__jumping_command = condition or InteractiveJumpingCondition()
         self.__is_default = is_default
         self.__vars = vars
-        self.__command = native_command
+        self.__command = native_command or InteractiveJumpingCommand()
         self.__vars = self.__command.run_command()
         self.__info = None
 
@@ -834,7 +836,7 @@ class InteractiveVideoDownloader(AsyncEvent):
         out: str,
         self_download_func: Coroutine | None = None,
         downloader_mode: InteractiveVideoDownloaderMode = InteractiveVideoDownloaderMode.IVI,
-        stream_detecting_params: dict = {},
+        stream_detecting_params: dict | None = None,
         fetching_nodes_retry_times: int = 3,
     ) -> None:
         """
@@ -843,7 +845,7 @@ class InteractiveVideoDownloader(AsyncEvent):
             out (str): 输出文件地址 (如果模式为 NODE_VIDEOS/NO_PACKAGING 则此参数表示所有节点视频的存放目录)
             self_download_func (Coroutine | None, optional): 自定义下载函数（需 async 函数）. Defaults to None.
             downloader_mode (InteractiveVideoDownloaderMode, optional): 下载模式. Defaults to InteractiveVideoDownloaderMode.IVI.
-            stream_detecting_params (dict, optional): `VideoDownloadURLDataDetecter` 提取最佳流时传入的参数，可控制视频及音频品质. Defaults to {}.
+            stream_detecting_params (dict | None, optional): `VideoDownloadURLDataDetecter` 提取最佳流时传入的参数，可控制视频及音频品质. Defaults to None.
             fetching_nodes_retry_times (int, optional): 获取节点时的最大重试次数. Defaults to 3.
 
         为保证视频能被成功下载，请在自定义下载函数请求的时候加入 `bilibili_api.get_bili_headers()` 头部。
@@ -853,7 +855,7 @@ class InteractiveVideoDownloader(AsyncEvent):
         self.__download_func = self_download_func or self.__download
         self.__out = out
         self.__mode = downloader_mode
-        self.__detect_params = stream_detecting_params
+        self.__detect_params = stream_detecting_params or {}
         self.__fetching_nodes_retry_times = fetching_nodes_retry_times
 
     async def __download(self, url: str, out: str) -> None:
@@ -898,7 +900,7 @@ class InteractiveVideoDownloader(AsyncEvent):
         if self.__out == "":
             self.__out = self.__video.get_bvid() + ".ivi"
         if self.__out.endswith(".ivi"):
-            self.__out = self.__out.rstrip(".ivi")
+            self.__out = self.__out.removesuffix(".ivi")
         if os.path.exists(self.__out + ".ivi"):
             os.remove(self.__out + ".ivi")
         tmp_dir_name = self.__out + ".tmp"
@@ -969,7 +971,7 @@ class InteractiveVideoDownloader(AsyncEvent):
                 except Exception:
                     retry -= 1
                     if retry < 0:
-                        raise ApiException("重试达到最大次数")
+                        raise ApiException("重试达到最大次数") from None
 
             # 检查节顶点是否在 edges_info 中，本次步骤得到 title 信息
             if node["edge_id"] not in edges_info:
@@ -1023,7 +1025,7 @@ class InteractiveVideoDownloader(AsyncEvent):
             await f.write(json.dumps(bvideo_info, indent=2))
 
         cid_set = set()
-        for key, item in edges_info.items():
+        for _, item in edges_info.items():
             cid = item["cid"]
             if cid not in cid_set:
                 self.dispatch("PREPARE_DOWNLOAD", {"cid": item["cid"]})
@@ -1051,7 +1053,7 @@ class InteractiveVideoDownloader(AsyncEvent):
                 mode="w",
                 compression=zipfile.ZIP_DEFLATED,
             )  # outFullName为压缩文件的完整路径
-            for path, dirnames, filenames in os.walk(tmp_dir_name):
+            for path, _, filenames in os.walk(tmp_dir_name):
                 # 去掉目标跟路径，只对目标文件夹下边的文件及文件夹进行压缩
                 fpath = path.replace(tmp_dir_name, "")
 
@@ -1137,7 +1139,7 @@ class InteractiveVideoDownloader(AsyncEvent):
                 except Exception:
                     retry -= 1
                     if retry < 0:
-                        raise ApiException("重试达到最大次数")
+                        raise ApiException("重试达到最大次数") from None
 
             # 检查节顶点是否在 edges_info 中，本次步骤得到 title 信息
             if node["edge_id"] not in edges_info:
@@ -1161,7 +1163,7 @@ class InteractiveVideoDownloader(AsyncEvent):
                 queue.insert(0, n)
 
         cid_set = set()
-        for key, item in edges_info.items():
+        for _, item in edges_info.items():
             cid = item["cid"]
             if cid not in cid_set:
                 self.dispatch("PREPARE_DOWNLOAD", {"cid": item["cid"]})
@@ -1376,7 +1378,7 @@ class InteractiveVideoDownloader(AsyncEvent):
                 except Exception:
                     retry -= 1
                     if retry < 0:
-                        raise ApiException("重试达到最大次数")
+                        raise ApiException("重试达到最大次数") from None
 
             # 检查节顶点是否在 edges_info 中，本次步骤得到 title 信息
             if node["edge_id"] not in edges_info:
@@ -1430,7 +1432,7 @@ class InteractiveVideoDownloader(AsyncEvent):
             await f.write(json.dumps(bvideo_info, indent=2))
 
         cid_set = set()
-        for key, item in edges_info.items():
+        for _, item in edges_info.items():
             cid = item["cid"]
             if cid not in cid_set:
                 self.dispatch("PREPARE_DOWNLOAD", {"cid": item["cid"]})

@@ -141,9 +141,9 @@ class Opus:
 
         markdown = f"# {title['module_title']['text']}\n\n"
 
-        for para in content["module_content"]["paragraphs"]:
+        def parse_node(para: dict) -> str:
             para_raw = ""
-            if para["para_type"] == 1:
+            if para["para_type"] in [1, 4]:
                 for node in para["text"]["nodes"]:
                     raw = ""
                     if node.get("rich"):
@@ -152,6 +152,9 @@ class Opus:
                             url = ""
                         if node["rich"].get("emoji"):
                             url = node["rich"]["emoji"]["icon_url"]
+                        if node["rich"]["type"] == "RICH_TEXT_NODE_TYPE_AT":
+                            uid = node["rich"]["rid"]
+                            url = f"https://space.bilibili.com/{uid}"
                         text = node["rich"]["text"]
                         if url.startswith("//"):
                             url = "https:" + url
@@ -167,18 +170,36 @@ class Opus:
                                     if raw.strip():
                                         raw = f"**{raw}**"
                     para_raw += raw + " "
+                if para["para_type"] == 4:
+
+                    def quote(origin: str) -> str:
+                        txt = origin.strip()
+                        return " " * (len(origin) - len(txt)) + "> " + txt
+
+                    para_raw = "\n".join([quote(line) for line in para_raw.split("\n")])
             elif para["para_type"] == 2:
                 for pic in para["pic"]["pics"]:
                     url = pic["url"]
                     para_raw += f"![]({url}) \n"
+            elif para["para_type"] == 3:
+                para_raw = "---"
+            elif para["para_type"] == 5:
+                for item in para["list"]["items"]:
+                    item = {"para_type": 1, "text": item}
+                    para_raw += f" - {parse_node(item)}\n"
             elif para["para_type"] == 7:
-                lang = para["code"]["lang"].lstrip("language-")
+                lang = para["code"]["lang"].removeprefix("language-")
                 content = para["code"]["content"]
                 content = html.unescape(content)
                 para_raw = f"``` {lang}\n{content}\n```\n\n"
-            if para["align"] == 1:
-                para_raw = f"<center>\n\n{para_raw}\n\n</center>"
-            markdown += f"{para_raw}\n\n"
+            if para.get("align") == 1:
+                para_raw = f'<div style="text-align: center">\n\n{para_raw}\n\n</div>'
+            elif para.get("align") == 2:
+                para_raw = f'<div style="text-align: right">\n\n{para_raw}\n\n</div>'
+            return para_raw
+
+        for para in content["module_content"]["paragraphs"]:
+            markdown += f"{parse_node(para)}\n\n"
 
         meta_yaml = yaml.safe_dump(self.__info, allow_unicode=True)
         content = f"---\n{meta_yaml}\n---\n\n{markdown}"

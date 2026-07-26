@@ -97,13 +97,18 @@ class AioHTTPClient(BiliAPIClient):
         self,
         method: str = "",
         url: str = "",
-        params: dict = {},
-        data: dict | str | bytes = {},
-        files: dict[str, BiliAPIFile] = {},
-        headers: dict = {},
-        cookies: dict = {},
+        params: dict | None = None,
+        data: dict | str | bytes | None = None,
+        files: dict[str, BiliAPIFile] | None = None,
+        headers: dict | None = None,
+        cookies: dict | None = None,
         allow_redirects: bool = True,
     ) -> BiliAPIResponse:
+        params = params or {}
+        data = data or {}
+        files = files or {}
+        headers = headers or {}
+        cookies = cookies or {}
         await self.__auto_update_session()
         if files:
             form = aiohttp.FormData()
@@ -164,8 +169,9 @@ class AioHTTPClient(BiliAPIClient):
     async def download_create(
         self,
         url: str = "",
-        headers: dict = {},
+        headers: dict | None = None,
     ) -> int:
+        headers = headers or {}
         await self.__auto_update_session()
         await self.__down_cnt_lock.acquire()
         self.__download_cnt += 1
@@ -190,8 +196,10 @@ class AioHTTPClient(BiliAPIClient):
         del self.__downloads[cnt]
 
     async def ws_create(
-        self, url: str = "", params: dict = {}, headers: dict = {}
+        self, url: str = "", params: dict | None = None, headers: dict | None = None
     ) -> int:
+        params = params or {}
+        headers = headers or {}
         await self.__auto_update_session()
         await self.__ws_cnt_lock.acquire()
         self.__ws_cnt += 1

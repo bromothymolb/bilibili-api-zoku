@@ -313,7 +313,7 @@ class CheeseVideo:
                 .request(byte=True)
             )
         except Exception as e:
-            raise NetworkException(-1, str(e))
+            raise NetworkException(-1, str(e)) from e
 
         json_data = {}
         reader = BytesReader(resp_data)
@@ -546,7 +546,7 @@ class CheeseVideo:
                     .request(byte=True)
                 )
             except Exception as e:
-                raise NetworkException(-1, str(e))
+                raise NetworkException(-1, str(e)) from e
 
             if data == b"\x10\x01":
                 # 视频弹幕被关闭
@@ -769,18 +769,22 @@ class CheeseVideo:
         return await Api(**api, credential=self.credential).update_data(**data).result
 
     async def set_favorite(
-        self, add_media_ids: list[int] = [], del_media_ids: list[int] = []
+        self,
+        add_media_ids: list[int] | None = None,
+        del_media_ids: list[int] | None = None,
     ) -> dict:
         """
         设置视频收藏状况。
 
         Args:
-            add_media_ids (list[int], optional): 要添加到的收藏夹 ID. Defaults to [].
-            del_media_ids (list[int], optional): 要移出的收藏夹 ID. Defaults to [].
+            add_media_ids (list[int] | None, optional): 要添加到的收藏夹 ID. Defaults to None.
+            del_media_ids (list[int] | None, optional): 要移出的收藏夹 ID. Defaults to None.
 
         Returns:
             dict: 调用 API 返回结果。
         """
+        add_media_ids = add_media_ids or []
+        del_media_ids = del_media_ids or []
         if len(add_media_ids) + len(del_media_ids) == 0:
             raise ArgsException(
                 "对收藏夹无修改。请至少提供 add_media_ids 和 del_media_ids 中的其中一个。"

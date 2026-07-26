@@ -460,14 +460,10 @@ API 基类异常。
 > Extend: `abc.ABC`
 
 
-请求客户端抽象类。通过对第三方模块请求客户端的封装令模块可对其进行调用。
+请求客户端抽象类。
 
 ``` python
 class BiliAPIClient(ABC):
-    """
-    请求客户端抽象类。通过对第三方模块请求客户端的封装令模块可对其进行调用。
-    """
-
     @abstractmethod
     def __init__(
         self,
@@ -475,7 +471,7 @@ class BiliAPIClient(ABC):
         timeout: float = 0.0,
         verify_ssl: bool = True,
         trust_env: bool = True,
-        session: Optional[object] = None,
+        session: object | None = None,
     ) -> None:
         """
         Args:
@@ -544,11 +540,11 @@ class BiliAPIClient(ABC):
         self,
         method: str = "",
         url: str = "",
-        params: dict = {},
-        data: Union[dict, str, bytes] = {},
-        files: Dict[str, BiliAPIFile] = {},
-        headers: dict = {},
-        cookies: dict = {},
+        params: dict | None = None,
+        data: dict | str | bytes | None = None,
+        files: dict[str, BiliAPIFile] | None = None,
+        headers: dict | None = None,
+        cookies: dict | None = None,
         allow_redirects: bool = True,
     ) -> BiliAPIResponse:
         """
@@ -557,11 +553,11 @@ class BiliAPIClient(ABC):
         Args:
             method (str, optional): 请求方法. Defaults to "".
             url (str, optional): 请求地址. Defaults to "".
-            params (dict, optional): 请求参数. Defaults to {}.
-            data (Union[dict, str, bytes], optional): 请求数据. Defaults to {}.
-            files (Dict[str, BiliAPIFile], optional): 请求文件. Defaults to {}.
-            headers (dict, optional): 请求头. Defaults to {}.
-            cookies (dict, optional): 请求 Cookies. Defaults to {}.
+            params (dict | None, optional): 请求参数. Defaults to None.
+            data (dict | str | bytes | None, optional): 请求数据. Defaults to None.
+            files (dict[str, BiliAPIFile] | None, optional): 请求文件. Defaults to None.
+            headers (dict | None, optional): 请求头. Defaults to None.
+            cookies (dict | None, optional): 请求 Cookies. Defaults to None.
             allow_redirects (bool, optional): 是否允许重定向. Defaults to True.
 
         Returns:
@@ -569,24 +565,30 @@ class BiliAPIClient(ABC):
 
         Note: 无需实现 data 为 str 且 files 不为空的情况。
         """
+        params = params or {}
+        data = data or {}
+        files = files or {}
+        headers = headers or {}
+        cookies = cookies or {}
         raise NotImplementedError
 
     @abstractmethod
     async def download_create(
         self,
         url: str = "",
-        headers: dict = {},
+        headers: dict | None = None,
     ) -> int:
         """
         开始下载文件
 
         Args:
-            url     (str, optional) : 请求地址. Defaults to "".
-            headers (dict, optional): 请求头. Defaults to {}.
+            url     (str, optional)        : 请求地址. Defaults to "".
+            headers (dict | None, optional): 请求头. Defaults to None.
 
         Returns:
             int: 下载编号，用于后续操作。
         """
+        headers = headers or {}
         raise NotImplementedError
 
     @abstractmethod
@@ -627,19 +629,21 @@ class BiliAPIClient(ABC):
 
     @abstractmethod
     async def ws_create(
-        self, url: str = "", params: dict = {}, headers: dict = {}
+        self, url: str = "", params: dict | None = None, headers: dict | None = None
     ) -> int:
         """
         创建 WebSocket 连接
 
         Args:
             url (str, optional): WebSocket 地址. Defaults to "".
-            params (dict, optional): WebSocket 参数. Defaults to {}.
-            headers (dict, optional): WebSocket 头. Defaults to {}.
+            params (dict | None, optional): WebSocket 参数. Defaults to None.
+            headers (dict | None, optional): WebSocket 头. Defaults to None.
 
         Returns:
             int: WebSocket 连接编号，用于后续操作。
         """
+        params = params or {}
+        headers = headers or {}
         raise NotImplementedError
 
     @abstractmethod
@@ -654,7 +658,7 @@ class BiliAPIClient(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def ws_recv(self, cnt: int) -> Tuple[bytes, BiliWsMsgType]:
+    async def ws_recv(self, cnt: int) -> tuple[bytes, BiliWsMsgType]:
         """
         接受 WebSocket 数据
 
@@ -2854,7 +2858,7 @@ BV 号转 AV 号。
 | - | - | - |
 | `name` | `str` | 请求客户端类型名称，用户自定义命名。 |
 | `cls` | `type` | 基于 BiliAPIClient 重写后的请求客户端类。 |
-| `settings` | `dict, optional` | 请求客户端在基础设置外的其他设置，键为设置名称，值为设置默认值. Defaults to {}. |
+| `settings` | `dict \| None, optional` | 请求客户端在基础设置外的其他设置，键为设置名称，值为设置默认值. Defaults to None. |
 
 
 

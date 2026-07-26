@@ -1,17 +1,15 @@
 """
 ivitools.download
-
-下载互动视频
 """
 
 import os
 
 from colorama import Fore
 
-from bilibili_api import interactive_video, sync, video
+from bilibili_api import interactive_video, video
 
 
-def download_interactive_video(bvid: str, out: str):
+async def download_interactive_video(bvid: str, out: str):
     ivideo = interactive_video.InteractiveVideo(bvid)
     downloader = interactive_video.InteractiveVideoDownloader(
         ivideo,
@@ -54,7 +52,7 @@ def download_interactive_video(bvid: str, out: str):
         )
 
     try:
-        sync(downloader.start())
+        await downloader.start()
     except KeyboardInterrupt:
         downloader.abort()
         print(Fore.YELLOW + "[WRN]: Aborted by user. " + Fore.RESET)

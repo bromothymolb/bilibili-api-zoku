@@ -240,15 +240,15 @@ class Video:
 
     def __init__(
         self,
-        bvid: None | str = None,
-        aid: None | int = None,
-        credential: None | Credential = None,
+        bvid: str | None = None,
+        aid: int | None = None,
+        credential: Credential | None = None,
     ) -> None:
         """
         Args:
-            bvid (None | str, optional): BV 号. bvid 和 aid 必须提供其中之一. Defaults to None.
-            aid (None | int, optional): AV 号. bvid 和 aid 必须提供其中之一. Defaults to None.
-            credential (None | Credential, optional): Credential 类. Defaults to None.
+            bvid (str | None, optional): BV 号. bvid 和 aid 必须提供其中之一. Defaults to None.
+            aid (int | None, optional): AV 号. bvid 和 aid 必须提供其中之一. Defaults to None.
+            credential (Credential | None, optional): Credential 类. Defaults to None.
         """
         # ID 检查
         if bvid is not None:
@@ -781,7 +781,7 @@ class Video:
                 .request(byte=True)
             )
         except Exception as e:
-            raise NetworkException(-1, str(e))
+            raise NetworkException(-1, str(e)) from e
 
         json_data = {}
         reader = BytesReader(resp_data)
@@ -1042,7 +1042,7 @@ class Video:
                     .request(byte=True)
                 )
             except Exception as e:
-                raise NetworkException(-1, str(e))
+                raise NetworkException(-1, str(e)) from e
 
             if data == b"\x10\x01":
                 # 视频弹幕被关闭
@@ -1189,7 +1189,7 @@ class Video:
         page_index: int | None = None,
         date: datetime.date | None = None,
         cid: int | None = None,
-    ) -> None | list[str]:
+    ) -> list[str] | None:
         """
         获取特定月份存在历史弹幕的日期。
 
@@ -1199,7 +1199,7 @@ class Video:
             cid (int | None, optional): 分 P 的 ID. Defaults to None.
 
         Returns:
-            None | list[str]: 调用 API 返回的结果。不存在时为 None。
+            list[str] | None: 调用 API 返回的结果。不存在时为 None。
         """
         if date is None:
             raise ArgsException("请提供 date 参数")
@@ -1570,7 +1570,9 @@ class Video:
         return await Api(**api, credential=self.credential).update_data(**data).result
 
     async def set_favorite(
-        self, add_media_ids: list[int] = [], del_media_ids: list[int] = []
+        self,
+        add_media_ids: list[int] | None = None,
+        del_media_ids: list[int] | None = None,
     ) -> dict:
         """
         设置视频收藏状况。
@@ -1584,6 +1586,8 @@ class Video:
         Returns:
             dict: 调用 API 返回结果。
         """
+        add_media_ids = add_media_ids or []
+        del_media_ids = del_media_ids or []
         if len(add_media_ids) + len(del_media_ids) == 0:
             raise ArgsException(
                 "对收藏夹无修改。请至少提供 add_media_ids 和 del_media_ids 中的其中一个。"
@@ -2448,22 +2452,9 @@ class VideoDownloadURLDataDetecter:
         audio_max_quality: AudioQuality = AudioQuality._192K,
         video_min_quality: VideoQuality = VideoQuality._360P,
         audio_min_quality: AudioQuality = AudioQuality._64K,
-        video_accepted_qualities: list[VideoQuality] = [
-            item
-            for _, item in VideoQuality.__dict__.items()
-            if isinstance(item, VideoQuality)
-        ],
-        audio_accepted_qualities: list[AudioQuality] = [
-            item
-            for _, item in AudioQuality.__dict__.items()
-            if isinstance(item, AudioQuality)
-        ],
-        codecs: list[VideoCodecs] = [
-            VideoCodecs.AV1,
-            VideoCodecs.AVC,
-            VideoCodecs.HEV,
-            VideoCodecs.UNKNOWN,
-        ],
+        video_accepted_qualities: list[VideoQuality] | None = None,
+        audio_accepted_qualities: list[AudioQuality] | None = None,
+        codecs: list[VideoCodecs] | None = None,
         no_dolby_video: bool = False,
         no_dolby_audio: bool = False,
         no_hdr: bool = False,
@@ -2482,9 +2473,9 @@ class VideoDownloadURLDataDetecter:
             audio_max_quality (AudioQuality, optional): 设置提取的音频流清晰度最大值. 设置此参数绝对不会禁止 Hi-Res/杜比. Defaults to AudioQuality._192K.
             video_min_quality (VideoQuality, optional): 设置提取的视频流清晰度最小值，设置此参数绝对不会禁止 HDR/杜比. Defaults to VideoQuality._360P.
             audio_min_quality (AudioQuality, optional): 设置提取的音频流清晰度最小值. 设置此参数绝对不会禁止 Hi-Res/杜比. Defaults to AudioQuality._64K.
-            video_accepted_qualities (list[video.VideoQuality], optional): 设置允许的所有视频流清晰度. Defaults to ALL.
-            audio_accepted_qualities (list[video.AudioQuality], optional): 设置允许的所有音频清晰度. Defaults to ALL.
-            codecs (list[video.VideoCodecs], optional): 设置所有允许提取出来的视频编码. 此项不会忽略 HDR/杜比. Defaults to ALL.
+            video_accepted_qualities (list[video.VideoQuality] | None, optional): 设置允许的所有视频流清晰度. Defaults to None. (即全部允许)
+            audio_accepted_qualities (list[video.AudioQuality] | None, optional): 设置允许的所有音频清晰度. Defaults to ALL. (即全部允许)
+            codecs (list[video.VideoCodecs] | None, optional): 设置所有允许提取出来的视频编码. 此项不会忽略 HDR/杜比. Defaults to ALL. (即全部允许)
             no_dolby_video (bool, optional): 是否禁止提取杜比视界视频流. Defaults to False.
             no_dolby_audio (bool, optional): 是否禁止提取杜比全景声音频流. Defaults to False.
             no_hdr (bool, optional): 是否禁止提取 HDR 视频流. Defaults to False.
@@ -2495,6 +2486,22 @@ class VideoDownloadURLDataDetecter:
 
         **参数仅能在音视频流分离的情况下产生作用，flv / mp4 流下以下参数均没有作用**
         """
+        video_accepted_qualities = video_accepted_qualities or [
+            item
+            for _, item in VideoQuality.__dict__.items()
+            if isinstance(item, VideoQuality)
+        ]
+        audio_accepted_qualities = audio_accepted_qualities or [
+            item
+            for _, item in AudioQuality.__dict__.items()
+            if isinstance(item, AudioQuality)
+        ]
+        codecs = codecs or [
+            VideoCodecs.AV1,
+            VideoCodecs.AVC,
+            VideoCodecs.HEV,
+            VideoCodecs.UNKNOWN,
+        ]
         if "durl" in self.__data.keys():
             if self.__data["format"].startswith("flv"):
                 # FLV 视频流
@@ -2663,22 +2670,9 @@ class VideoDownloadURLDataDetecter:
         audio_max_quality: AudioQuality = AudioQuality._192K,
         video_min_quality: VideoQuality = VideoQuality._360P,
         audio_min_quality: AudioQuality = AudioQuality._64K,
-        video_accepted_qualities: list[VideoQuality] = [
-            item
-            for _, item in VideoQuality.__dict__.items()
-            if isinstance(item, VideoQuality)
-        ],
-        audio_accepted_qualities: list[AudioQuality] = [
-            item
-            for _, item in AudioQuality.__dict__.items()
-            if isinstance(item, AudioQuality)
-        ],
-        codecs: list[VideoCodecs] = [
-            VideoCodecs.AV1,
-            VideoCodecs.AVC,
-            VideoCodecs.HEV,
-            VideoCodecs.UNKNOWN,
-        ],
+        video_accepted_qualities: list[VideoQuality] | None = None,
+        audio_accepted_qualities: list[AudioQuality] | None = None,
+        codecs: list[VideoCodecs] | None = None,
         no_dolby_video: bool = False,
         no_dolby_audio: bool = False,
         no_hdr: bool = False,
@@ -2698,9 +2692,9 @@ class VideoDownloadURLDataDetecter:
             audio_max_quality (AudioQuality, optional): 设置提取的音频流清晰度最大值. 设置此参数绝对不会禁止 Hi-Res/杜比. Defaults to AudioQuality._192K.
             video_min_quality (VideoQuality, optional): 设置提取的视频流清晰度最小值，设置此参数绝对不会禁止 HDR/杜比. Defaults to VideoQuality._360P.
             audio_min_quality (AudioQuality, optional): 设置提取的音频流清晰度最小值. 设置此参数绝对不会禁止 Hi-Res/杜比. Defaults to AudioQuality._64K.
-            video_accepted_qualities (list[video.VideoQuality], optional): 设置允许的所有视频流清晰度. Defaults to [VideoQuality._360P: 16>, <VideoQuality._480P: 32>, <VideoQuality._720P: 64>, <VideoQuality._1080P: 80>, <VideoQuality.AI_REPAIR: 100>, <VideoQuality._1080P_PLUS: 112>, <VideoQuality._1080P_60: 116>, <VideoQuality._4K: 120>, <VideoQuality.HDR: 125>, <VideoQuality.DOLBY: 126>, <VideoQuality._8K].
-            audio_accepted_qualities (list[video.AudioQuality], optional): 设置允许的所有音频清晰度. Defaults to [AudioQuality._64K: 30216>, <AudioQuality._132K: 30232>, <AudioQuality.DOLBY: 30255>, <AudioQuality.HI_RES: 30251>, <AudioQuality._192K].
-            codecs (list[video.VideoCodecs], optional): 设置所有允许提取出来的视频编码. 在数组中越靠前的编码选择优先级越高. 此项不会忽略 HDR/杜比. Defaults to [VideoCodecs.AV1: 'av01'>, <VideoCodecs.AVC: 'avc'>, <VideoCodecs.HEV].
+            video_accepted_qualities (list[video.VideoQuality] | None, optional): 设置允许的所有视频流清晰度. Defaults to None. (即全部允许)
+            audio_accepted_qualities (list[video.AudioQuality] | None, optional): 设置允许的所有音频清晰度. Defaults to ALL. (即全部允许)
+            codecs (list[video.VideoCodecs] | None, optional): 设置所有允许提取出来的视频编码. 此项不会忽略 HDR/杜比. Defaults to ALL. (即全部允许) 优先级: `AV1` > `AVC` > `HEV` > `UNKNOWN`
             no_dolby_video (bool, optional): 是否禁止提取杜比视界视频流. Defaults to False.
             no_dolby_audio (bool, optional): 是否禁止提取杜比全景声音频流. Defaults to False.
             no_hdr (bool, optional): 是否禁止提取 HDR 视频流. Defaults to False.
@@ -2711,6 +2705,22 @@ class VideoDownloadURLDataDetecter:
 
         **以上参数仅能在音视频流分离的情况下产生作用，flv / mp4 试看流 / html5 mp4 流下以下参数均没有作用**
         """
+        video_accepted_qualities = video_accepted_qualities or [
+            item
+            for _, item in VideoQuality.__dict__.items()
+            if isinstance(item, VideoQuality)
+        ]
+        audio_accepted_qualities = audio_accepted_qualities or [
+            item
+            for _, item in AudioQuality.__dict__.items()
+            if isinstance(item, AudioQuality)
+        ]
+        codecs = codecs or [
+            VideoCodecs.AV1,
+            VideoCodecs.AVC,
+            VideoCodecs.HEV,
+            VideoCodecs.UNKNOWN,
+        ]
         if self.check_flv_mp4_stream():
             return self.detect_all()  # type: ignore
         else:

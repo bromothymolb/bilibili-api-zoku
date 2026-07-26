@@ -187,10 +187,10 @@ BuildDynamic.create_by_args(text="114514", topic_id=114514)
 | name | type | description |
 | - | - | - |
 | `text` | `str, optional` | 动态文字. Defaults to ''. |
-| `pics` | `list[Picture], optional` | 动态图片列表. Defaults to []. |
-| `topic_id` | `int, optional` | 动态话题 id. Defaults to -1. |
-| `vote_id` | `int, optional` | 动态中的投票的 id. 将放在整个动态的最后面. Defaults to -1. |
-| `live_reserve_id` | `int, optional` | 直播预约 oid. 通过 `live.create_live_reserve` 获取. Defaults to -1. |
+| `pics` | `list[Picture] \| None, optional` | 动态图片列表. Defaults to None. |
+| `topic_id` | `int \| None, optional` | 动态话题 id. Defaults to None. |
+| `vote_id` | `int \| None, optional` | 动态中的投票的 id. 将放在整个动态的最后面. Defaults to None. |
+| `live_reserve_id` | `int \| None, optional` | 直播预约 oid. 通过 `live.create_live_reserve` 获取. Defaults to None. |
 | `send_time` | `datetime.datetime \| None, optional` | 发送时间. Defaults to None. |
 
 **Returns:** `BuildDynamic`:  `self`

@@ -240,7 +240,7 @@ from bilibili_api import favorite_list
 | `title` | `str` | 收藏夹名。 |
 | `introduction` | `str, optional` | 收藏夹简介. Defaults to ''. |
 | `private` | `bool, optional` | 是否为私有. Defaults to False. |
-| `credential` | `None \| Credential, optional` | 凭据. Defaults to None. |
+| `credential` | `Credential \| None, optional` | 凭据. Defaults to None. |
 
 **Returns:** `dict`:  调用 API 返回的结果
 
@@ -292,7 +292,7 @@ from bilibili_api import favorite_list
 | name | type | description |
 | - | - | - |
 | `page` | `int, optional` | 页码. Defaults to 1. |
-| `credential` | `None \| Credential, optional` | Credential. Defaults to None. |
+| `credential` | `Credential \| None, optional` | Credential. Defaults to None. |
 
 **Returns:** `dict`:  调用 API 返回的结果
 
@@ -309,7 +309,7 @@ from bilibili_api import favorite_list
 | name | type | description |
 | - | - | - |
 | `page` | `int, optional` | 页码. Defaults to 1. |
-| `credential` | `None \| Credential, optional` | Credential. Defaults to None. |
+| `credential` | `Credential \| None, optional` | Credential. Defaults to None. |
 
 **Returns:** `dict`:  调用 API 返回的结果
 
@@ -345,7 +345,7 @@ from bilibili_api import favorite_list
 | name | type | description |
 | - | - | - |
 | `page` | `int, optional` | 页码. Defaults to 1. |
-| `credential` | `None \| Credential, optional` | Credential. Defaults to None. |
+| `credential` | `Credential \| None, optional` | Credential. Defaults to None. |
 
 **Returns:** `dict`:  调用 API 返回的结果
 
@@ -362,7 +362,7 @@ from bilibili_api import favorite_list
 | name | type | description |
 | - | - | - |
 | `page` | `int, optional` | 页码. Defaults to 1. |
-| `credential` | `None \| Credential, optional` | Credential. Defaults to None. |
+| `credential` | `Credential \| None, optional` | Credential. Defaults to None. |
 
 **Returns:** `dict`:  调用 API 返回的结果
 
@@ -424,7 +424,7 @@ mode 参数见 SearchFavoriteListMode 枚举。
 | `title` | `str` | 收藏夹名。 |
 | `introduction` | `str, optional` | 收藏夹简介. Defaults to ''. |
 | `private` | `bool, optional` | 是否为私有. Defaults to False. |
-| `credential` | `None \| Credential, optional` | Credential. Defaults to None. |
+| `credential` | `Credential \| None, optional` | Credential. Defaults to None. |
 
 **Returns:** `dict`:  调用 API 返回的结果
 

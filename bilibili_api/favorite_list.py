@@ -276,14 +276,14 @@ async def get_video_favorite_list_content(
 
 
 async def get_topic_favorite_list(
-    page: int = 1, credential: None | Credential = None
+    page: int = 1, credential: Credential | None = None
 ) -> dict:
     """
     获取自己的话题收藏夹内容。
 
     Args:
         page (int, optional): 页码. Defaults to 1.
-        credential (None | Credential, optional): Credential. Defaults to None.
+        credential (Credential | None, optional): Credential. Defaults to None.
 
     Returns:
         dict: 调用 API 返回的结果
@@ -300,14 +300,14 @@ async def get_topic_favorite_list(
 
 
 async def get_article_favorite_list(
-    page: int = 1, credential: None | Credential = None
+    page: int = 1, credential: Credential | None = None
 ) -> dict:
     """
     获取自己的专栏收藏夹内容。
 
     Args:
         page (int, optional): 页码. Defaults to 1.
-        credential (None | Credential, optional): Credential. Defaults to None.
+        credential (Credential | None, optional): Credential. Defaults to None.
 
     Returns:
         dict: 调用 API 返回的结果
@@ -324,14 +324,14 @@ async def get_article_favorite_list(
 
 
 async def get_course_favorite_list(
-    page: int = 1, credential: None | Credential = None
+    page: int = 1, credential: Credential | None = None
 ) -> dict:
     """
     获取自己的课程收藏夹内容。
 
     Args:
         page (int, optional): 页码. Defaults to 1.
-        credential (None | Credential, optional): Credential. Defaults to None.
+        credential (Credential | None, optional): Credential. Defaults to None.
 
     Returns:
         dict: 调用 API 返回的结果
@@ -349,14 +349,14 @@ async def get_course_favorite_list(
 
 
 async def get_note_favorite_list(
-    page: int = 1, credential: None | Credential = None
+    page: int = 1, credential: Credential | None = None
 ) -> dict:
     """
     获取自己的笔记收藏夹内容。
 
     Args:
         page (int, optional): 页码. Defaults to 1.
-        credential (None | Credential, optional): Credential. Defaults to None.
+        credential (Credential | None, optional): Credential. Defaults to None.
 
     Returns:
         dict: 调用 API 返回的结果
@@ -376,7 +376,7 @@ async def create_video_favorite_list(
     title: str,
     introduction: str = "",
     private: bool = False,
-    credential: None | Credential = None,
+    credential: Credential | None = None,
 ) -> dict:
     """
     新建视频收藏夹列表。
@@ -385,7 +385,7 @@ async def create_video_favorite_list(
         title (str): 收藏夹名。
         introduction (str, optional): 收藏夹简介. Defaults to ''.
         private (bool, optional): 是否为私有. Defaults to False.
-        credential (None | Credential, optional): 凭据. Defaults to None.
+        credential (Credential | None, optional): 凭据. Defaults to None.
 
     Returns:
         dict: 调用 API 返回的结果
@@ -412,7 +412,7 @@ async def modify_video_favorite_list(
     title: str,
     introduction: str = "",
     private: bool = False,
-    credential: None | Credential = None,
+    credential: Credential | None = None,
 ) -> dict:
     """
     修改视频收藏夹信息。
@@ -422,7 +422,7 @@ async def modify_video_favorite_list(
         title (str): 收藏夹名。
         introduction (str, optional): 收藏夹简介. Defaults to ''.
         private (bool, optional): 是否为私有. Defaults to False.
-        credential (None | Credential, optional): Credential. Defaults to None.
+        credential (Credential | None, optional): Credential. Defaults to None.
 
     Returns:
         dict: 调用 API 返回的结果

@@ -6,8 +6,8 @@ import datetime
 import inspect
 import json
 import os
-import sys
 import re
+import sys
 
 sys.path.append(os.path.join(os.path.abspath(os.path.dirname(__file__)), ".."))
 
@@ -209,7 +209,7 @@ def parse(data: dict, indent: int = 0, root: bool = False):
         )
     elif (
         data["node"][".class"] == "Var"
-        and not "is_suppressed_import" in data["node"]["flags"]
+        and "is_suppressed_import" not in data["node"]["flags"]
     ):
         if data["node"]["name"] in ignored_vars:
             return
@@ -226,7 +226,7 @@ def parse(data: dict, indent: int = 0, root: bool = False):
         )
     else:
         return
-    if not "names" in data["node"]:
+    if "names" not in data["node"]:
         return
     if data["node"]["bases"][0] == "enum.Enum":
         return
@@ -334,7 +334,7 @@ for key in data["names"].keys():
 all_funcs.append(funcs)
 
 
-import bilibili_api
+import bilibili_api  # noqa: F401
 
 
 def handle_annotation(ty: type):
@@ -414,7 +414,7 @@ def handle_doc(doc: str, isp: inspect.Signature):
             if name == "self":
                 continue
             if para.annotation == inspect._empty:
-                breakpoint()  # no prividing arg type
+                breakpoint()  # no prividing arg type  # noqa: T100
             new_doc += "\n"
             new_doc += "    "
             if para.default != inspect._empty:
@@ -425,16 +425,16 @@ def handle_doc(doc: str, isp: inspect.Signature):
                 if isinstance(para.default, datetime.datetime):
                     new_doc += ". Defaults to datetime.datetime.now()"
                 else:
-                    new_doc += f". Defaults to {repr(para.default)}."
+                    new_doc += f". Defaults to {para.default!r}."
             else:
                 new_doc += (
                     f"{name} ({handle_annotation(para.annotation)}): {arginfos[name]}"
                 )
     if sig.return_annotation == inspect._empty:
-        breakpoint()  # no providing return type
-    if sig.return_annotation != None and retdesc == "":
-        breakpoint()  # no return description
-    if sig.return_annotation != None:
+        breakpoint()  # no providing return type  # noqa: T100
+    if sig.return_annotation is not None and retdesc == "":
+        breakpoint()  # no return description  # noqa: T100
+    if sig.return_annotation is not None:
         new_doc += "\n\nReturns:\n"
         new_doc += f"    {handle_annotation(sig.return_annotation)}: {retdesc}"
     if note:

@@ -1,3 +1,7 @@
+"""
+ivitools.player
+"""
+
 import copy
 import enum
 import json
@@ -141,13 +145,15 @@ class InteractiveJumpingCondition:
     节点跳转的公式，只有公式成立才会跳转
     """
 
-    def __init__(self, var: list[InteractiveVariable] = [], condition: str = "True"):
+    def __init__(
+        self, var: list[InteractiveVariable] | None = None, condition: str = "True"
+    ):
         """
         Args:
-            var       (List[InteractiveVariable]): 所有变量
-            condition (str)                      : 公式
+            var       (list[InteractiveVariable] | None): 所有变量
+            condition (str)                             : 公式
         """
-        self.__vars = var
+        self.__vars = var or []
         self.__command = condition
 
     def get_result(self) -> bool:
@@ -182,13 +188,13 @@ class InteractiveJumpingCommand:
     节点跳转对变量的操作
     """
 
-    def __init__(self, var: list[InteractiveVariable] = [], command: str = ""):
+    def __init__(self, var: list[InteractiveVariable] | None = None, command: str = ""):
         """
         Args:
-            var       (List[InteractiveVariable]): 所有变量
-            condition (str)                      : 公式
+            var       (list[InteractiveVariable] | None): 所有变量
+            condition (str)                             : 公式
         """
-        self.__vars = var
+        self.__vars = var or []
         self.__command = command
 
     def run_command(self) -> list["InteractiveVariable"]:
@@ -479,7 +485,7 @@ class MPlayer:
                                     self.choice_labels.append(lbl)
                                     pass
                             add_space = int((800 - cnt * 200) / 2)
-                            for idx, lbl in enumerate(self.choice_labels):
+                            for _, lbl in enumerate(self.choice_labels):
                                 lbl.setGeometry(
                                     QtCore.QRect(
                                         lbl.geometry().left() + add_space,

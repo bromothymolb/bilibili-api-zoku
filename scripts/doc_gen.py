@@ -161,7 +161,10 @@ def parse(data: dict, indent: int = 0, root: bool = False):
     if data["node"][".class"] == "TypeInfo":
         if data["node"]["defn"]["name"] in ignored_classes:
             return
-        if not data["node"]["defn"]["name"].startswith("RequestLog") and not data["node"]["defn"]["name"] == "BiliSettings":
+        if (
+            not data["node"]["defn"]["name"].startswith("RequestLog")
+            and not data["node"]["defn"]["name"] == "BiliSettings"
+        ):
             funcs.append(
                 [
                     data["node"]["defn"]["name"],
@@ -204,7 +207,7 @@ def parse(data: dict, indent: int = 0, root: bool = False):
         )
     elif (
         data["node"][".class"] == "Var"
-        and not "is_suppressed_import" in data["node"]["flags"]
+        and "is_suppressed_import" not in data["node"]["flags"]
     ):
         if data["node"]["name"] in ignored_vars:
             return
@@ -221,7 +224,7 @@ def parse(data: dict, indent: int = 0, root: bool = False):
         )
     else:
         return
-    if not "names" in data["node"]:
+    if "names" not in data["node"]:
         return
     if data["node"]["bases"][0] == "enum.Enum":
         return
@@ -385,7 +388,7 @@ def parse_docstring(doc: str):
                     # .replace("list", "List")
                     # .replace("dict", "Dict")
                     # .replace("union", "Union")
-                    .replace("|", "\|")
+                    .replace("|", r"\|")
                 )
                 # print(line)
                 # assert argtype != ""
@@ -419,8 +422,6 @@ def parse_docstring1(doc: str):
     doc = doc.lstrip("\n")
     info = ""
     table = []
-    ret = ""
-    note = ""
     state = 0
     for line in doc.split("\n"):
         if line.startswith("Attribute") or line.startswith("Args"):
@@ -446,7 +447,7 @@ def parse_docstring1(doc: str):
                     # .replace("list", "List")
                     # .replace("dict", "Dict")
                     # .replace("union", "Union")
-                    .replace("|", "\|")
+                    .replace("|", r"\|")
                 )
                 # print(line)
                 # assert argtype != ""
@@ -456,11 +457,12 @@ def parse_docstring1(doc: str):
         mdstring += "| name | type | description |\n| - | - | - |\n"
         for arg in table:
             mdstring += f"| `{arg[0]}` | `{arg[1]}` | {arg[2]} |\n"
-    mdstring += f"\n\n"
+    mdstring += "\n\n"
     return mdstring
 
 
-import bilibili_api
+import bilibili_api  # noqa: F401, I001
+
 
 for module in all_funcs:
     if module[0][0] in ["_pyinstaller", "tools", "exceptions", "clients"]:

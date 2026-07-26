@@ -130,7 +130,8 @@ async def parse_link(
         # 删去首尾部空格
         url = url.strip()
         # 添加 https: 协议头
-        if url.lstrip("https:") == url:
+        url.removeprefix("http:")
+        if url.removeprefix("https:") == url:
             url = "https:" + url
 
         # 转换为 yarl

@@ -332,14 +332,14 @@ class VideoPorderMeta:
         porder_type: VideoPorderType = VideoPorderType.FIREWORK,
         industry_type: VideoPorderIndustry | None = None,
         brand_name: str | None = None,
-        show_types: list[VideoPorderShowType] = [],
+        show_types: list[VideoPorderShowType] | None = None,
     ) -> None:
         """
         Args:
             porder_type (VideoPorderType, optional): 商业平台类型. Defaults to VideoPorderType.FIREWORK: frozendict.frozendict({'flow_id'.
             industry_type (video_uploader.VideoPorderIndustry | None, optional): 商单行业，非花火填写. Defaults to None.
             brand_name (str | None, optional): 品牌名，非花火填写. Defaults to None.
-            show_types (list[video_uploader.VideoPorderShowType], optional): 商单形式，非花火填写. Defaults to [].
+            show_types (list[video_uploader.VideoPorderShowType] | None, optional): 商单形式，非花火填写. Defaults to None.
         """
         self.__info: dict = dict(porder_type.value)
         if porder_type == VideoPorderType.OTHER:
@@ -349,6 +349,7 @@ class VideoPorderMeta:
                 raise ApiException("未提供品牌名")
             self.__info["industry"] = industry_type.value
             self.__info["brand_name"] = brand_name
+            show_types = show_types or []
             self.__info["show_types"] = ",".join(
                 [str(show_type.value) for show_type in show_types]
             )

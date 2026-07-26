@@ -60,11 +60,11 @@ def _parse_detected_content(detected_content: str) -> dict:
         decoded_content = unquote(detected_content)
         return decoder.raw_decode(decoded_content)[0]
     except json.JSONDecodeError:
-        raise InitialStateException("JSON 信息解析错误")
+        raise InitialStateException("JSON 信息解析错误") from None
 
 
 async def get_initial_state(
-    url: str, credential: Credential = Credential(), strict: bool = True
+    url: str, credential: Credential | None = None, strict: bool = True
 ) -> tuple[dict, InitialDataType]:
     """
     异步获取初始化信息
@@ -76,6 +76,7 @@ async def get_initial_state(
 
         strict (bool, optional): 无结果时报错。Defaults to True.
     """
+    credential = credential or Credential()
     try:
         resp = await Api(
             url=url, method="GET", credential=credential, comment="[获取初始化信息]"

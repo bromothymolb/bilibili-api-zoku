@@ -538,7 +538,7 @@ async def get_video_upload_manager_info(
     pn: int = 1,
     ps: int = 10,
     order: UploadManagerOrder = UploadManagerOrder.CLICK,
-    tid: VideoZoneTypes | None | int = None,
+    tid: VideoZoneTypes | int | None = None,
     status: UploadManagerStatus = UploadManagerStatus.ALL,
 ) -> dict:
     """
@@ -550,7 +550,7 @@ async def get_video_upload_manager_info(
         pn (int, optional): 页码. Defaults to 1.
         ps (int, optional): 每页项数. Defaults to 10.
         order (UploadManagerOrder, optional): 稿件排序. Defaults to UploadManagerOrder.CLICK.
-        tid (video_zone.VideoZoneTypes | None | int, optional): 分区. Defaults to None.
+        tid (video_zone.VideoZoneTypes | int | None, optional): 分区. Defaults to None.
         status (UploadManagerStatus, optional): 稿件状态. Defaults to UploadManagerStatus.ALL.
 
     Returns:

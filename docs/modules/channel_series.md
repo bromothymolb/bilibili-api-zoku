@@ -169,8 +169,8 @@ from bilibili_api import channel_series
 | name | type | description |
 | - | - | - |
 | `name` | `str` | 列表名称。 |
-| `aids` | `list[int], optional` | 要加入列表的视频的 aid 列表. Defaults to []. |
-| `keywords` | `list[str], optional` | 列表的关键词. Defaults to []. |
+| `aids` | `list[int] \| None, optional` | 要加入列表的视频的 aid 列表. Defaults to None. |
+| `keywords` | `list[str] \| None, optional` | 列表的关键词. Defaults to None. |
 | `description` | `str, optional` | 列表的描述. Defaults to ''. |
 | `credential` | `Credential \| None, optional` | 凭据类. Defaults to None. |
 

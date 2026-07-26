@@ -103,13 +103,19 @@ class CurlCFFIClient(BiliAPIClient):
         self,
         method: str = "",
         url: str = "",
-        params: dict = {},
-        data: dict | str | bytes = {},
-        files: dict[str, BiliAPIFile] = {},
-        headers: dict = {},
-        cookies: dict = {},
+        params: dict | None = None,
+        data: dict | str | bytes | None = None,
+        files: dict[str, BiliAPIFile] | None = None,
+        headers: dict | None = None,
+        cookies: dict | None = None,
         allow_redirects: bool = True,
     ) -> BiliAPIResponse:
+        params = params or {}
+        data = data or {}
+        files = files or {}
+        headers = headers or {}
+        cookies = cookies or {}
+
         if headers.get("User-Agent") and self.__session.impersonate != "":
             headers.pop("User-Agent")
         if headers.get("user-agent") and self.__session.impersonate != "":
@@ -160,8 +166,9 @@ class CurlCFFIClient(BiliAPIClient):
     async def download_create(
         self,
         url: str = "",
-        headers: dict = {},
+        headers: dict | None = None,
     ) -> int:
+        headers = headers or {}
         if headers.get("User-Agent") and self.__session.impersonate != "":
             headers.pop("User-Agent")
         if headers.get("user-agent") and self.__session.impersonate != "":
@@ -190,8 +197,10 @@ class CurlCFFIClient(BiliAPIClient):
         del self.__downloads[cnt]
 
     async def ws_create(
-        self, url: str = "", params: dict = {}, headers: dict = {}
+        self, url: str = "", params: dict | None = None, headers: dict | None = None
     ) -> int:
+        params = params or {}
+        headers = headers or {}
         if headers.get("User-Agent") and self.__session.impersonate != "":
             headers.pop("User-Agent")
         if headers.get("user-agent") and self.__session.impersonate != "":

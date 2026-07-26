@@ -210,7 +210,7 @@ from bilibili_api import manga
 
 | name | type | description |
 | - | - | - |
-| `date` | `str \| datetime.datetime, optional` | 日期。Defaults to datetime.datetime.now() |
+| `date` | `str \| datetime.date \| None, optional` | 日期。Defaults to None. |
 | `pn` | `int, optional` | 页码. Defaults to 1. |
 | `ps` | `int, optional` | 每页数量. Defaults to 8. |
 | `credential` | `Credential \| None, optional` | 凭据类. Defaults to None. |

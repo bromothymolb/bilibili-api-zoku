@@ -85,7 +85,7 @@ def crack_uid(crc32: str):
     def __create_table():
         for i in range(256):
             crcreg = i
-            for j in range(8):
+            for _ in range(8):
                 if (crcreg & 1) != 0:
                     crcreg = __CRCPOLYNOMIAL ^ (crcreg >> 1)
                 else:
@@ -282,7 +282,7 @@ def to_timestamps(time_start, time_end):
         # 捕获日期格式错误或自定义错误消息
         raise ValueError(
             f"输入错误: {e}. 请确保使用 'YYYY-MM-DD' 格式，并且起始时间早于结束时间。"
-        )
+        ) from e
 
 
 def img_auto_scheme(url: str) -> str:

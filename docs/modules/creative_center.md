@@ -779,7 +779,7 @@ from bilibili_api import creative_center
 | `pn` | `int, optional` | 页码. Defaults to 1. |
 | `ps` | `int, optional` | 每页项数. Defaults to 10. |
 | `order` | `UploadManagerOrder, optional` | 稿件排序. Defaults to UploadManagerOrder.CLICK. |
-| `tid` | `video_zone.VideoZoneTypes \| None \| int, optional` | 分区. Defaults to None. |
+| `tid` | `video_zone.VideoZoneTypes \| int \| None, optional` | 分区. Defaults to None. |
 | `status` | `UploadManagerStatus, optional` | 稿件状态. Defaults to UploadManagerStatus.ALL. |
 
 **Returns:** `dict`:  内容管理视频信息。

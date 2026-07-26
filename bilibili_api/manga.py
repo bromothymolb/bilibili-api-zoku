@@ -534,7 +534,7 @@ async def get_followed_manga(
 
 
 async def get_manga_update(
-    date: str | datetime.datetime = datetime.datetime.now(),
+    date: str | datetime.date | None = None,
     pn: int = 1,
     ps: int = 8,
     credential: Credential | None = None,
@@ -543,7 +543,7 @@ async def get_manga_update(
     获取更新推荐的漫画
 
     Args:
-        date (str | datetime.datetime, optional): 日期。Defaults to datetime.datetime.now()
+        date (str | datetime.date | None, optional): 日期。Defaults to None.
         pn (int, optional): 页码. Defaults to 1.
         ps (int, optional): 每页数量. Defaults to 8.
         credential (Credential | None, optional): 凭据类. Defaults to None.
@@ -551,10 +551,11 @@ async def get_manga_update(
     Returns:
         list[manga.Manga]: 漫画列表
     """
+    date = date or datetime.date.today()
     credential = credential or Credential()
     api = API["info"]["update"]
     params = {"device": "pc", "platform": "web", "nov": 25}
-    if isinstance(date, datetime.datetime):
+    if isinstance(date, datetime.date):
         date = date.strftime("%Y-%m-%d")
     data = {"date": date, "page_num": pn, "page_size": ps}
     manga_data = (
