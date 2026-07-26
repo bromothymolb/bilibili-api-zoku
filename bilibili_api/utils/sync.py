@@ -10,7 +10,7 @@ from typing import Any, TypeVar
 
 import anyio
 
-from .network import bili_settings, ensure_event_loop
+from .network import bili_settings
 
 T = TypeVar("T")
 
@@ -25,11 +25,10 @@ def sync(coroutine: Coroutine[Any, Any, T] | Future[T]) -> T:
     Returns:
         ~T: 该异步函数的返回值
     """
-    if bili_settings.get_enable_trio():
 
-        async def sync_task() -> T:
-            return await coroutine
+    async def sync_task() -> T:
+        return await coroutine
 
-        return anyio.run(sync_task, backend="trio")
-    loop = ensure_event_loop()
-    return loop.run_until_complete(coroutine)
+    return anyio.run(
+        sync_task, backend=["asyncio", "trio"][bili_settings.get_enable_trio()]
+    )

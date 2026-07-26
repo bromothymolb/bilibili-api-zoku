@@ -401,6 +401,7 @@ class AsyncEvent:
                 self.__exit_event.set()
                 return ret
         except asyncio.CancelledError:
+            self.__exit_event.set()
             pass
 
     @asynccontextmanager
