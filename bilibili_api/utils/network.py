@@ -51,6 +51,7 @@ bilibili-api 一切行为的核心即在网络请求上。自然，掌管网络�
 - `BiliFilterData`
 - `BiliFilterArgs`
 - `BiliFilterReturn`
+- (`_BiliAPIClient`)
 
 ### 2. 会话调度 (事件循环相关)
 
