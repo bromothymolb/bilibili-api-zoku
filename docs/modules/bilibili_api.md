@@ -206,7 +206,7 @@ from bilibili_api import ...
   - [def set\_ignore\_events()](#def-set\_ignore\_events)
   - [def set\_on()](#def-set\_on)
   - [def set\_on\_events()](#def-set\_on\_events)
-- [def select\_client()](#def-select\_client)
+- [var request\_settings](#var-request\_settings)
 - [def select\_instance()](#def-select\_instance)
 - [def set\_session()](#def-set\_session)
 - [def sync()](#def-sync)
@@ -3051,14 +3051,13 @@ async def handle(desc: str, data: dict) -> None:
 
 ---
 
-## def select_client()
+## var request_settings
 
-选择模块使用的注册过的请求客户端，可用于用户自定义请求客户端。
+模块请求客户端的全局设置实例，继承自 `RequestSettings`。
 
+亦可通过 `get_settings` 获取此实例。
 
-| name | type | description |
-| - | - | - |
-| `name` | `str` | 请求客户端类型名称，用户自定义命名。 |
+相关使用方法请参考 `RequestSettings` 类文档。
 
 
 

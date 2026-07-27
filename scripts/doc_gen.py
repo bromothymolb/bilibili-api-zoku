@@ -309,20 +309,20 @@ for key in data["names"].keys():
                     2,
                 )
             )
-            parse(
-                json.load(
-                    open(
-                        os.path.join(
-                            ".mypy_cache",
-                            f"{sys.version_info.major}.{sys.version_info.minor}",
-                            "bilibili_api",
-                            "utils",
-                            "network.data.json",
-                        )
-                    )
-                )["names"]["RequestSettings"],
-                2,
-            )
+            # parse(
+            #     json.load(
+            #         open(
+            #             os.path.join(
+            #                 ".mypy_cache",
+            #                 f"{sys.version_info.major}.{sys.version_info.minor}",
+            #                 "bilibili_api",
+            #                 "utils",
+            #                 "network.data.json",
+            #             )
+            #         )
+            #     )["names"]["RequestSettings"],
+            #     2,
+            # )
         elif key == "bili_settings":
             funcs.append(
                 (

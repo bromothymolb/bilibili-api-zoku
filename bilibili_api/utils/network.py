@@ -26,7 +26,7 @@ bilibili-api 一切行为的核心即在网络请求上。自然，掌管网络�
 ## 3. Settings
 
 - `bili_settings` (`BiliSettings`)
-- `RequestSettings`
+- `request_settings` (`RequestSettings`)
 
 设置支持。设置分为两类，一类为 `BiliSettings`，一类为 `RequestSettings`。
 
@@ -1124,6 +1124,20 @@ bili_settings.__doc__ = """
 
 
 request_settings = RequestSettings()
+"""
+模块请求客户端的全局设置实例，继承自 `RequestSettings`。
+
+亦可通过 `get_settings` 获取此实例。
+
+相关使用方法请参考 `RequestSettings` 类文档。
+"""
+request_settings.__doc__ = """
+模块请求客户端的全局设置实例，继承自 `RequestSettings`。
+
+亦可通过 `get_settings` 获取此实例。
+
+相关使用方法请参考 `RequestSettings` 类文档。
+"""
 
 DEFAULT_SETTINGS = {"proxy": "", "timeout": 30.0, "verify_ssl": True, "trust_env": True}
 

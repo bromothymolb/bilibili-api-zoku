@@ -135,7 +135,15 @@ if __name__ == '__main__':
 
 # 异步迁移
 
-由于从 v5 版本开始，基本全部改为异步，如果你不会异步，可以参考 [asyncio](https://docs.python.org/zh-cn/3/library/asyncio.html)
+由于从 v5 版本开始，基本全部改为异步，如果你不会异步，可以参考 [`asyncio`](https://docs.python.org/zh-cn/3/library/asyncio.html)
+
+得益于 [`anyio`][anyio]，模块同时支持 [`trio`][trio] 作为异步后端，仅需在设置项中进行设置即可：
+
+``` python
+from bilibili_api import bili_settings
+
+bili_settings.set_enable_trio(True)
+```
 
 异步可以进行并发请求，性能更高，不过如果请求过快仍然会导致被屏蔽。
 
@@ -233,9 +241,15 @@ A: 由于该模块比较特殊，是爬虫模块，如果 b 站的接口变更�
 
 [docs]: https://bromothymolb.github.io/bilibili-api-zoku
 [docs-github]: https://github.com/bromothymolb/bilibili-api-zoku/tree/main/docs
-[api.json]: https://github.com/bromothymolb/bilibili-api-zoku/tree/main/bilibili_api/data/api/
+[api.json]: https://github.com/bromothymolb/bilibili-api-zoku/tree/main/bilibili_api/data/api
 [license]: https://github.com/bromothymolb/bilibili-api-zoku/tree/main/LICENSE
 [stargazers]: https://github.com/bromothymolb/bilibili-api-zoku/stargazers
 [issues-new]: https://github.com/bromothymolb/bilibili-api-zoku/issues/new/choose
 [get-credential]: https://bromothymolb.github.io/bilibili-api-zoku/#/get-credential
 [pypi]: https://pypi.org/project/bilibili-api-zoku
+[aiohttp]: https://github.com/aio-libs/aiohttp
+[httpx]: https://github.com/encode/httpx
+[curl_cffi]: https://github.com/lexiforest/curl_cffi
+[fpgen]: https://github.com/scrapfly/fingerprint-generator
+[trio]: https://github.com/python-trio/trio
+[anyio]: https://github.com/agronholm/anyio
