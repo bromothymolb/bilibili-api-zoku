@@ -24,6 +24,7 @@ from bilibili_api import ...
   - [def \_\_init\_\_()](#def-\_\_init\_\_)
   - [def add\_event\_listener()](#def-add\_event\_listener)
   - [def async\_event\_cancel()](#def-async\_event\_cancel)
+  - [async def async\_event\_run()](#async-def-async\_event\_run)
   - [async def async\_event\_start()](#async-def-async\_event\_start)
   - [def dispatch()](#def-dispatch)
   - [def ignore\_event()](#def-ignore\_event)
@@ -362,6 +363,24 @@ API 基类异常。
 取消异步事件类主任务
 
 
+
+
+
+
+### async def async_event_run()
+
+> `@asynccontextmanager` 
+
+非阻塞启动异步事件类
+
+此函数将返回异步上下文管理器。
+
+
+| name | type | description |
+| - | - | - |
+| `coro` | `Coroutine[Any, Any, ~T]` | 主程序 |
+
+**Returns:** `AsyncGenerator[anyio.TaskHandle[~T | None]]`:  运行主程序的 TaskHandle，若中途取消则返回 None
 
 
 
