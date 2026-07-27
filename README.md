@@ -2,7 +2,7 @@
 
 <div align="center">
 
-# `bilibili-api-zoku` (続)
+# `bilibili-api-zoku`
 
 [![API 数量](https://img.shields.io/badge/API%20数量-400+-blue)][api.json]
 [![LICENSE](https://img.shields.io/badge/LICENSE-GPLv3+-red)][LICENSE]
@@ -12,6 +12,11 @@
 [![STARS](https://img.shields.io/github/stars/bromothymolb/bilibili-api-zoku?color=yellow&label=Github%20Stars)][stargazers]
 [![Docs](https://img.shields.io/badge/Docs-Site-green)][docs]
 [![Docs](https://img.shields.io/badge/Docs-Github-green)][docs-github]
+
+> `zoku` -> 続/續/续（<ruby>ぞ<rp>(</rp><rt>zo</rt><rp>)</rp>く<rp>(</rp><rt>ku</rt><rp>)</rp></ruby>）
+> `bilibili-api-zoku` 是 `Nemo2011/bilibili-api` 的接续，对 `bilibili-api` 模块进行进一步维护与开发。
+> 模块最早起源于 `MoyuScript/bilibili-api`，经由 [`Nemo2011/bilibili-api`](https://github.com/Nemo2011/bilibili-api) 接手继续维护，后该仓库因故删档。
+> 本仓库将接续模块的维护工作，感谢前前后后所有的模块贡献者与使用者，也欢迎更多人参与到其中。
 
 </div>
 
@@ -37,10 +42,10 @@
 
 ```
 # 主版本
-$ pip3 install bilibili-api-python
+$ pip3 install bilibili-api-zoku
 
 # 开发版本
-$ pip3 install bilibili-api-dev
+$ pip3 install bilibili-api-zoku --pre
 
 # 最新修改会在 dev 分支
 $ pip3 install git+https://github.com/bromothymolb/bilibili-api-zoku.git@dev
@@ -213,17 +218,18 @@ A: 请先 clone 本仓库一份，然后从 main 分支新建一个分支，在�
 
 A: 由于该模块比较特殊，是爬虫模块，如果 b 站的接口变更，可能会马上失效。因此请始终保证是最新版本。如果发现问题可以提 [Issues][issues-new]。
 
-# 模块与仓库历史
-
-模块最早起源于 [MoyuScript/bilibili-api](https://github.com/MoyuScript/bilibili-api)，后由 [Nemo2011/bilibili-api](https://github.com/Nemo2011/bilibili-api) 接手继续维护，后仓库因故删档。
-
-本仓库将接续模块的维护工作，在此对前前后后投入模块建设的贡献者表示感谢！也欢迎更多人参与到其中！
-
 [^1]: 这里只列出一部分，请以实际 API 为准。
 [^2]: 代码来源：<https://www.zhihu.com/question/381784377/answer/1099438784> (WTFPL)
 [^3]: 弹幕 ASS 生成由 Danmaku2ASS <https://github.com/m13253/danmaku2ass> 支持 (GPLv3)。
 [^4]: 此部分功能实现离不开 BAC Project <https://github.com/socialsisteryi/bilibili-API-collect> 社区对相关接口的不懈探索。感谢所有参与其中的贡献者对本模块的间接支持。
 [^5]: 更多可见 https://nemo2011.github.io/bilibili-api/#/README?id=fingerprint
+
+# 使用前须知
+
+> 您开始使用本项目即默认您已阅读、认同并将遵守下列内容：
+> &emsp;&emsp;本项目仅供学习交流目的的使用。若使用者使用此项目进行包括但不限于以下行为：违反法律（《中华人民共和国民法典》《中华人民共和国反不正当竞争法》《中华人民共和国网络安全法》等）或道德的行为；未授权的数据访问、资源抓取及其他不当利用行为；其他增加了哔哩哔哩平台资源滥用及数据安全风险或严重妨碍了哔哩哔哩平台合法技术服务的正常运行与安全保障机制的有效性的行为，项目维护者不负任何法律责任。
+> &emsp;&emsp;使用、修改、再分法本项目时，应遵循 [`GNU General Public License v3`](./LICENSE)。
+> &emsp;&emsp;本项目与 `Nemo2011/bilibili-api` `MoyuScript/bilibili-api` 和哔哩哔哩官方无从属关系。
 
 [docs]: https://bromothymolb.github.io/bilibili-api-zoku
 [docs-github]: https://github.com/bromothymolb/bilibili-api-zoku/tree/main/docs
