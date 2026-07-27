@@ -14,8 +14,11 @@
 [![Docs](https://img.shields.io/badge/Docs-Github-green)][docs-github]
 
 > `zoku` -> 続/續/续（<ruby>ぞ<rp>(</rp><rt>zo</rt><rp>)</rp>く<rp>(</rp><rt>ku</rt><rp>)</rp></ruby>）
+>
 > `bilibili-api-zoku` 是 `Nemo2011/bilibili-api` 的接续，对 `bilibili-api` 模块进行进一步维护与开发。
+>
 > 模块最早起源于 `MoyuScript/bilibili-api`，经由 [`Nemo2011/bilibili-api`](https://github.com/Nemo2011/bilibili-api) 接手继续维护，后该仓库因故删档。
+>
 > 本仓库将接续模块的维护工作，感谢前前后后所有的模块贡献者与使用者，也欢迎更多人参与到其中。
 
 </div>
@@ -227,8 +230,11 @@ A: 由于该模块比较特殊，是爬虫模块，如果 b 站的接口变更�
 # 使用前须知
 
 > 您开始使用本项目即默认您已阅读、认同并将遵守下列内容：
+>
 > &emsp;&emsp;本项目仅供学习交流目的的使用。若使用者使用此项目进行包括但不限于以下行为：违反法律（《中华人民共和国民法典》《中华人民共和国反不正当竞争法》《中华人民共和国网络安全法》等）或道德的行为；未授权的数据访问、资源抓取及其他不当利用行为；其他增加了哔哩哔哩平台资源滥用及数据安全风险或严重妨碍了哔哩哔哩平台合法技术服务的正常运行与安全保障机制的有效性的行为，项目维护者不负任何法律责任。
+>
 > &emsp;&emsp;使用、修改、再分法本项目时，应遵循 [`GNU General Public License v3`](./LICENSE)。
+>
 > &emsp;&emsp;本项目与 `Nemo2011/bilibili-api` `MoyuScript/bilibili-api` 和哔哩哔哩官方无从属关系。
 
 [docs]: https://bromothymolb.github.io/bilibili-api-zoku
