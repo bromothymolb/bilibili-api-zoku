@@ -1309,10 +1309,8 @@ async def get_self_coins(credential: Credential) -> int:
     Returns:
         int: 硬币数量
     """
-    if credential is None:
-        credential = Credential()
     credential.raise_for_no_sessdata()
-    credential.raise_for_no_dedeuserid()
+    await fetch_dedeuserid(credential)
     api = API["info"]["get_coins"]
     return (await Api(**api, credential=credential).result)["money"]
 
@@ -1586,3 +1584,19 @@ async def get_self_experience_log(credential: Credential) -> dict:
     credential.raise_for_no_sessdata()
     api = API["info"]["exp_log"]
     return await Api(**api, credential=credential).result
+
+
+async def fetch_dedeuserid(credential: Credential) -> int:
+    """
+    自动获取凭据类对应的 DedeUserID，即 uid。
+
+    Args:
+        credential (Credential): 凭据类
+
+    Returns:
+        int: DedeUserID / uid
+    """
+    if not credential.has_dedeuserid():
+        info = await get_self_info(credential)
+        credential.dedeuserid = str(info.get("uid", 0))
+    return int(credential.dedeuserid)  # type: ignore

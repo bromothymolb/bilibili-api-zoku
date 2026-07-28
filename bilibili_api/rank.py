@@ -271,7 +271,7 @@ async def get_rank(
     获取视频排行榜
 
     Args:
-        type_ (RankType, optional): 排行榜类型. Defaults to RankType.All: frozendict.frozendict({'api_type': 'x', 'rid': 0, 'type'.
+        type_ (RankType, optional): 排行榜类型. Defaults to RankType.All.
         day (RankDayType, optional): 排行榜时间. PGC 有效. Defaults to RankDayType.THREE_DAY.
 
     Returns:

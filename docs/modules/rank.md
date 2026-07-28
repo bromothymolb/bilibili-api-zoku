@@ -348,7 +348,7 @@ https://www.bilibili.com/v/popular/drama/
 
 | name | type | description |
 | - | - | - |
-| `type_` | `RankType, optional` | 排行榜类型. Defaults to RankType.All |
+| `type_` | `RankType, optional` | 排行榜类型. Defaults to RankType.All. |
 | `day` | `RankDayType, optional` | 排行榜时间. PGC 有效. Defaults to RankDayType.THREE_DAY. |
 
 **Returns:** `dict`:  调用 API 返回的结果

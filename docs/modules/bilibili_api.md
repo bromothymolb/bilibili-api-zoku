@@ -1060,7 +1060,7 @@ Cookies 刷新错误。
 
 ### def \_\_init\_\_()
 
-各字段获取方式查看：https://bromothymolb.github.io/bilibili-api-zoku/#/get-credential.md
+各字段获取方式查看：https://bromothymolb.github.io/bilibili-api-zoku/#/common/credential.md
 
 buvid3 和 buvid4 建议配合食用，bili_ticket 和 bili_ticket_expires 亦建议配合食用。
 

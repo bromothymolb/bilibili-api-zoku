@@ -60,7 +60,7 @@ credential = Credential(sessdata="你的 SESSDATA", bili_jct="你的 bili_jct", 
 
 ---
 
-`ac_time_value` 相对特殊，仅用于刷新 Cookies，可以选择不获取，在 localStorage 中的ac_time_value 字段。
+`ac_time_value` 相对特殊，仅用于刷新 Cookies，可以选择不获取，在 localStorage 中的 ac_time_value 字段。
 
 只需要打开 B 站，打开开发者工具，进入控制台，输入`window.localStorage.ac_time_value`即可获取值。
 

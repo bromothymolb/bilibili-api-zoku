@@ -46,9 +46,9 @@
 
 2. 找到投票链接对应的 `div` 的源代码
 
-![如图](vote_source.png)
+![如图](../img/vote_source.png)
 
-3. 大家可以看到一个 span 片段：
+3. 可以看到一个 span 片段：
 
 ``` html
 <span data=module="desc" data-type="vote" data-oid="2773489" class="bili-rich-text-module vote">

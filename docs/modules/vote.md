@@ -14,7 +14,11 @@ from bilibili_api import vote
 
 - [class Vote()](#class-Vote)
   - [def \_\_init\_\_()](#def-\_\_init\_\_)
+  - [async def get\_choice\_cnt()](#async-def-get\_choice\_cnt)
+  - [async def get\_desc()](#async-def-get\_desc)
+  - [async def get\_duration()](#async-def-get\_duration)
   - [async def get\_info()](#async-def-get\_info)
+  - [async def get\_options()](#async-def-get\_options)
   - [async def get\_title()](#async-def-get\_title)
   - [def get\_vote\_id()](#def-get\_vote\_id)
   - [async def update\_vote()](#async-def-update\_vote)
@@ -48,6 +52,39 @@ from bilibili_api import vote
 | `credential` | `Credential \| None, optional` | 凭据类，非必要. Defaults to None. |
 
 
+### async def get_choice_cnt()
+
+获取最多选择选项数目
+
+
+
+**Returns:** `int`:  最多选择选项数目
+
+
+
+
+### async def get_desc()
+
+获取投票描述
+
+
+
+**Returns:** `str`:  投票描述
+
+
+
+
+### async def get_duration()
+
+获取选项
+
+
+
+**Returns:** `dict`:  选项数据
+
+
+
+
 ### async def get_info()
 
 获取投票详情
@@ -55,6 +92,17 @@ from bilibili_api import vote
 
 
 **Returns:** `dict`:  调用 API 返回的结果
+
+
+
+
+### async def get_options()
+
+获取选项
+
+
+
+**Returns:** `dict`:  选项数据
 
 
 
@@ -91,7 +139,7 @@ from bilibili_api import vote
 | `title` | `str` | 投票标题 |
 | `_type` | `VoteType` | 投票类型 |
 | `choice_cnt` | `int` | 最多几项 |
-| `duration` | `int` | 投票持续秒数 常用 |
+| `duration` | `int` | 常用: 三天:259200/七天:604800/三十天:2592000 |
 | `choices` | `vote.VoteChoices` | 投票选项 |
 | `desc` | `str \| None, optional` | 投票描述. Defaults to None. |
 
@@ -181,7 +229,7 @@ from bilibili_api import vote
 | `title` | `str` | 投票标题 |
 | `_type` | `VoteType` | 投票类型 |
 | `choice_cnt` | `int` | 最多几项 |
-| `duration` | `int` | 投票持续秒数 常用 |
+| `duration` | `int` | 投票持续秒数，常用: 三天:259200/七天:604800/三十天:2592000 |
 | `choices` | `vote.VoteChoices` | 投票选项 |
 | `credential` | `Credential` | Credential |
 | `desc` | `str \| None, optional` | 投票描述. Defaults to None. |

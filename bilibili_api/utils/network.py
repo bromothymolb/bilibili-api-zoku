@@ -2904,7 +2904,7 @@ class Credential:
         **kwargs: Any,
     ) -> None:
         """
-        各字段获取方式查看：https://bromothymolb.github.io/bilibili-api-zoku/#/get-credential.md
+        各字段获取方式查看：https://bromothymolb.github.io/bilibili-api-zoku/#/common/credential.md
 
         Args:
             sessdata (str | None, optional): 浏览器 Cookies 中的 SESSDATA 字段值. Defaults to None.
@@ -4086,6 +4086,7 @@ def __register_global_credential_filter():
                         "https://api.bilibili.com/bapis/bilibili.api.ticket.v1.Ticket/GenWebTicket",  # bili_ticket
                         "https://api.bilibili.com/x/internal/gaia-gateway/ExClimbWuzhi",  # exclimbwuzhi
                         "https://api.bilibili.com/x/web-interface/nav",  # wbi
+                        "https://www.bilibili.com",  # gaining buvid_fp
                     ]
                 ):
                     return False
@@ -4535,7 +4536,7 @@ class Api:
         # json_body
         if self.json_body:
             config["headers"]["Content-Type"] = "application/json"
-            config["data"] = json.dumps(config["data"])
+            config["data"] = json.dumps(config["data"], ensure_ascii=False)
 
         return config
 

@@ -572,9 +572,9 @@ class BuildDynamic:
                         content["biz_id"], credential=credential
                     )
             if content["type"] == DynamicContentType.VOTE.value:
-                contents[idx]["raw_text"] = (
-                    await vote.Vote(vote_id=content["biz_id"]).get_info()
-                )["info"]["title"]
+                contents[idx]["raw_text"] = await vote.Vote(
+                    vote_id=content["biz_id"]
+                ).get_title()
         for idx in range(len(contents)):
             contents[idx]["biz_id"] = str(contents[idx]["biz_id"])
         return contents

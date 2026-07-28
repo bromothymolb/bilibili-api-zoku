@@ -395,7 +395,7 @@ def parse_docstring(doc: str):
             elif state == 1:
                 if line == "":
                     continue
-                arginfo = line.split(":")[1].lstrip()
+                arginfo = ":".join(line.split(":")[1:]).lstrip()
                 argname = line.split("(")[0].rstrip()
                 argtype = line[len(argname) : len(line.split(":")[0])]
                 argtype = argtype.lstrip(" ").rstrip(" ")[1:-1]
