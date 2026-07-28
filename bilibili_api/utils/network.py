@@ -203,7 +203,13 @@ from functools import cmp_to_key, reduce
 import hashlib
 import hmac
 import inspect
-from inspect import iscoroutinefunction, isfunction
+from inspect import (
+    isasyncgen,
+    isasyncgenfunction,
+    iscoroutinefunction,
+    isfunction,
+    isgenerator,
+)
 import io
 import json
 from json import scanner
@@ -1705,24 +1711,26 @@ class BiliFilterFlags(Enum):
     """
     过滤器行为枚举
 
-    - CONTINUE: 继续下一个过滤器
+    返回过滤器行为可通过函数 `return` 返回或生成器 `yield` 抛出。
+
+    `return` 只能返回一个行为， `yield` 可以抛出多个行为。
+
+    - 【NOTE】以下过滤器建议配合 `yield` 使用。
     - SET_PARAMS: 设置函数的参数 (仅前置过滤器)
     - SET_RETURN: 设置返回值 (仅后置过滤器)
+    - 【NOTE】以下过滤器需要配合 `yield` + `return` 使用。
+    - CONTINUE: 继续下一个过滤器
     - EXECUTE_NOW: 直接运行函数 (仅前置过滤器)
     - RETURN_NOW: 直接作为函数返回值返回
-    - BACK: 回到上一个过滤器
-    - SKIP: 跳过下一个过滤器
     - GOTO: 跳到任意一个过滤器 需通过 `get_registered_filters` 查询对应过滤器的下标
     """
 
-    CONTINUE = 0
-    SET_PARAMS = 1
-    SET_RETURN = 2
-    EXECUTE_NOW = 3
-    RETURN_NOW = 4
-    BACK = 5
-    SKIP = 6
-    GOTO = 7
+    SET_PARAMS = "SET PARAMS"
+    SET_RETURN = "SET RETURN"
+    CONTINUE = "GOTO NEXT"
+    EXECUTE_NOW = "GOTO EXECUTE"
+    RETURN_NOW = "GOTO RETURN"
+    GOTO = "GOTO IDX"
 
 
 class BiliFilterData:
@@ -1778,13 +1786,15 @@ class BiliFilterArgs:
         instance (str): 请求所属的实例
         func (str): 当前调用的函数
         params (dict): 调用函数的参数
-        ret (Any): 函数运行返回结果 (可能)
+        ret (Any): 函数运行返回结果 (可能存在)
         ins (BiliAPIClient): 调用的 BiliAPIClient 实例
         cnt (int): 过滤器执行编号，一个编号对应一次函数调用
         data (FilterData): 用于数据交换的 FilterData 实例
         settings (dict): 请求客户端相关设置
         event_loop (str): 请求客户端的事件循环，对应模块内部编号
         loop (asyncio.AbstractEventLoop | None): 请求客户端的事件循环(仅 asyncio)
+        filter_index (int): 过滤器在运行列表中的位置下标
+        filter_locate (str): 过滤器位置，前置为 `pre`，后置为 `post`。
     """
 
     client: str
@@ -1798,6 +1808,8 @@ class BiliFilterArgs:
     settings: dict
     event_loop: str
     loop: asyncio.AbstractEventLoop | None
+    filter_index: int
+    filter_locate: str
 
 
 class BiliFilterReturn:
@@ -1854,37 +1866,14 @@ class BiliFilterReturn:
         return BiliFilterFlags.EXECUTE_NOW, None
 
     @staticmethod
-    def return_now(ret: Any) -> tuple[BiliFilterFlags, Any]:
+    def return_now() -> tuple[BiliFilterFlags, None]:
         """
         直接返回结果，作为待运行函数返回值
 
-        Args:
-            ret (Any): 返回结果
-
-        Returns:
-            tuple[BiliFilterFlags, Any]: 过滤器函数返回值
-        """
-        return BiliFilterFlags.RETURN_NOW, ret
-
-    @staticmethod
-    def back() -> tuple[BiliFilterFlags, None]:
-        """
-        回到上一个过滤器
-
         Returns:
             tuple[BiliFilterFlags, None]: 过滤器函数返回值
         """
-        return BiliFilterFlags.BACK, None
-
-    @staticmethod
-    def skip() -> tuple[BiliFilterFlags, None]:
-        """
-        跳过下一个过滤器
-
-        Returns:
-            tuple[BiliFilterFlags, None]: 过滤器函数返回值
-        """
-        return BiliFilterFlags.SKIP, None
+        return BiliFilterFlags.RETURN_NOW, None
 
     @staticmethod
     def goto_idx(idx: int) -> tuple[BiliFilterFlags, int]:
@@ -2015,66 +2004,78 @@ class _BiliAPIClient:
                 while i < len(filts):
                     filt = filts[i]
                     locate = filt["locate"]
-                    log = {
-                        "act_id": cnt,
-                        "name": filt["name"],
-                        "priority": filt["priority"],
-                        "client": self.__client__,
-                        "instance": self.__instance__,
-                        "action": key,
-                        "event_loop": self.__event_loop,
-                        "filter_id": i,
-                    }
                     if not skip_pre:
                         request_log.dispatch(
                             f"DO_{log_helper[locate][0]}_FILTER",
                             f"执行{log_helper[locate][1]}过滤器",
-                            log,
+                            {
+                                "act_id": cnt,
+                                "name": filt["name"],
+                                "priority": filt["priority"],
+                                "client": self.__client__,
+                                "instance": self.__instance__,
+                                "action": key,
+                                "event_loop": self.__event_loop,
+                                "filter_id": i,
+                            },
                         )
+                    goto = None  # the return of the function
                     if locate == "pre" and skip_pre:
-                        result = None
+                        goto = None
                     elif filt.get("function"):
                         try:
                             result = filt["function"](
                                 BiliFilterArgs(
-                                    **filter_args, params=args.copy(), ret=deepcopy(ret)
+                                    **filter_args,
+                                    params=args.copy(),
+                                    ret=deepcopy(ret),
+                                    filter_index=i,
+                                    filter_locate=locate,
                                 )
                             )
                         except Exception as e:
-                            raise FilterException("pre", filt["name"], e) from e
+                            raise FilterException(locate, filt["name"], e) from e
+                        if isgenerator(result):
+                            try:
+                                for sets in result:
+                                    try:
+                                        sflag, sparam = sets[0], sets[1]
+                                    except Exception:
+                                        raise ArgsException(
+                                            "过滤器抛出值不满足形式 tuple[BiliFilterFlags, Any]。"
+                                        ) from None
+                                    if sflag == BiliFilterFlags.SET_PARAMS:
+                                        args = deepcopy(sparam)
+                                    elif sflag == BiliFilterFlags.SET_RETURN:
+                                        ret = deepcopy(sparam)
+                                    goto = sets
+                            except Exception as e:
+                                raise FilterException(locate, filt["name"], e) from e
+                        else:
+                            goto = result
                     else:
                         i += 1
                         continue
                     try:
-                        if result is None:
-                            flag = BiliFilterFlags.CONTINUE
-                            after_filter: Any = None
+                        if goto is None:
+                            gflag = BiliFilterFlags.CONTINUE
+                            gparam: Any = None
                         else:
-                            flag, after_filter = result[0], result[1]
+                            gflag, gparam = goto[0], goto[1]
                     except Exception:
                         raise ArgsException(
                             "过滤器返回值不满足形式 tuple[BiliFilterFlags, Any]。"
                         ) from None
-                    if flag == BiliFilterFlags.SET_PARAMS:
-                        args = deepcopy(after_filter)
-                    elif flag == BiliFilterFlags.SET_RETURN:
-                        ret = deepcopy(after_filter)
-                    elif flag == BiliFilterFlags.EXECUTE_NOW:
+                    if gflag == BiliFilterFlags.EXECUTE_NOW:
                         skip_pre = True
-                    elif flag == BiliFilterFlags.RETURN_NOW:
-                        return after_filter
-                    elif flag == BiliFilterFlags.BACK:
-                        i = max(0, i - 1)
-                        continue
-                    elif flag == BiliFilterFlags.SKIP:
-                        i += 2
-                        continue
-                    elif flag == BiliFilterFlags.GOTO:
+                    elif gflag == BiliFilterFlags.RETURN_NOW:
+                        return ret
+                    elif gflag == BiliFilterFlags.GOTO:
                         raise_for_statement(
-                            isinstance(after_filter, int),
+                            isinstance(gparam, int),
                             "执行 BiliFilterFlasg.GOTO 需同时传入整数值下标",
                         )
-                        i = after_filter
+                        i = gparam
                         continue
                     i += 1
                     if locate == "pre" and (
@@ -2110,75 +2111,112 @@ class _BiliAPIClient:
                 while i < len(filts):
                     filt = filts[i]
                     locate = filt["locate"]
-                    log = {
-                        "act_id": cnt,
-                        "name": filt["name"],
-                        "priority": filt["priority"],
-                        "client": self.__client__,
-                        "instance": self.__instance__,
-                        "action": key,
-                        "event_loop": self.__event_loop,
-                        "filter_id": i,
-                    }
                     if not skip_pre:
                         request_log.dispatch(
                             f"DO_{log_helper[locate][0]}_FILTER",
                             f"执行{log_helper[locate][1]}过滤器",
-                            log,
+                            {
+                                "act_id": cnt,
+                                "name": filt["name"],
+                                "priority": filt["priority"],
+                                "client": self.__client__,
+                                "instance": self.__instance__,
+                                "action": key,
+                                "event_loop": self.__event_loop,
+                                "filter_id": i,
+                            },
                         )
+                    goto = None  # the return of the function
                     if locate == "pre" and skip_pre:
-                        result = None
+                        goto = None
                     elif filt.get("function"):
                         try:
                             result = filt["function"](
                                 BiliFilterArgs(
-                                    **filter_args, params=args.copy(), ret=deepcopy(ret)
+                                    **filter_args,
+                                    params=args.copy(),
+                                    ret=deepcopy(ret),
+                                    filter_index=i,
+                                    filter_locate=locate,
                                 )
                             )
                         except Exception as e:
                             raise FilterException("pre", filt["name"], e) from e
+                        if isgenerator(result):
+                            try:
+                                for sets in result:
+                                    try:
+                                        sflag, sparam = sets[0], sets[1]
+                                    except Exception:
+                                        raise ArgsException(
+                                            "过滤器抛出值不满足形式 tuple[BiliFilterFlags, Any]。"
+                                        ) from None
+                                    if sflag == BiliFilterFlags.SET_PARAMS:
+                                        args = deepcopy(sparam)
+                                    elif sflag == BiliFilterFlags.SET_RETURN:
+                                        ret = deepcopy(sparam)
+                                    goto = sets
+                            except Exception as e:
+                                raise FilterException(locate, filt["name"], e) from e
+                        else:
+                            goto = result
                     elif filt.get("async_function"):
                         try:
-                            result = await filt["async_function"](
+                            result = filt["async_function"](
                                 BiliFilterArgs(
-                                    **filter_args, params=args.copy(), ret=deepcopy(ret)
+                                    **filter_args,
+                                    params=args.copy(),
+                                    ret=deepcopy(ret),
+                                    filter_index=i,
+                                    filter_locate=locate,
                                 )
                             )
                         except Exception as e:
                             raise FilterException("pre", filt["name"], e) from e
+                        if isasyncgen(result):
+                            try:
+                                async for sets in result:
+                                    try:
+                                        sflag, sparam = sets[0], sets[1]
+                                    except Exception:
+                                        raise ArgsException(
+                                            "过滤器抛出值不满足形式 tuple[BiliFilterFlags, Any]。"
+                                        ) from None
+                                    if sflag == BiliFilterFlags.SET_PARAMS:
+                                        args = deepcopy(sparam)
+                                    elif sflag == BiliFilterFlags.SET_RETURN:
+                                        ret = deepcopy(sparam)
+                                    goto = sets
+                            except Exception as e:
+                                raise FilterException("pre", filt["name"], e) from e
+                        else:
+                            try:
+                                goto = await result
+                            except Exception as e:
+                                raise FilterException("pre", filt["name"], e) from e
                     else:
                         i += 1
                         continue
                     try:
-                        if result is None:
-                            flag = BiliFilterFlags.CONTINUE
-                            after_filter: Any = None
+                        if goto is None:
+                            gflag = BiliFilterFlags.CONTINUE
+                            gparam: Any = None
                         else:
-                            flag, after_filter = result[0], result[1]
+                            gflag, gparam = goto[0], goto[1]
                     except Exception:
                         raise ArgsException(
                             "过滤器返回值不满足形式 tuple[BiliFilterFlags, Any]。"
                         ) from None
-                    if flag == BiliFilterFlags.SET_PARAMS:
-                        args = deepcopy(after_filter)
-                    elif flag == BiliFilterFlags.SET_RETURN:
-                        ret = deepcopy(after_filter)
-                    elif flag == BiliFilterFlags.EXECUTE_NOW:
+                    if gflag == BiliFilterFlags.EXECUTE_NOW:
                         skip_pre = True
-                    elif flag == BiliFilterFlags.RETURN_NOW:
-                        return after_filter
-                    elif flag == BiliFilterFlags.BACK:
-                        i = max(0, i - 1)
-                        continue
-                    elif flag == BiliFilterFlags.SKIP:
-                        i += 2
-                        continue
-                    elif flag == BiliFilterFlags.GOTO:
+                    elif gflag == BiliFilterFlags.RETURN_NOW:
+                        return ret
+                    elif gflag == BiliFilterFlags.GOTO:
                         raise_for_statement(
-                            isinstance(after_filter, int),
+                            isinstance(gparam, int),
                             "执行 BiliFilterFlasg.GOTO 需同时传入整数值下标",
                         )
-                        i = after_filter
+                        i = gparam
                         continue
                     i += 1
                     if locate == "pre" and (
@@ -2664,6 +2702,8 @@ def register_pre_filter(
     }
     if iscoroutinefunction(func):
         filt["async_function"] = func
+    elif isasyncgenfunction(func):
+        filt["async_function"] = func
     else:
         filt["function"] = func
     for i, pre in enumerate(__registered_filters):
@@ -2697,6 +2737,8 @@ def register_post_filter(
         "locate": "post",
     }
     if iscoroutinefunction(func):
+        filt["async_function"] = func
+    elif isasyncgenfunction(func):
         filt["async_function"] = func
     else:
         filt["function"] = func

@@ -45,7 +45,6 @@ from bilibili_api import ...
   - [def set\_data()](#def-set\_data)
 - [class BiliFilterFlags()](#class-BiliFilterFlags)
 - [class BiliFilterReturn()](#class-BiliFilterReturn)
-  - [def back()](#def-back)
   - [def continue\_exec()](#def-continue\_exec)
   - [def execute\_now()](#def-execute\_now)
   - [def goto\_idx()](#def-goto\_idx)
@@ -53,7 +52,6 @@ from bilibili_api import ...
   - [def return\_now()](#def-return\_now)
   - [def set\_params()](#def-set\_params)
   - [def set\_return()](#def-set\_return)
-  - [def skip()](#def-skip)
 - [class BiliWsMsgType()](#class-BiliWsMsgType)
 - [class CookiesRefreshException()](#class-CookiesRefreshException)
 - [class Credential()](#class-Credential)
@@ -781,13 +779,15 @@ class BiliAPIClient(ABC):
 | `instance` | `str` | 请求所属的实例 |
 | `func` | `str` | 当前调用的函数 |
 | `params` | `dict` | 调用函数的参数 |
-| `ret` | `Any` | 函数运行返回结果 (可能) |
+| `ret` | `Any` | 函数运行返回结果 (可能存在) |
 | `ins` | `BiliAPIClient` | 调用的 BiliAPIClient 实例 |
 | `cnt` | `int` | 过滤器执行编号，一个编号对应一次函数调用 |
 | `data` | `FilterData` | 用于数据交换的 FilterData 实例 |
 | `settings` | `dict` | 请求客户端相关设置 |
 | `event_loop` | `str` | 请求客户端的事件循环，对应模块内部编号 |
 | `loop` | `asyncio.AbstractEventLoop \| None` | 请求客户端的事件循环(仅 asyncio) |
+| `filter_index` | `int` | 过滤器在运行列表中的位置下标 |
+| `filter_locate` | `str` | 过滤器位置，前置为 `pre`，后置为 `post`。 |
 
 
 ---
@@ -854,13 +854,17 @@ class BiliAPIClient(ABC):
 
 过滤器行为枚举
 
-- CONTINUE: 继续下一个过滤器
+返回过滤器行为可通过函数 `return` 返回或生成器 `yield` 抛出。
+
+`return` 只能返回一个行为， `yield` 可以抛出多个行为。
+
+- 【NOTE】以下过滤器建议配合 `yield` 使用。
 - SET_PARAMS: 设置函数的参数 (仅前置过滤器)
 - SET_RETURN: 设置返回值 (仅后置过滤器)
+- 【NOTE】以下过滤器需要配合 `yield` + `return` 使用。
+- CONTINUE: 继续下一个过滤器
 - EXECUTE_NOW: 直接运行函数 (仅前置过滤器)
 - RETURN_NOW: 直接作为函数返回值返回
-- BACK: 回到上一个过滤器
-- SKIP: 跳过下一个过滤器
 - GOTO: 跳到任意一个过滤器 需通过 `get_registered_filters` 查询对应过滤器的下标
 
 
@@ -871,19 +875,6 @@ class BiliAPIClient(ABC):
 ## class BiliFilterReturn()
 
 用于结束过滤器返回结果的工具类
-
-
-
-
-### def back()
-
-> `@staticmethod` 
-
-回到上一个过滤器
-
-
-
-**Returns:** `tuple[BiliFilterFlags, None]`:  过滤器函数返回值
 
 
 
@@ -953,11 +944,8 @@ class BiliAPIClient(ABC):
 直接返回结果，作为待运行函数返回值
 
 
-| name | type | description |
-| - | - | - |
-| `ret` | `Any` | 返回结果 |
 
-**Returns:** `tuple[BiliFilterFlags, Any]`:  过滤器函数返回值
+**Returns:** `tuple[BiliFilterFlags, None]`:  过滤器函数返回值
 
 
 
@@ -990,19 +978,6 @@ class BiliAPIClient(ABC):
 | `ret` | `Any` | 函数返回值 |
 
 **Returns:** `tuple[BiliFilterFlags, Any]`:  过滤器函数返回值
-
-
-
-
-### def skip()
-
-> `@staticmethod` 
-
-跳过下一个过滤器
-
-
-
-**Returns:** `tuple[BiliFilterFlags, None]`:  过滤器函数返回值
 
 
 
