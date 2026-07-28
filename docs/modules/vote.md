@@ -14,6 +14,7 @@ from bilibili_api import vote
 
 - [class Vote()](#class-Vote)
   - [def \_\_init\_\_()](#def-\_\_init\_\_)
+  - [async def delete\_vote()](#async-def-delete\_vote)
   - [async def get\_choice\_cnt()](#async-def-get\_choice\_cnt)
   - [async def get\_desc()](#async-def-get\_desc)
   - [async def get\_duration()](#async-def-get\_duration)
@@ -50,6 +51,17 @@ from bilibili_api import vote
 | - | - | - |
 | `vote_id` | `int` | vote_id, 获取：https |
 | `credential` | `Credential \| None, optional` | 凭据类，非必要. Defaults to None. |
+
+
+### async def delete_vote()
+
+删除投票
+
+
+
+**Returns:** `dict`:  调用 API 返回的结果
+
+
 
 
 ### async def get_choice_cnt()

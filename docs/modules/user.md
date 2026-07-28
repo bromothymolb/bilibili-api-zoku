@@ -71,6 +71,7 @@ from bilibili_api import user
 - [async def delete\_subscribe\_group()](#async-def-delete\_subscribe\_group)
 - [async def delete\_viewed\_videos\_from\_toview()](#async-def-delete\_viewed\_videos\_from\_toview)
 - [async def edit\_self\_info()](#async-def-edit\_self\_info)
+- [async def fetch\_dedeuserid()](#async-def-fetch\_dedeuserid)
 - [async def get\_self\_black\_list()](#async-def-get\_self\_black\_list)
 - [async def get\_self\_coins()](#async-def-get\_self\_coins)
 - [async def get\_self\_experience\_log()](#async-def-get\_self\_experience\_log)
@@ -957,6 +958,22 @@ medialist排序顺序。
 | `credential` | `Credential` | Credential |
 
 **Returns:** `dict`:  调用 API 返回的结果
+
+
+
+
+---
+
+## async def fetch_dedeuserid()
+
+自动获取凭据类对应的 DedeUserID，即 uid。
+
+
+| name | type | description |
+| - | - | - |
+| `credential` | `Credential` | 凭据类 |
+
+**Returns:** `int`:  DedeUserID / uid
 
 
 
