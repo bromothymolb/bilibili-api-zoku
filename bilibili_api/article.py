@@ -155,6 +155,12 @@ class Article:
         self.__has_parsed: bool = False
         self.__get_all_data: dict | None = None
 
+    def __str__(self) -> str:
+        return f"Article(cvid={self.__cvid})"
+
+    def __repr__(self) -> str:
+        return f"Article(cvid={self.__cvid})"
+
     async def turn_to_dynamic(self) -> "dynamic.Dynamic":
         """
         将专栏转为对应动态（评论、点赞等数据专栏/动态/图文共享）

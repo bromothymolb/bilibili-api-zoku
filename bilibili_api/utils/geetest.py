@@ -145,6 +145,12 @@ class Geetest:
         self.done = False
         self.test_type = None
 
+    def __str__(self) -> str:
+        return f"Geetest(done={self.done}, gt='{self.gt}', validate='{self.validate}' seccode='{self.seccode}' challenge='{self.challenge}' key='{self.key}')"
+
+    def __repr__(self) -> str:
+        return f"Geetest(done={self.done}, gt='{self.gt}', validate='{self.validate}' seccode='{self.seccode}' challenge='{self.challenge}' key='{self.key}')"
+
     async def generate_test(self, type_: GeetestType = GeetestType.LOGIN) -> None:
         """
         创建验证码

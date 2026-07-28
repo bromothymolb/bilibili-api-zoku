@@ -31,6 +31,12 @@ class Game:
         self.__game_id = game_id
         self.credential: Credential = credential or Credential()
 
+    def __str__(self) -> str:
+        return f"Game(game_id={self.__game_id})"
+
+    def __repr__(self) -> str:
+        return f"Game(game_id={self.__game_id})"
+
     def get_game_id(self) -> int:
         """
         获取游戏 id

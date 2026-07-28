@@ -58,6 +58,12 @@ class CheeseList:
         self.__ep_id = ep_id
         self.credential: Credential = credential or Credential()
 
+    def __str__(self) -> str:
+        return f"CheeseList(season_id={self.__season_id if self.__season_id != -1 else '[UNKNOWN]'})"
+
+    def __repr__(self) -> str:
+        return f"CheeseList(season_id={self.__season_id if self.__season_id != -1 else '[UNKNOWN]'})"
+
     async def __fetch_season_id(self) -> None:
         # self.season_id = str(sync(self.get_meta())["season_id"])
         api = API["info"]["meta"]
@@ -147,6 +153,7 @@ class CheeseList:
 class CheeseVideo:
     """
     教程视频类
+
     因为不和其他视频相通，所以这里是一个新的类，无继承
 
     Attributes:
@@ -174,6 +181,12 @@ class CheeseVideo:
             self.__aid = meta["aid"]
             self.__cid = meta["cid"]
         self.credential: Credential = credential or Credential()
+
+    def __str__(self) -> str:
+        return f"CheeseVideo(epid={self.__epid})"
+
+    def __repr__(self) -> str:
+        return f"CheeseVideo(epid={self.__epid})"
 
     async def __fetch_meta(self) -> None:
         api = API["info"]["meta"]

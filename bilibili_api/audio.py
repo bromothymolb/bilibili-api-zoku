@@ -29,6 +29,12 @@ class Audio:
         )
         self.__auid = auid
 
+    def __str__(self) -> str:
+        return f"Audio(auid={self.__auid})"
+
+    def __repr__(self) -> str:
+        return f"Audio(auid={self.__auid})"
+
     def get_auid(self) -> int:
         """
         获取 auid
@@ -116,6 +122,12 @@ class AudioList:
         self.credential: Credential = (
             credential if credential is not None else Credential()
         )
+
+    def __str__(self) -> str:
+        return f"AudioList(amid={self.__amid})"
+
+    def __repr__(self) -> str:
+        return f"AudioList(amid={self.__amid})"
 
     def get_amid(self) -> int:
         """

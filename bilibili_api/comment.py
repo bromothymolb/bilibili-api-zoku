@@ -139,6 +139,12 @@ class Comment:
         self.__type = type_
         self.credential: Credential = credential or Credential()
 
+    def __str__(self) -> str:
+        return f"Comment(oid={self.__oid}, type={self.__type})"
+
+    def __repr__(self) -> str:
+        return f"Comment(oid={self.__oid}, type={self.__type})"
+
     def __get_data(self, status: bool) -> dict:
         """
         获取通用请求载荷。

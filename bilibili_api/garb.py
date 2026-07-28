@@ -90,6 +90,12 @@ class DLC:
         if dlc_lottery_id.get(self.__act_id):
             self.__lottery_id = dlc_lottery_id[self.__act_id]
 
+    def __str__(self) -> str:
+        return f"DLC(act_id={self.__act_id})"
+
+    def __repr__(self) -> str:
+        return f"DLC(act_id={self.__act_id})"
+
     def get_act_id(self) -> int:
         """
         获取 act_id。
@@ -174,6 +180,12 @@ class Garb:
         """
         self.__item_id = item_id
         self.credential = credential or Credential()
+
+    def __str__(self) -> str:
+        return f"Garb(item_id={self.__item_id})"
+
+    def __repr__(self) -> str:
+        return f"Garb(item_id={self.__item_id})"
 
     def get_item_id(self) -> int:
         """

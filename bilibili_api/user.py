@@ -254,6 +254,12 @@ class User:
         self.credential: Credential = credential
         self.__self_info = None
 
+    def __str__(self) -> str:
+        return f"User(user_id={self.__uid})"
+
+    def __repr__(self) -> str:
+        return f"User(user_id={self.__uid})"
+
     async def get_user_info(self) -> dict:
         """
         获取用户信息（昵称，性别，生日，签名，头像 URL，空间横幅 URL 等）

@@ -33,6 +33,11 @@ def encrypt(_hash, key, password) -> str:
     )
 
 
+async def gain_buvid() -> dict:
+    buvid3, buvid4, buvid_fp = await ensure_buvid()
+    return {"buvid3": buvid3, "buvid4": buvid4, "buvid_fp": buvid_fp}
+
+
 async def login_with_password(
     username: str, password: str, geetest: Geetest
 ) -> Union[Credential, "LoginCheck"]:
@@ -77,7 +82,7 @@ async def login_with_password(
         url=login_api["url"],
         data=data,
         headers=headers,
-        cookies={"buvid3": (await ensure_buvid())[0]},
+        cookies=await gain_buvid(),
     )
     login_data = resp.json()
     if login_data["code"] == 0:
@@ -278,7 +283,7 @@ async def send_sms(phonenumber: PhoneNumber, geetest: Geetest) -> str:
         url=api["url"],
         data=data,
         headers=headers,
-        cookies={"buvid3": (await ensure_buvid())[0]},
+        cookies=await gain_buvid(),
     )
     return_data = res.json()
     if return_data["code"] == 0:
@@ -321,7 +326,7 @@ async def login_with_sms(
         url=api["url"],
         data=data,
         headers=headers,
-        cookies={"buvid3": (await ensure_buvid())[0]},
+        cookies=await gain_buvid(),
     )
     return_data = res.json()
     if return_data["code"] == 0 and return_data["data"]["status"] != 5:

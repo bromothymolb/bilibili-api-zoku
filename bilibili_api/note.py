@@ -104,6 +104,16 @@ class Note:
         # 用于存储转换为 markdown 和 json 时使用的信息
         self.__meta: dict = {}
 
+    def __str__(self) -> str:
+        if self.__cvid:
+            return f"Note(type=PUBLIC, cvid={self.__cvid})"
+        return f"Note(type=PRIVATE, aid={self.__oid}, note_id={self.__note_id})"
+
+    def __repr__(self) -> str:
+        if self.__cvid:
+            return f"Note(type=PUBLIC, cvid={self.__cvid})"
+        return f"Note(type=PRIVATE, aid={self.__oid}, note_id={self.__note_id})"
+
     def get_cvid(self) -> int:
         """
         获取公开笔记 cvid

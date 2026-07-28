@@ -265,6 +265,12 @@ class Video:
         # 用于存储视频信息，避免接口依赖视频信息时重复调用
         self.__info: dict | None = None
 
+    def __str__(self) -> str:
+        return f"Video(bvid='{self.get_bvid()}', aid={self.get_aid()})"
+
+    def __repr__(self) -> str:
+        return f"Video(bvid='{self.get_bvid()}', aid={self.get_aid()})"
+
     def set_bvid(self, bvid: str) -> None:
         """
         设置 bvid。

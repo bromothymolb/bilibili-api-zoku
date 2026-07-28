@@ -95,6 +95,7 @@ ignored_funcs = [
     "parse_online_rank_v3",
     "parse_interact_word_v2",
     "parse_user_info",
+    "gain_buvid",
 ]
 
 ignored_vars = [

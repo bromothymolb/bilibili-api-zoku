@@ -171,6 +171,12 @@ class Music:
         """
         self.__music_id = music_id
 
+    def __str__(self) -> str:
+        return f"Music(music_id='{self.__music_id}')"
+
+    def __repr__(self) -> str:
+        return f"Music(music_id='{self.__music_id}')"
+
     def get_music_id(self) -> str:
         """
         获取音乐 id

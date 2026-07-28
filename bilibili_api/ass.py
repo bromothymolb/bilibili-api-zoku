@@ -47,6 +47,9 @@ class AssSubtitleObject:
         self.__lan_set = lan_set
         self.__data_string = None
 
+    def __repr__(self) -> str:
+        return f"AssSubtitleObject(obj={self.__obj})"
+
     def get_lan_list(self) -> tuple[list[str], list[str | None]]:
         """
         获取字幕语言列表

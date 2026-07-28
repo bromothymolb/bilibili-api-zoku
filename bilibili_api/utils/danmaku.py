@@ -118,8 +118,10 @@ class Danmaku:
         self.uid = uid
 
     def __str__(self):
-        ret = f"{self.send_time}, {self.dm_time}, {self.text}"
-        return ret
+        return f"{self.send_time}, {self.dm_time}, {self.text}"
+
+    def __repr__(self):
+        return f"Danmaku(text='{self.text}', dm_time={self.dm_time}, send_time={self.send_time})"
 
     def __len__(self):
         return len(self.text)

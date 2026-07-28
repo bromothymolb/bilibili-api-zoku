@@ -108,6 +108,12 @@ class InteractiveVariable:
         self.__is_show = show
         self.__random = random
 
+    def __str__(self) -> str:
+        return f"InteractiveVariable(id='{self.__var_id}', value={self.__var_value}, random={self.__random})"
+
+    def __repr__(self) -> str:
+        return f"InteractiveVariable(id='{self.__var_id}', value={self.__var_value}, random={self.__random})"
+
     def get_id(self) -> str:
         """
         获取变量 id
@@ -160,9 +166,6 @@ class InteractiveVariable:
         """
         return self.__name
 
-    def __str__(self):
-        return f"{self.__name} {self.__var_value}"
-
 
 class InteractiveButton:
     """
@@ -188,6 +191,12 @@ class InteractiveButton:
         if isinstance(align, InteractiveButtonAlign):
             align = align.value
         self.__align = align
+
+    def __str__(self) -> str:
+        return f"InteractiveButton(text='{self.__text}', pos={self.__pos})"
+
+    def __repr__(self) -> str:
+        return f"InteractiveButton(text='{self.__text}', pos={self.__pos})"
 
     def get_text(self) -> str:
         """
@@ -216,9 +225,6 @@ class InteractiveButton:
         """
         return self.__pos
 
-    def __str__(self):
-        return f"{self.__text} {self.__pos}"
-
 
 class InteractiveJumpingCondition:
     """
@@ -235,6 +241,12 @@ class InteractiveJumpingCondition:
         """
         self.__vars = var or []
         self.__command = condition
+
+    def __str__(self) -> str:
+        return f"InteractiveJumpingCondition(command='{self.__command}')"
+
+    def __repr__(self) -> str:
+        return f"InteractiveJumpingCondition(command='{self.__command}')"
 
     def get_vars(self) -> list[InteractiveVariable]:
         """
@@ -277,9 +289,6 @@ class InteractiveJumpingCondition:
         command = command.replace("false", "False")
         return eval(command)
 
-    def __str__(self):
-        return f"{self.__command}"
-
 
 class InteractiveJumpingCommand:
     """
@@ -296,6 +305,12 @@ class InteractiveJumpingCommand:
         """
         self.__vars = var or []
         self.__command = command
+
+    def __str__(self) -> str:
+        return f"InteractiveJumpingCommand(command='{self.__command}')"
+
+    def __repr__(self) -> str:
+        return f"InteractiveJumpingCommand(command='{self.__command}')"
 
     def get_vars(self) -> list[InteractiveVariable]:
         """
@@ -381,6 +396,12 @@ class InteractiveNode:
         self.__command = native_command or InteractiveJumpingCommand()
         self.__vars = self.__command.run_command()
         self.__info = None
+
+    def __str__(self) -> str:
+        return f"InteractiveNode(node_id={self.__id})"
+
+    def __repr__(self) -> str:
+        return f"InteractiveNode(node_id={self.__id})"
 
     async def __get_cached_edge_info(self) -> dict:
         if not self.__info:
@@ -529,9 +550,6 @@ class InteractiveNode:
         """
         return await self.__get_cached_edge_info()
 
-    def __str__(self):
-        return f"{self.get_node_id()}"
-
 
 class InteractiveGraph:
     """
@@ -548,6 +566,12 @@ class InteractiveGraph:
         self.__parent = video
         self.__skin = skin
         self.__node = InteractiveNode(self.__parent, 0, root_cid, [])
+
+    def __str__(self) -> str:
+        return f"InteractiveGraph(video={self.__parent}, root={self.__node})"
+
+    def __repr__(self) -> str:
+        return f"InteractiveGraph(video={self.__parent}, root={self.__node})"
 
     def get_video(self) -> "InteractiveVideo":
         """
@@ -635,6 +659,12 @@ class InteractiveVideo(Video):
         self.__version = None
         self.__edge_infos = {}
         self.__root_node = None
+
+    def __str__(self) -> str:
+        return f"InteractiveVideo(bvid='{self.get_bvid()}', aid={self.get_aid()})"
+
+    def __repr__(self) -> str:
+        return f"InteractiveVideo(bvid='{self.get_bvid()}', aid={self.get_aid()})"
 
     async def up_get_ivideo_pages(self) -> dict:
         """

@@ -78,6 +78,12 @@ class Topic:
         self.__topic_id = topic_id
         self.credential: Credential = credential or Credential()
 
+    def __str__(self) -> str:
+        return f"Topic(topic_id={self.__topic_id})"
+
+    def __repr__(self) -> str:
+        return f"Topic(topic_id={self.__topic_id})"
+
     def get_topic_id(self) -> int:
         """
         获取话题 id

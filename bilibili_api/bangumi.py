@@ -1027,6 +1027,12 @@ class Bangumi:
         ):
             self.__media_id = bangumi_ss_to_md[self.__ssid]
 
+    def __str__(self) -> str:
+        return f"Bangumi(season_id={self.__ssid if self.__ssid != -1 else '[UNKNOWN]'}, media_id={self.__media_id if self.__media_id != -1 else '[UNKNOWN]'})"
+
+    def __repr__(self) -> str:
+        return f"Bangumi(season_id={self.__ssid if self.__ssid != -1 else '[UNKNOWN]'}, media_id={self.__media_id if self.__media_id != -1 else '[UNKNOWN]'})"
+
     async def __fetch_raw(self) -> None:
         global bangumi_md_to_ss, bangumi_ss_to_md
         # 处理极端情况
@@ -1371,6 +1377,12 @@ class Episode(Video):
         super().__init__(bvid="BV1Am411y7iK", credential=self.credential)
         self.set_aid = self.__set_aid_e  # type: ignore
         self.set_bvid = self.__set_bvid_e  # type: ignore
+
+    def __str__(self) -> str:
+        return f"Episode(ep_id={self.__epid})"
+
+    def __repr__(self) -> str:
+        return f"Episode(ep_id={self.__epid})"
 
     async def turn_to_video(self) -> Video:
         """

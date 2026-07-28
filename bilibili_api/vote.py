@@ -103,6 +103,12 @@ class Vote:
         self.credential: Credential = credential or Credential()
         self.title: str | None = None
 
+    def __str__(self) -> str:
+        return f"Vote(vote_id={self.__vote_id})"
+
+    def __repr__(self) -> str:
+        return f"Vote(vote_id={self.__vote_id})"
+
     def get_vote_id(self) -> int:
         """
         获取投票 id

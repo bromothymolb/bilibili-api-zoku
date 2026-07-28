@@ -36,6 +36,12 @@ class Opus:
         self.__info = None
         self.credential: Credential = credential or Credential()
 
+    def __str__(self) -> str:
+        return f"Opus(opus_id={self.__id})"
+
+    def __repr__(self) -> str:
+        return f"Opus(opus_id={self.__id})"
+
     def get_opus_id(self) -> int:
         """
         获取图文 id

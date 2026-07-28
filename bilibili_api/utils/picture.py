@@ -47,11 +47,11 @@ class Picture:
     content: bytes = b""
 
     def __str__(self) -> str:
-        return f"Picture(height='{self.height}', width='{self.width}', imageType='{self.imageType}', size={self.size}, url='{self.url}')"
+        return f"Picture(height={self.height}, width={self.width}, imageType='{self.imageType}', size={self.size}, url='{self.url}')"
 
     def __repr__(self) -> str:
         # no content...
-        return f"Picture(height='{self.height}', width='{self.width}', imageType='{self.imageType}', size={self.size}, url='{self.url}')"
+        return f"Picture(height={self.height}, width={self.width}, imageType='{self.imageType}', size={self.size}, url='{self.url}')"
 
     def __set_picture_meta_from_bytes(self, imgtype: str) -> None:
         tmp_dir = tempfile.gettempdir()

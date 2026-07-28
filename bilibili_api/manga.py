@@ -162,6 +162,12 @@ class Manga:
         """
         return self.__manga_id
 
+    def __str__(self) -> str:
+        return f"Manga(manga_id={self.__manga_id})"
+
+    def __repr__(self) -> str:
+        return f"Manga(manga_id={self.__manga_id})"
+
     # async def get_info(self) -> dict:
     #     """
     #     # 此函数已失效 2025-01-04

@@ -747,6 +747,12 @@ class Dynamic:
             credential if credential is not None else Credential()
         )
 
+    def __str__(self) -> str:
+        return f"Dynamic(dynamic_id={self.__dynamic_id})"
+
+    def __repr__(self) -> str:
+        return f"Dynamic(dynamic_id={self.__dynamic_id})"
+
     def get_dynamic_id(self) -> int:
         """
         获取 动态 ID。

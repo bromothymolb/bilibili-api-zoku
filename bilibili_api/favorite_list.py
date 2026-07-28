@@ -79,6 +79,16 @@ class FavoriteList:
         self.__media_id = media_id
         self.credential: Credential = credential or Credential()
 
+    def __str__(self) -> str:
+        return (
+            f"FavoriteList(type={self.__type}, media_id={self.__media_id or '[DNE]'})"
+        )
+
+    def __repr__(self) -> str:
+        return (
+            f"FavoriteList(type={self.__type}, media_id={self.__media_id or '[DNE]'})"
+        )
+
     def is_video_favorite_list(self) -> bool:
         """
         收藏夹是否为视频收藏夹

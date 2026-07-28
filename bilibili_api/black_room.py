@@ -199,6 +199,12 @@ class BlackRoom:
         self.__id = black_room_id
         self.credential: Credential = credential or Credential()
 
+    def __str__(self) -> str:
+        return f"BlackRoom(black_room_id={self.__id})"
+
+    def __repr__(self) -> str:
+        return f"BlackRoom(black_room_id={self.__id})"
+
     async def get_details(self) -> dict:
         """
         获取小黑屋详细信息
@@ -253,6 +259,12 @@ class JuryCase:
         """
         self.case_id = case_id
         self.credential: Credential = credential
+
+    def __str__(self) -> str:
+        return f"JuryCase(case_id={self.case_id})"
+
+    def __repr__(self) -> str:
+        return f"JuryCase(case_id={self.case_id})"
 
     async def get_details(self) -> dict:
         """

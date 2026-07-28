@@ -130,6 +130,12 @@ class LiveRoom:
         self.__ruid = None
         self.__real_id = None
 
+    def __str__(self) -> str:
+        return f"LiveRoom(room_display_id={self.room_display_id}, real_id={self.__real_id or '[UNKNOWN]'})"
+
+    def __repr__(self) -> str:
+        return f"LiveRoom(room_display_id={self.room_display_id}, real_id={self.__real_id or '[UNKNOWN]'})"
+
     async def start(self, area_id: int) -> dict:
         """
         开始直播
@@ -1385,6 +1391,12 @@ class LiveDanmaku(AsyncEvent):
                 )
             )
             self.logger.addHandler(handler)
+
+    def __str__(self) -> str:
+        return f"LiveDanmaku({self.room})"
+
+    def __repr__(self) -> str:
+        return f"LiveDanmaku({self.room})"
 
     def get_live_room(self) -> LiveRoom:
         """

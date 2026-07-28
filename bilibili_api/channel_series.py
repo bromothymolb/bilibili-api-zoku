@@ -81,6 +81,16 @@ class ChannelSeries:
         if f"{type_.value}-{id_}" in channel_meta_cache.keys():
             self.meta = channel_meta_cache[f"{type_.value}-{id_}"]
 
+    def __str__(self) -> str:
+        return (
+            f"ChannelSeries(type={['CHANNEL', 'SERIES'][self.is_new]}, id={self.id_})"
+        )
+
+    def __repr__(self) -> str:
+        return (
+            f"ChannelSeries(type={['CHANNEL', 'SERIES'][self.is_new]}, id={self.id_})"
+        )
+
     async def __fetch_meta(self) -> None:
         from .user import User
 

@@ -34,6 +34,12 @@ class Tag:
         credential = credential or Credential()
         self.credential: Credential = credential
 
+    def __str__(self) -> str:
+        return f"VideoTag(tag_id={self.__tag_id or '[UNKNOWN]'}, tag_name='{self.__tag_name or '[UNKNOWN]'}')"
+
+    def __repr__(self) -> str:
+        return f"VideoTag(tag_id={self.__tag_id or '[UNKNOWN]'}, tag_name='{self.__tag_name or '[UNKNOWN]'}')"
+
     async def get_tag_id(self) -> int:
         """
         获取标签 id

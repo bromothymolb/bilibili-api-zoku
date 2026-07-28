@@ -129,6 +129,12 @@ class WatchRoom:
             self.set_season_id(watch_room_bangumi_cache[room_id][0])
             self.set_episode_id(watch_room_bangumi_cache[room_id][1])
 
+    def __str__(self) -> str:
+        return f"WatchRoom(room_id={self.__room_id})"
+
+    def __repr__(self) -> str:
+        return f"WatchRoom(room_id={self.__room_id})"
+
     async def __fetch_meta(self) -> None:
         params = {"room_id": self.get_room_id(), "platform": "web"}
         info: dict = await (
