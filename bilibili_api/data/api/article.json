@@ -4,8 +4,12 @@
       "url": "https://api.bilibili.com/x/article/viewinfo",
       "method": "GET",
       "verify": false,
+      "wbi": true,
       "params": {
-        "id": "int: cv 号"
+        "id": "int: cv 号",
+        "from": "web",
+        "gaia_source": "main_web",
+        "web_location": "333.976"
       },
       "comment": "专栏信息数据"
     },
@@ -13,8 +17,12 @@
       "url": "https://api.bilibili.com/x/article/view",
       "method": "GET",
       "verify": false,
+      "wbi": true,
       "params": {
-        "id": "int: cv 号"
+        "id": "int: cv 号",
+        "from": "web",
+        "gaia_source": "main_web",
+        "web_location": "333.976"
       },
       "comment": "专栏信息数据"
     },

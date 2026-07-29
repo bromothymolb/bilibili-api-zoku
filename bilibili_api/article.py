@@ -566,7 +566,12 @@ class Article:
         """
 
         api = API["info"]["view"]
-        params = {"id": self.__cvid}
+        params = {
+            "id": self.__cvid,
+            "from": "web",
+            "gaia_source": "main_web",
+            "web_location": "333.976",
+        }
         return (
             await Api(**api, credential=self.credential).update_params(**params).result
         )
@@ -580,7 +585,12 @@ class Article:
         """
 
         api = API["info"]["detail"]
-        params = {"id": self.__cvid}
+        params = {
+            "id": self.__cvid,
+            "from": "web",
+            "gaia_source": "main_web",
+            "web_location": "333.976",
+        }
         return (
             await Api(**api, credential=self.credential).update_params(**params).result
         )

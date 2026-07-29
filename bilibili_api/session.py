@@ -86,7 +86,7 @@ async def get_sessions(credential: Credential, session_type: int = 4) -> dict:
 
     Args:
         credential (Credential): Credential
-        session_type (int, optional): 会话类型 1. Defaults to 4.
+        session_type (int, optional): 会话类型 1: 私聊, 2: 通知, 3: 应援团, 4: 全部. Defaults to 4.
 
     Returns:
         dict: 调用 API 返回结果
@@ -115,7 +115,7 @@ async def get_session_detail(
     Args:
         credential (Credential): Credential
         talker_id (int): 会话对象的UID
-        session_type (int, optional): 会话类型. Defaults to 1.
+        session_type (int, optional): 会话类型. 1: 私聊, 2: 通知, 3: 应援团, 4: 全部 Defaults to 1.
 
     Returns:
         dict: 调用 API 返回结果
