@@ -15,6 +15,7 @@
       "new": {
         "url": "https://api.vc.bilibili.com/session_svr/v1/session_svr/new_sessions",
         "method": "GET",
+        "wbi": true,
         "verify": true,
         "params": {
           "begin_ts": "int: 起始时间戳"
@@ -25,6 +26,7 @@
         "url": "https://api.vc.bilibili.com/session_svr/v1/session_svr/get_sessions",
         "method": "GET",
         "verify": true,
+        "wbi": true,
         "params": {
           "session_type": "int: 1: 私聊, 2: 通知, 3: 应援团, 4: 全部",
           "group_fold": "int: 默认为 1",
