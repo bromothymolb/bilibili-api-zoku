@@ -2039,7 +2039,7 @@ class _BiliAPIClient:
                             try:
                                 for sets in result:
                                     try:
-                                        sflag, sparam = sets[0], sets[1]
+                                        sflag, sparam = sets[0], sets[1]  # type: ignore
                                     except Exception:
                                         raise ArgsException(
                                             "过滤器抛出值不满足形式 tuple[BiliFilterFlags, Any]。"
@@ -2061,7 +2061,7 @@ class _BiliAPIClient:
                             gflag = BiliFilterFlags.CONTINUE
                             gparam: Any = None
                         else:
-                            gflag, gparam = goto[0], goto[1]
+                            gflag, gparam = goto[0], goto[1]  # type: ignore
                     except Exception:
                         raise ArgsException(
                             "过滤器返回值不满足形式 tuple[BiliFilterFlags, Any]。"
@@ -2146,7 +2146,7 @@ class _BiliAPIClient:
                             try:
                                 for sets in result:
                                     try:
-                                        sflag, sparam = sets[0], sets[1]
+                                        sflag, sparam = sets[0], sets[1]  # type: ignore
                                     except Exception:
                                         raise ArgsException(
                                             "过滤器抛出值不满足形式 tuple[BiliFilterFlags, Any]。"
@@ -2177,7 +2177,7 @@ class _BiliAPIClient:
                             try:
                                 async for sets in result:
                                     try:
-                                        sflag, sparam = sets[0], sets[1]
+                                        sflag, sparam = sets[0], sets[1]  # type: ignore
                                     except Exception:
                                         raise ArgsException(
                                             "过滤器抛出值不满足形式 tuple[BiliFilterFlags, Any]。"
@@ -2202,7 +2202,7 @@ class _BiliAPIClient:
                             gflag = BiliFilterFlags.CONTINUE
                             gparam: Any = None
                         else:
-                            gflag, gparam = goto[0], goto[1]
+                            gflag, gparam = goto[0], goto[1]  # type: ignore
                     except Exception:
                         raise ArgsException(
                             "过滤器返回值不满足形式 tuple[BiliFilterFlags, Any]。"
