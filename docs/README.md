@@ -2,8 +2,6 @@
 
 <div align="center">
 
-# `bilibili-api-zoku`
-
 [![API 数量](https://img.shields.io/badge/API%20数量-400+-blue)][api.json]
 [![LICENSE](https://img.shields.io/badge/LICENSE-GPLv3+-red)][LICENSE]
 [![Python](https://img.shields.io/badge/python-3.10+-blue)](https://www.python.org)
@@ -13,39 +11,16 @@
 [![Docs](https://img.shields.io/badge/Docs-Site-green)][docs]
 [![Docs](https://img.shields.io/badge/Docs-Github-green)][docs-github]
 
+## 欢迎来到 `bilibili-api-zoku v18.0.0.b0` 文档！ヾ(ﾟ∀ﾟゞ)
+
 </div>
 
-## 简介
+### 简介
 
 这是一个用 Python 写的调用 [Bilibili](https://www.bilibili.com) 各种 API 的库，
 范围涵盖视频、音频、直播、动态、专栏、用户、番剧等。
 
 `bilibili-api-zoku` 是原 `bilibili-api` 的接续，项目名称来源于日语『続』（<ruby>ぞ<rp>(</rp><rt>zo</rt><rp>)</rp>く<rp>(</rp><rt>ku</rt><rp>)</rp></ruby>），即汉字“续”。
-
-## 致谢
-
-bilibili-api 发展到今天，离不开以下项目的直接或间接支持：
-
-- `MoyuScript/bilibili-api`<sup>1</sup>: 模块最早的仓库。
-- `Nemo2011/bilibili-api`<sup>2</sup>: 模块第二个仓库。
-- `SocialSisterYi/bilibili-API-collect`<sup>2</sup>:: bilibili API 社区文档。
-- `kuresaru/geetest-validator`: 模块极验验证码页面支持。
-- `m13253/danmaku2ass`: 模块 ASS 字幕支持。
-
-1: 仓库已删除。
-2: 仓库已被 _Cease and Desist Letter_ 后删档。
-
-另外，模块 aid 与 bvid 转换逻辑参考了 <https://www.zhihu.com/question/381784377/answer/1099438784> 这篇回答。
-
-最后，感谢所有贡献者对 bilibili-api 作出的贡献啊：
-
-<a href="https://github.com/bromothymolb/bilibili-api-zoku/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=bromothymolb/bilibili-api-zoku&max=1000" alt="contributors" />
-</a>
-
----
-
-## 欢迎来到 bilibili-api 文档！ヾ(ﾟ∀ﾟゞ)
 
 如果你是首次接触模块，可以从 [快速上手](QUICKSTART.md) 开始。
 
@@ -108,6 +83,27 @@ bilibili-api 发展到今天，离不开以下项目的直接或间接支持：
 部分功能在文档中有进一步说明，可在侧边栏选择相应页面阅读。
 
 如果实在找不到想要的功能，可以前往 Discussion 区发 Q/A。需要注意，模块并非万能的，亦和和哔哩哔哩官方无任何关系，存在不支持或不可用（失效）的功能是正常现象。
+
+## 致谢
+
+bilibili-api 发展到今天，离不开以下项目的直接或间接支持：
+
+- `MoyuScript/bilibili-api`<sup>1</sup>: 模块最早的仓库。
+- `Nemo2011/bilibili-api`<sup>2</sup>: 模块第二个仓库。
+- `SocialSisterYi/bilibili-API-collect`<sup>2</sup>:: bilibili API 社区文档。
+- `kuresaru/geetest-validator`: 模块极验验证码页面支持。
+- `m13253/danmaku2ass`: 模块 ASS 字幕支持。
+
+1: 仓库已删除。
+2: 仓库已被 _Cease and Desist Letter_ 后删档。
+
+另外，模块 aid 与 bvid 转换逻辑参考了 <https://www.zhihu.com/question/381784377/answer/1099438784> 这篇回答。
+
+最后，感谢所有贡献者对 bilibili-api 作出的贡献啊：
+
+<a href="https://github.com/bromothymolb/bilibili-api-zoku/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=bromothymolb/bilibili-api-zoku&max=1000" alt="contributors" />
+</a>
 
 ## 使用前须知
 
