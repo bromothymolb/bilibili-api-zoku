@@ -1,10 +1,8 @@
 # 快速上手
 
-_Table of Contents_
-
 - [模块安装](#模块安装)
 - [使用 `Video`](#使用-video)
-- [使用 `rank`](#使用-rank)
+- [使用 `rank` `hot`](#使用-rank-hot)
 - [使用 `AsyncEvent`](#使用-asyncevent)
 - [使用 `login_v2`](#使用-login_v2)
 - [下载视频](#下载视频)
@@ -192,8 +190,6 @@ async def main() -> None:
 if __name__ == "__main__":
     asyncio.run(main())
 ```
-
----
 
 此处可以思考，为什么模块会使用类进行视频相关操作，而非直接提供一个个函数？
 
