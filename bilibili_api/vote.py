@@ -95,7 +95,7 @@ class Vote:
     投票类
 
     Attributes:
-        vote_id (int): vote_id, 获取：https://bromothymolb.github.io/bilibili-api-zoku/#/sub/vote_id
+        vote_id (int): vote_id, 获取：https://bromothymolb.github.io/bilibili-api-zoku/#/docs/sub/vote_id
 
         credential (Credential): 凭据类
     """
@@ -103,7 +103,7 @@ class Vote:
     def __init__(self, vote_id: int, credential: Credential | None = None) -> None:
         """
         Args:
-            vote_id (int): vote_id, 获取：https://bromothymolb.github.io/bilibili-api-zoku/#/sub/vote_id
+            vote_id (int): vote_id, 获取：https://bromothymolb.github.io/bilibili-api-zoku/#/docs/sub/vote_id
             credential (Credential | None, optional): 凭据类，非必要. Defaults to None.
         """
         self.__vote_id = vote_id

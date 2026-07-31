@@ -121,7 +121,7 @@ bilibili-api 发展到今天，离不开以下项目的直接或间接支持：
 [license]: https://github.com/bromothymolb/bilibili-api-zoku/tree/main/LICENSE
 [stargazers]: https://github.com/bromothymolb/bilibili-api-zoku/stargazers
 [issues-new]: https://github.com/bromothymolb/bilibili-api-zoku/issues/new/choose
-[get-credential]: https://bromothymolb.github.io/bilibili-api-zoku/#/common/credential.md
+[get-credential]: https://bromothymolb.github.io/bilibili-api-zoku/#/docs/common/credential.md
 [pypi]: https://pypi.org/project/bilibili-api-zoku
 [aiohttp]: https://github.com/aio-libs/aiohttp
 [httpx]: https://github.com/encode/httpx

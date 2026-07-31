@@ -17,7 +17,7 @@ T = TypeVar("T")
 
 def sync(coroutine: Coroutine[Any, Any, T] | Future[T]) -> T:
     """
-    同步执行异步函数，使用可参考 [同步执行异步代码](https://bromothymolb.github.io/bilibili-api-zoku/#/sync-executor)
+    同步执行异步函数，使用可参考 [同步执行异步代码](https://bromothymolb.github.io/bilibili-api-zoku/#/docs/common/sync-executor)
 
     Args:
         coroutine (Coroutine[Any, Any, ~T] | Future[~T]): 异步函数

@@ -152,7 +152,7 @@ bili_settings.set_enable_trio(True)
 
 总的来说，异步比同步更有优势，所以不会的话可以去学一下，会发现新天地（误
 
-如果你仍然想继续使用同步代码，请参考 [同步执行异步代码](https://bromothymolb.github.io/bilibili-api-zoku/#/sync-executor)
+如果你仍然想继续使用同步代码，请参考 [同步执行异步代码](https://bromothymolb.github.io/bilibili-api-zoku/#/docs/common/sync-executor)
 
 # 模块使用的请求库
 

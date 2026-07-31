@@ -136,7 +136,7 @@ if __name__ == "__main__":
 
 接下来的部分，我们将尝试账号操作，自然，账号操作前需要登录。
 
-这里先介绍一种普遍的登录方法，即拷贝 cookies。方法和说明请参考[获取 Credential 类所需信息](./common/credential.md)。
+这里先介绍一种普遍的登录方法，即拷贝 cookies。方法和说明请参考[获取 Credential 类所需信息](./docs/common/credential.md)。
 
 这边介绍两个关键 cookies：
 
@@ -154,7 +154,7 @@ from bilibili_api import Credential
 credential = Credential(sessdata="xxxxxx", bili_jct="xxxxxx")
 ```
 
-以上内容在[获取 Credential 类所需信息](./common/credential.md)亦有提及，此处不过多赘述。
+以上内容在[获取 Credential 类所需信息](./docs/common/credential.md)亦有提及，此处不过多赘述。
 
 接下来需要将凭据类传入 `Video` 类，方法很简单，初始化时传入即可。
 
