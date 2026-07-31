@@ -4644,7 +4644,7 @@ class Api:
                 return await self._request(raw=raw, byte=byte, bili_res=bili_res)
             except ResponseCodeException as e:
                 # -403 时尝试重新获取 wbi_mixin_key 可能过期了
-                if e.code == -403 and self.wbi:
+                if e.code in [-403, -352, -509] and self.wbi:
                     recalculate_wbi()
                     continue
                 # 不是 -403 错误直接报错

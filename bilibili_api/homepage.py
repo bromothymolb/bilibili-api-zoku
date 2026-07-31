@@ -23,6 +23,18 @@ async def get_top_photo() -> dict:
     return await Api(**api).update_params(**params).result
 
 
+async def get_top_photo_v2() -> dict:
+    """
+    获取主页最上方的图像。
+
+    Returns:
+        dict: 调用 API 返回的结果。
+    """
+    api = API["info"]["top_photo_v2"]
+    params = {"category": 0, "web_location": "333.934"}
+    return await Api(**api).update_params(**params).result
+
+
 async def get_links(credential: Credential | None = None) -> dict:
     """
     获取主页左面的链接。
