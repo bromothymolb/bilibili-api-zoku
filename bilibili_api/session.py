@@ -584,7 +584,7 @@ class Session(AsyncEvent):
         Returns:
             AbstractAsyncContextManager: 上下文管理器
         """
-        return self.async_event_run(self.__main(exclude_self=exclude_self))
+        return self.async_event_run(self.start(exclude_self=exclude_self))
 
     async def reply(self, event: Event, content: str | Picture) -> dict:  # type: ignore
         """

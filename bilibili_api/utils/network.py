@@ -395,6 +395,7 @@ class AsyncEvent:
         """
         self.task_group = anyio.create_task_group()
         self.__exit_event = anyio.Event()
+        ret = None
         try:
             async with self.task_group as task_group:
 
@@ -406,14 +407,14 @@ class AsyncEvent:
                 self.__task = task_group.create_task(coro)
                 ret = await self.__task
                 self.__exit_event.set()
-                return ret
         except asyncio.CancelledError:
             self.__exit_event.set()
             pass
+        return ret
 
     @asynccontextmanager
     async def async_event_run(
-        self, coro: Coroutine[Any, Any, T]
+        self, start_coro: Coroutine[Any, Any, T]
     ) -> AsyncGenerator[anyio.TaskHandle[T | None]]:
         """
         非阻塞启动异步事件类
@@ -421,13 +422,13 @@ class AsyncEvent:
         此函数将返回异步上下文管理器。
 
         Args:
-            coro (Coroutine[Any, Any, ~T]): 主程序
+            start_coro (Coroutine[Any, Any, ~T]): 主程序的阻塞启动协程
 
         Returns:
             AsyncGenerator[anyio.TaskHandle[~T | None]]: 运行主程序的 TaskHandle，若中途取消则返回 None
         """
         async with anyio.create_task_group() as btg:
-            background_task = btg.create_task(self.async_event_start(coro))
+            background_task = btg.create_task(self.async_event_start(start_coro))
             yield background_task
 
     def async_event_cancel(self) -> None:
@@ -464,12 +465,7 @@ async def run(self, ...) -> ...:
     '''
     非阻塞式异步爬虫
     '''
-    # 1. 运行 async_event_start (AsyncEvent)
-    return self.async_event_run(self.__main(...))
-    # 2. 运行 start (AsyncEvent 子类)
-    async with anyio.create_task_group() as btg:
-        background_task = btg.create_task(self.start(coro))
-        yield background_task
+    return self.async_event_run(self.start(...))
 
 async def close(self) -> ...:
     '''
@@ -736,15 +732,82 @@ async def handle(desc: str, data: dict) -> None:
 
 class BiliSettings:
     def __init__(self):
-        self.__wbi_retry_times = 3
-        self.__enable_auto_buvid = True
-        self.__enable_bili_ticket = False
-        self.__enable_buvid_global_persistence = False
-        self.__enable_bili_ticket_global_persistence = False
-        self.__enable_fpgen = False
-        self.__global_credential = None
-        self.__fpgen_args = {}
-        self.__trio = False
+        self.__settings = {
+            "wbi_retry_times": 3,
+            "enable_auto_buvid": True,
+            "enable_bili_ticket": False,
+            "enable_buvid_global_persistence": False,
+            "enable_bili_ticket_global_persistence": False,
+            "enable_fpgen": False,
+            "global_credential": None,
+            "fpgen_args": {},
+            "trio": False,
+        }
+        self.__defaults = {
+            "wbi_retry_times": 3,
+            "enable_auto_buvid": True,
+            "enable_bili_ticket": False,
+            "enable_buvid_global_persistence": False,
+            "enable_bili_ticket_global_persistence": False,
+            "enable_fpgen": False,
+            "global_credential": None,
+            "fpgen_args": {},
+            "trio": False,
+        }
+
+    def get(self, name: str) -> Any:
+        """
+        获取某项设置，字段未曾设置过时将返回 None.
+
+        Args:
+            name (str): 设置名称
+
+        Returns:
+            Any: 设置的值
+        """
+        if not self.has(name):
+            raise ArgsException(f"不存在设置: {name}") from None
+        return deepcopy(self.__settings[name])
+
+    def set(self, name: str, value: Any) -> None:
+        """
+        设置某项设置
+
+        Args:
+            name (str): 设置名称
+            value (Any): 设置的值
+        """
+        self.__settings[name] = deepcopy(value)
+
+    def has(self, name: str) -> bool:
+        """
+        判断是否存在某项设置
+
+        Args:
+            name (str): 设置名称
+
+        Returns:
+            bool: 是否存在某项设置
+        """
+        return name in self.__settings.keys()
+
+    def all(self) -> dict:
+        """
+        获取目前所有的设置项
+
+        Returns:
+            dict: 所有的设置项
+        """
+        return self.__settings.copy()
+
+    def defaults(self) -> dict:
+        """
+        获取此设置项的默认设置。仅实例的基本设置存在默认值。
+
+        Returns:
+            dict: 默认设置
+        """
+        return self.__defaults
 
     def get_wbi_retry_times(self) -> int:
         """
@@ -753,7 +816,7 @@ class BiliSettings:
         Returns:
             int: wbi 重试次数. Defaults to 3.
         """
-        return self.__wbi_retry_times
+        return self.get("wbi_retry_times")
 
     def set_wbi_retry_times(self, wbi_retry_times: int) -> None:
         """
@@ -762,7 +825,7 @@ class BiliSettings:
         Args:
             wbi_retry_times (int): wbi 重试次数.
         """
-        self.__wbi_retry_times = wbi_retry_times
+        self.set("wbi_retry_times", wbi_retry_times)
 
     def get_enable_auto_buvid(self) -> bool:
         """
@@ -771,7 +834,7 @@ class BiliSettings:
         Returns:
             bool: 是否自动生成 buvid. Defaults to True.
         """
-        return self.__enable_auto_buvid
+        return self.get("enable_auto_buvid")
 
     def set_enable_auto_buvid(self, enable_auto_buvid: bool) -> None:
         """
@@ -780,7 +843,7 @@ class BiliSettings:
         Args:
             enable_auto_buvid (bool): 是否自动生成 buvid.
         """
-        self.__enable_auto_buvid = enable_auto_buvid
+        self.set("enable_auto_buvid", enable_auto_buvid)
 
     def get_enable_bili_ticket(self) -> bool:
         """
@@ -789,7 +852,7 @@ class BiliSettings:
         Returns:
             bool: 是否使用 bili_ticket. Defaults to False.
         """
-        return self.__enable_bili_ticket
+        return self.get("enable_bili_ticket")
 
     def set_enable_bili_ticket(self, enable_bili_ticket: bool) -> None:
         """
@@ -798,7 +861,7 @@ class BiliSettings:
         Args:
             enable_bili_ticket (bool): 是否使用 bili_ticket.
         """
-        self.__enable_bili_ticket = enable_bili_ticket
+        self.set("enable_bili_ticket", enable_bili_ticket)
 
     def get_enable_buvid_global_persistence(self) -> bool:
         """
@@ -807,7 +870,7 @@ class BiliSettings:
         Returns:
             bool: 是否使用全局可持久化 buvid. Defaults to False.
         """
-        return self.__enable_buvid_global_persistence
+        return self.get("enable_buvid_global_persistence")
 
     def set_enable_buvid_global_persistence(
         self, enable_buvid_global_persistence: bool
@@ -818,7 +881,7 @@ class BiliSettings:
         Args:
             enable_buvid_global_persistence (bool): 是否使用全局可持久化 buvid.
         """
-        self.__enable_buvid_global_persistence = enable_buvid_global_persistence
+        self.set("enable_buvid_global_persistence", enable_buvid_global_persistence)
 
     def get_enable_bili_ticket_global_persistence(self) -> bool:
         """
@@ -827,7 +890,7 @@ class BiliSettings:
         Returns:
             bool: 是否使用全局可持久化 bili_ticket. Defaults to False.
         """
-        return self.__enable_bili_ticket_global_persistence
+        return self.get("enable_bili_ticket_global_persistence")
 
     def set_enable_bili_ticket_global_persistence(
         self, enable_bili_ticket_global_persistence: bool
@@ -838,8 +901,9 @@ class BiliSettings:
         Args:
             enable_bili_ticket_global_persistence (bool): 是否使用全局可持久化 buvid.
         """
-        self.__enable_bili_ticket_global_persistence = (
-            enable_bili_ticket_global_persistence
+        self.set(
+            "enable_bili_ticket_global_persistence",
+            enable_bili_ticket_global_persistence,
         )
 
     def get_enable_fpgen(self) -> bool:
@@ -849,7 +913,7 @@ class BiliSettings:
         Returns:
             bool: 是否使用 fpgen. Defaults to False.
         """
-        return self.__enable_fpgen
+        return self.get("enable_fpgen")
 
     def set_enable_fpgen(self, enable_fpgen: bool) -> None:
         """
@@ -858,7 +922,7 @@ class BiliSettings:
         Args:
             enable_fpgen (bool): 是否使用 fpgen
         """
-        self.__enable_fpgen = enable_fpgen
+        self.set("enable_fpgen", enable_fpgen)
 
     def get_fpgen_args(self) -> dict:
         """
@@ -867,7 +931,7 @@ class BiliSettings:
         Returns:
             dict: 调用 fpgen 的参数
         """
-        return self.__fpgen_args.copy()
+        return self.get("fpgen_args")
 
     def set_fpgen_args(self, fpgen_args: dict) -> None:
         """
@@ -876,7 +940,7 @@ class BiliSettings:
         Args:
             fpgen_args (dict): 调用 fpgen 的参数
         """
-        self.__fpgen_args = fpgen_args.copy()
+        self.set("fpgen_args", fpgen_args)
 
     def get_global_credential(self) -> "Credential | None":
         """
@@ -885,7 +949,7 @@ class BiliSettings:
         Returns:
             Credential | None: 全局凭据类
         """
-        return self.__global_credential
+        return self.get("global_credential")
 
     def set_global_credential(self, global_credential: "Credential | None") -> None:
         """
@@ -894,7 +958,7 @@ class BiliSettings:
         Args:
             global_credential (Credential | None): 全局凭据类
         """
-        self.__global_credential = global_credential
+        self.set("global_credential", global_credential)
 
     def get_enable_trio(self) -> bool:
         """
@@ -903,7 +967,7 @@ class BiliSettings:
         Returns:
             bool: 是否启用 trio 支持
         """
-        return self.__trio
+        return self.get("trio")
 
     def set_enable_trio(self, enable_trio: bool) -> None:
         """
@@ -912,7 +976,42 @@ class BiliSettings:
         Args:
             enable_trio (bool): 是否启用 trio 支持
         """
-        self.__trio = enable_trio
+        self.set("trio", enable_trio)
+
+    def gets(self, keys: list[str]) -> dict:
+        """
+        获取对应设置项的设置
+
+        Args:
+            keys (list[str]): 设置项
+
+        Returns:
+            dict: 对应设置项的设置
+        """
+        return {key: self.get(key) for key in keys}
+
+    def sets(self, settings: dict) -> None:
+        """
+        设置传入的项目
+
+        Args:
+            settings (dict): 设置项，键为设置名称，值为设置值。
+        """
+        self.__settings |= settings
+        self.__lazy |= settings
+
+    def register(self, name: str, default: Any) -> None:
+        """
+        注册设置项
+
+        Args:
+            name (str): 设置项名称
+            default (Any): 设置项默认值
+        """
+        if name in self.all().keys():
+            raise ArgsException(f"设置项 {name} 已注册。")
+        self.__settings[name] = deepcopy(default)
+        self.__defaults[name] = deepcopy(default)
 
 
 class RequestSettings:
@@ -935,9 +1034,10 @@ class RequestSettings:
         """ """
         # don't remove this empty docstring
         self.__settings: dict = {}
-        self.__lazy: dict = {}
-        self.__latest_state: dict = {}
-        self.__is_base = False
+        self.__lazy: dict = {}  # change diff
+        self.__latest_state: dict = {}  # change base
+        self.__is_base = False  # base_settings cannot unset
+        self.__defaults: dict = {}
 
     def _get_lazy(self) -> dict:
         return self.__lazy.copy()
@@ -951,8 +1051,10 @@ class RequestSettings:
         self.__latest_state = self.__settings.copy()
         return ret
 
-    def _set_base(self) -> None:
+    def _set_base(self, defaults: dict) -> None:
         self.__is_base = True
+        self.__defaults = defaults.copy()
+        self.sets(self.__defaults)
 
     def get(self, name: str) -> Any:
         """
@@ -964,7 +1066,9 @@ class RequestSettings:
         Returns:
             Any: 设置的值
         """
-        return self.__settings.get(name)
+        if not self.has(name):
+            raise ArgsException(f"不存在设置: {name}") from None
+        return deepcopy(self.__settings[name])
 
     def set(self, name: str, value: Any) -> None:
         """
@@ -974,8 +1078,54 @@ class RequestSettings:
             name (str): 设置名称
             value (Any): 设置的值
         """
-        self.__settings[name] = value
-        self.__lazy[name] = value
+        self.__settings[name] = deepcopy(value)
+        self.__lazy[name] = deepcopy(value)
+
+    def has(self, name: str) -> bool:
+        """
+        判断是否存在某项设置
+
+        Args:
+            name (str): 设置名称
+
+        Returns:
+            bool: 是否存在某项设置
+        """
+        return name in self.__settings.keys()
+
+    def unset(self, name: str) -> None:
+        """
+        取消设置项
+
+        Args:
+            name (str): 设置项
+        """
+        if self.__is_base:
+            raise ArgsException(
+                "不可以取消实例的基本设置，仅可以取消全局设置或实例的强制设置。"
+            )
+        if not self.has(name):
+            raise ArgsException(f"不存在设置: {name}") from None
+        del self.__settings[name]
+        del self.__lazy[name]
+
+    def all(self) -> dict:
+        """
+        获取目前所有的设置项
+
+        Returns:
+            dict: 所有的设置项
+        """
+        return self.__settings.copy()
+
+    def defaults(self) -> dict:
+        """
+        获取此设置项的默认设置。仅实例的基本设置存在默认值。
+
+        Returns:
+            dict: 默认设置
+        """
+        return self.__defaults
 
     def get_proxy(self) -> str:
         """
@@ -1049,34 +1199,9 @@ class RequestSettings:
         """
         self.set("trust_env", trust_env)
 
-    def get_all(self) -> dict:
-        """
-        获取目前所有的设置项
-
-        Returns:
-            dict: 所有的设置项
-        """
-        return self.__settings.copy()
-
-    def unset(self, keys: list[str]) -> None:
-        """
-        取消设置项
-
-        Args:
-            keys (list[str]): 设置项
-        """
-        if self.__is_base:
-            return
-        for key in keys:
-            if self.__settings.get(key) is not None:
-                del self.__settings[key]
-        for key in keys:
-            if self.__lazy.get(key) is not None:
-                del self.__lazy[key]
-
     def gets(self, keys: list[str]) -> dict:
         """
-        获取对应设置项的设置，未设置过则为 None
+        获取对应设置项的设置
 
         Args:
             keys (list[str]): 设置项
@@ -1084,7 +1209,7 @@ class RequestSettings:
         Returns:
             dict: 对应设置项的设置
         """
-        return {key: self.__settings.get(key) for key in keys}
+        return {key: self.get(key) for key in keys}
 
     def sets(self, settings: dict) -> None:
         """
@@ -1095,6 +1220,16 @@ class RequestSettings:
         """
         self.__settings |= settings
         self.__lazy |= settings
+
+    def unsets(self, keys: list[str]) -> None:
+        """
+        取消设置项
+
+        Args:
+            name (str): 设置项
+        """
+        for key in keys:
+            self.unset(key)
 
 
 bili_settings = BiliSettings()
@@ -1923,26 +2058,20 @@ class _BiliAPIClient:
         if client_session:
             self.client = sessions[self.__client__](session=client_session)
         else:
-            self.client = sessions[self.__client__](**client_settings.get_all())
-            client_settings._pop_lazy()
-        self.__base_settings = client_settings
-        self.__base_settings._set_base()
-        self.__force_settings = RequestSettings()
+            self.client = sessions[self.__client__](**client_settings.all())
+            client_settings._pop_lazy()  # 所有设置已在 __init__ 中应用
+        self.__settings = client_settings
         self.__event_loop = event_loop
 
-    def _get_base_settings(self) -> RequestSettings:
-        # merge global settings to local settings
-        self.__base_settings.sets(
-            request_settings.get_all() | self.__force_settings.get_all()
-        )
-        return self.__base_settings
-
-    def _get_force_settings(self) -> RequestSettings:
-        return self.__force_settings
+    def _sync_settings(self, settings: dict) -> None:
+        # this function is invocated by _BiliAPIClientGroup
+        self.__settings.sets(
+            settings
+        )  # sync _BiliAPIClient settings with _BiliAPIClientGroup
 
     def _get_bili_api_client(self) -> BiliAPIClient:
-        # apply settings
-        for key, val in self._get_base_settings()._pop_lazy().items():
+        # apply settings to BiliAPIClient
+        for key, val in self.__settings._pop_lazy().items():
             try:
                 getattr(self.client, "set_" + key)(val)
             except AttributeError:
@@ -1958,7 +2087,9 @@ class _BiliAPIClient:
             return obj
 
         if key.startswith("set_"):
-            return lambda arg: self.__force_settings.set(key.lstrip("set_"), arg)
+            raise ArgsException(
+                "不支持直接调用 set_xxx 函数。请使用 get_settings / get_instance_settings / get_force_settings 间接设置。"
+            )
 
         global client_func_cnt
         with client_lock:
@@ -1993,7 +2124,7 @@ class _BiliAPIClient:
                     "ins": ins,
                     "cnt": cnt,
                     "data": data,
-                    "settings": self.__base_settings.get_all(),
+                    "settings": self.__settings.all(),
                     "event_loop": self.__event_loop,
                     "loop": id2loop.get(self.__event_loop),
                 }
@@ -2100,7 +2231,7 @@ class _BiliAPIClient:
                     "ins": ins,
                     "cnt": cnt,
                     "data": data,
-                    "settings": self.__base_settings.get_all(),
+                    "settings": self.__settings.all(),
                     "event_loop": self.__event_loop,
                     "loop": id2loop.get(self.__event_loop),
                 }
@@ -2273,34 +2404,43 @@ class _BiliAPIClientGroup:
         self.__session_pool: dict[str, "_BiliAPIClient"] = {}
         self.__set_session_pool: dict[str, "_BiliAPIClient"] = {}
         self.__base_settings = RequestSettings()
+        self.__base_settings._set_base(DEFAULT_SETTINGS | optional_settings[client])
         self.__force_settings = RequestSettings()
         self.__client__ = client
         self.__instance__ = name
+
+    def _prepare_settings(self) -> RequestSettings:
+        # merge global settings to base settings
+        settings = RequestSettings()
+        settings._set_base(self.__base_settings.defaults())
+        settings.sets(self.__base_settings.all())
+        settings.sets(request_settings.all() | self.__force_settings.all())
+        return deepcopy(settings)
 
     def ensure_client(self, loop: str | None = None) -> _BiliAPIClient:
         loop = loop or get_event_loop()
         with loop_lock[loop]:
             client = self.__session_pool.get(loop)
             if client is None:
-                settings = RequestSettings()
-                settings.sets(DEFAULT_SETTINGS)
-                settings.sets(optional_settings[self.__client__])
-                settings.sets(self.__base_settings.get_all())
                 client = _BiliAPIClient(
-                    self.__client__, self.__instance__, settings, None, loop
+                    self.__client__,
+                    self.__instance__,
+                    self._prepare_settings(),  # update base settings
+                    None,
+                    loop,
                 )
-                client._get_force_settings().sets(self.__force_settings.get_all())
                 self.__session_pool[loop] = client
             return client
 
     def set_session(self, session: Any, loop: str | None = None) -> None:
         loop = loop or get_event_loop()
-        settings = RequestSettings()
-        settings.sets(self.__base_settings.get_all())
         client = _BiliAPIClient(
-            self.__client__, self.__instance__, settings, session, loop
+            self.__client__,
+            self.__instance__,
+            self._prepare_settings(),  # update base settings
+            session,
+            loop,
         )
-        client._get_force_settings().sets(self.__force_settings.get_all())
         self.__set_session_pool[loop] = client
 
     def unset_session(self, loop: str | None = None) -> None:
@@ -2315,26 +2455,15 @@ class _BiliAPIClientGroup:
             client = self.__set_session_pool[loop]
         else:
             client = self.ensure_client(loop)
-        client._get_base_settings().sets(self.__base_settings.get_all())
-        client._get_force_settings().sets(self.__force_settings.get_all())
+        # sync _BiliAPIClientGroup settings to _BiliAPIClient
+        client._sync_settings(self._prepare_settings().all())
         return client
 
-    def get_settings(self) -> dict:
-        ret = DEFAULT_SETTINGS | optional_settings[self.__client__]
-        ret |= self.__base_settings.get_all()
-        return ret
+    def get_base_settings(self) -> RequestSettings:
+        return self.__base_settings
 
-    def gets(self) -> dict:
-        return self.__base_settings.get_all()
-
-    def force_gets(self) -> dict:
-        return self.__force_settings.get_all()
-
-    def sets(self, settings: dict) -> None:
-        self.__base_settings.sets(settings)
-
-    def force_sets(self, settings: dict) -> None:
-        self.__force_settings.sets(settings)
+    def get_force_settings(self) -> RequestSettings:
+        return self.__force_settings
 
     async def clean(self) -> None:
         for _, client in self.__session_pool.items():
@@ -2554,7 +2683,7 @@ def get_instance_settings(
         group = client_groups[client][instance]
     except KeyError as e:
         raise Exception("未找到对应请求客户端实例") from e
-    return group.get_client()._get_base_settings()
+    return group.get_base_settings()
 
 
 def get_force_settings(
@@ -2576,7 +2705,7 @@ def get_force_settings(
         group = client_groups[client][instance]
     except KeyError as e:
         raise Exception("未找到对应请求客户端实例") from e
-    return group.get_client()._get_force_settings()
+    return group.get_force_settings()
 
 
 def get_settings() -> RequestSettings:
@@ -2880,10 +3009,6 @@ class Credential:
     7. `ensure` 与 `obtain` 若没有传入凭据类，将创建一个新的 `blank` 作为凭据类带入。因此获取 `global` 字段直接不带参调用 `ensure`，更新 `global` 字段直接不带参调用 `obtain`。
     """
 
-    _refresh_lock: anyio.Lock = anyio.Lock()
-    _buvid_lock: anyio.Lock = anyio.Lock()
-    _bili_jct_lock: anyio.Lock = anyio.Lock()
-
     b_nut: str | None = None
     b_lsid: str | None = None
     uuid_infoc: str | None = None
@@ -2948,7 +3073,13 @@ class Credential:
         self.bili_ticket = bili_ticket
         self.bili_ticket_expires = bili_ticket_expires
 
+        # extra cookies
         self.extra_cookies = {k: str(v) for k, v in kwargs.items()}
+
+        # locks
+        self._refresh_lock: anyio.Lock = anyio.Lock()
+        self._buvid_lock: anyio.Lock = anyio.Lock()
+        self._bili_ticket_lock: anyio.Lock = anyio.Lock()
 
     def _gen_local_cookies(self) -> None:
         """
@@ -3026,6 +3157,7 @@ class Credential:
             not self.is_buvid_generated()
             and bili_settings.get_enable_buvid_global_persistence()
         ):
+            _credential = get_global_credential()
             (
                 self.buvid3,
                 self.buvid4,
@@ -3048,6 +3180,7 @@ class Credential:
             not self.is_bili_ticket_valid()
             and bili_settings.get_enable_bili_ticket_global_persistence()
         ):
+            _credential = get_global_credential()
             (
                 self.bili_ticket,
                 self.bili_ticket_expires,
@@ -3226,6 +3359,18 @@ class Credential:
             self.dedeuserid_ckmd5 = new_cred.dedeuserid_ckmd5
             self.ac_time_value = new_cred.ac_time_value
             self.sid = new_cred.sid
+
+    async def _get_buvid(self) -> None:
+        # helper function for ensure_buvid
+        async with self._buvid_lock:
+            if not self.is_buvid_generated():
+                await obtain_buvid(self)
+
+    async def _get_bili_ticket(self) -> None:
+        # helper function for ensure_bili_ticket
+        async with self._bili_ticket_lock:
+            if not self.is_bili_ticket_valid():
+                await obtain_bili_ticket(self)
 
     @classmethod
     def from_cookies(
@@ -4138,7 +4283,20 @@ class GlobalCredential(Credential):
         super().__init__(*args, **kwargs)
 
 
-_credential = GlobalCredential(sessdata="ujimatsu", bili_jct="chiya")
+global_credentials = {}
+global_credential_lock = threading.Lock()
+
+
+def get_global_credential() -> GlobalCredential:
+    event_loop = get_event_loop()
+    if global_credentials.get(event_loop):
+        return global_credentials[event_loop]
+    with global_credential_lock:
+        if not global_credentials.get(event_loop):
+            global_credentials[event_loop] = GlobalCredential(
+                sessdata="ujimatsu", bili_jct="chiya", dedeuserid=event_loop
+            )
+    return global_credentials[event_loop]
 
 
 async def ensure_buvid(credential: Credential | None = None) -> tuple[str, str, str]:
@@ -4162,7 +4320,7 @@ async def ensure_buvid(credential: Credential | None = None) -> tuple[str, str, 
         bili_settings.get_enable_buvid_global_persistence()
         and not isinstance(credential, GlobalCredential)
     ):
-        global _credential
+        _credential = get_global_credential()
         await ensure_buvid(_credential)
         (
             credential.buvid3,
@@ -4181,10 +4339,9 @@ async def ensure_buvid(credential: Credential | None = None) -> tuple[str, str, 
         )
         return (credential.buvid3, credential.buvid4, credential.buvid_fp)  # type: ignore
 
-    async with credential._buvid_lock:
-        if credential.is_buvid_generated():
-            return (credential.buvid3, credential.buvid4, credential.buvid_fp)  # type: ignore
-        return await obtain_buvid(credential)
+    await credential._get_buvid()
+
+    return (credential.buvid3, credential.buvid4, credential.buvid_fp)  # type: ignore
 
 
 async def obtain_buvid(credential: Credential | None = None) -> tuple[str, str, str]:
@@ -4205,7 +4362,7 @@ async def obtain_buvid(credential: Credential | None = None) -> tuple[str, str, 
         bili_settings.get_enable_buvid_global_persistence()
         and not isinstance(credential, GlobalCredential)
     ):
-        global _credential
+        _credential = get_global_credential()
         await obtain_buvid(_credential)
         (
             credential.buvid3,
@@ -4272,7 +4429,7 @@ async def ensure_bili_ticket(
         bili_settings.get_enable_bili_ticket_global_persistence()
         and not isinstance(credential, GlobalCredential)
     ):
-        global _credential
+        _credential = get_global_credential()
         await ensure_bili_ticket(_credential)
         (
             credential.bili_ticket,
@@ -4283,10 +4440,9 @@ async def ensure_bili_ticket(
         )
         return credential.bili_ticket, credential.bili_ticket_expires  # type: ignore
 
-    async with credential._bili_jct_lock:
-        if credential.is_bili_ticket_valid():
-            return credential.bili_ticket, credential.bili_ticket_expires  # type: ignore
-        return await obtain_bili_ticket(credential)
+    await credential._get_bili_ticket()
+
+    return credential.bili_ticket, credential.bili_ticket_expires  # type: ignore
 
 
 async def obtain_bili_ticket(
@@ -4309,7 +4465,7 @@ async def obtain_bili_ticket(
         bili_settings.get_enable_bili_ticket_global_persistence()
         and not isinstance(credential, GlobalCredential)
     ):
-        global _credential
+        _credential = get_global_credential()
         await obtain_bili_ticket(_credential)
         (
             credential.bili_ticket,

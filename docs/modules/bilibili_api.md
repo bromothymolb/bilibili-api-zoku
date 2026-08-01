@@ -126,13 +126,15 @@ from bilibili_api import ...
   - [async def upload\_by\_note()](#async-def-upload\_by\_note)
 - [class RequestSettings()](#class-RequestSettings)
   - [def \_\_init\_\_()](#def-\_\_init\_\_)
+  - [def all()](#def-all)
+  - [def defaults()](#def-defaults)
   - [def get()](#def-get)
-  - [def get\_all()](#def-get\_all)
   - [def get\_proxy()](#def-get\_proxy)
   - [def get\_timeout()](#def-get\_timeout)
   - [def get\_trust\_env()](#def-get\_trust\_env)
   - [def get\_verify\_ssl()](#def-get\_verify\_ssl)
   - [def gets()](#def-gets)
+  - [def has()](#def-has)
   - [def set()](#def-set)
   - [def set\_proxy()](#def-set\_proxy)
   - [def set\_timeout()](#def-set\_timeout)
@@ -140,6 +142,7 @@ from bilibili_api import ...
   - [def set\_verify\_ssl()](#def-set\_verify\_ssl)
   - [def sets()](#def-sets)
   - [def unset()](#def-unset)
+  - [def unsets()](#def-unsets)
 - [class ResourceType()](#class-ResourceType)
 - [class ResponseCodeException()](#class-ResponseCodeException)
 - [class ResponseException()](#class-ResponseException)
@@ -150,6 +153,9 @@ from bilibili_api import ...
 - [class WbiRetryTimesExceedException()](#class-WbiRetryTimesExceedException)
 - [def aid2bvid()](#def-aid2bvid)
 - [var bili\_settings](#var-bili\_settings)
+  - [def all()](#def-all)
+  - [def defaults()](#def-defaults)
+  - [def get()](#def-get)
   - [def get\_enable\_auto\_buvid()](#def-get\_enable\_auto\_buvid)
   - [def get\_enable\_bili\_ticket()](#def-get\_enable\_bili\_ticket)
   - [def get\_enable\_bili\_ticket\_global\_persistence()](#def-get\_enable\_bili\_ticket\_global\_persistence)
@@ -159,6 +165,10 @@ from bilibili_api import ...
   - [def get\_fpgen\_args()](#def-get\_fpgen\_args)
   - [def get\_global\_credential()](#def-get\_global\_credential)
   - [def get\_wbi\_retry\_times()](#def-get\_wbi\_retry\_times)
+  - [def gets()](#def-gets)
+  - [def has()](#def-has)
+  - [def register()](#def-register)
+  - [def set()](#def-set)
   - [def set\_enable\_auto\_buvid()](#def-set\_enable\_auto\_buvid)
   - [def set\_enable\_bili\_ticket()](#def-set\_enable\_bili\_ticket)
   - [def set\_enable\_bili\_ticket\_global\_persistence()](#def-set\_enable\_bili\_ticket\_global\_persistence)
@@ -168,6 +178,7 @@ from bilibili_api import ...
   - [def set\_fpgen\_args()](#def-set\_fpgen\_args)
   - [def set\_global\_credential()](#def-set\_global\_credential)
   - [def set\_wbi\_retry\_times()](#def-set\_wbi\_retry\_times)
+  - [def sets()](#def-sets)
 - [async def bili\_simple\_download()](#async-def-bili\_simple\_download)
 - [def bvid2aid()](#def-bvid2aid)
 - [def configure\_dynamic\_fingerprint()](#def-configure\_dynamic\_fingerprint)
@@ -376,7 +387,7 @@ API 基类异常。
 
 | name | type | description |
 | - | - | - |
-| `coro` | `Coroutine[Any, Any, ~T]` | 主程序 |
+| `start_coro` | `Coroutine[Any, Any, ~T]` | 主程序的阻塞启动协程 |
 
 **Returns:** `AsyncGenerator[anyio.TaskHandle[~T | None]]`:  运行主程序的 TaskHandle，若中途取消则返回 None
 
@@ -1925,6 +1936,28 @@ NOTE: `gt`, `challenge`, `token` 为验证码基本字段。`seccode`, `validate
 
 
 
+### def all()
+
+获取目前所有的设置项
+
+
+
+**Returns:** `dict`:  所有的设置项
+
+
+
+
+### def defaults()
+
+获取此设置项的默认设置。仅实例的基本设置存在默认值。
+
+
+
+**Returns:** `dict`:  默认设置
+
+
+
+
 ### def get()
 
 获取某项设置，字段未曾设置过时将返回 None.
@@ -1935,17 +1968,6 @@ NOTE: `gt`, `challenge`, `token` 为验证码基本字段。`seccode`, `validate
 | `name` | `str` | 设置名称 |
 
 **Returns:** `Any`:  设置的值
-
-
-
-
-### def get_all()
-
-获取目前所有的设置项
-
-
-
-**Returns:** `dict`:  所有的设置项
 
 
 
@@ -1996,7 +2018,7 @@ NOTE: `gt`, `challenge`, `token` 为验证码基本字段。`seccode`, `validate
 
 ### def gets()
 
-获取对应设置项的设置，未设置过则为 None
+获取对应设置项的设置
 
 
 | name | type | description |
@@ -2004,6 +2026,20 @@ NOTE: `gt`, `challenge`, `token` 为验证码基本字段。`seccode`, `validate
 | `keys` | `list[str]` | 设置项 |
 
 **Returns:** `dict`:  对应设置项的设置
+
+
+
+
+### def has()
+
+判断是否存在某项设置
+
+
+| name | type | description |
+| - | - | - |
+| `name` | `str` | 设置名称 |
+
+**Returns:** `bool`:  是否存在某项设置
 
 
 
@@ -2088,7 +2124,19 @@ NOTE: `gt`, `challenge`, `token` 为验证码基本字段。`seccode`, `validate
 
 | name | type | description |
 | - | - | - |
-| `keys` | `list[str]` | 设置项 |
+| `name` | `str` | 设置项 |
+
+
+
+
+### def unsets()
+
+取消设置项
+
+
+| name | type | description |
+| - | - | - |
+| `name` | `str` | 设置项 |
 
 
 
@@ -2238,6 +2286,42 @@ AV 号转 BV 号。
 
 
 
+### def all()
+
+获取目前所有的设置项
+
+
+
+**Returns:** `dict`:  所有的设置项
+
+
+
+
+### def defaults()
+
+获取此设置项的默认设置。仅实例的基本设置存在默认值。
+
+
+
+**Returns:** `dict`:  默认设置
+
+
+
+
+### def get()
+
+获取某项设置，字段未曾设置过时将返回 None.
+
+
+| name | type | description |
+| - | - | - |
+| `name` | `str` | 设置名称 |
+
+**Returns:** `Any`:  设置的值
+
+
+
+
 ### def get_enable_auto_buvid()
 
 获取设置的是否自动生成 buvid
@@ -2333,6 +2417,60 @@ AV 号转 BV 号。
 
 
 **Returns:** `int`:  wbi 重试次数. Defaults to 3.
+
+
+
+
+### def gets()
+
+获取对应设置项的设置
+
+
+| name | type | description |
+| - | - | - |
+| `keys` | `list[str]` | 设置项 |
+
+**Returns:** `dict`:  对应设置项的设置
+
+
+
+
+### def has()
+
+判断是否存在某项设置
+
+
+| name | type | description |
+| - | - | - |
+| `name` | `str` | 设置名称 |
+
+**Returns:** `bool`:  是否存在某项设置
+
+
+
+
+### def register()
+
+注册设置项
+
+
+| name | type | description |
+| - | - | - |
+| `name` | `str` | 设置项名称 |
+| `default` | `Any` | 设置项默认值 |
+
+
+
+
+### def set()
+
+设置某项设置
+
+
+| name | type | description |
+| - | - | - |
+| `name` | `str` | 设置名称 |
+| `value` | `Any` | 设置的值 |
 
 
 
@@ -2441,6 +2579,18 @@ AV 号转 BV 号。
 | name | type | description |
 | - | - | - |
 | `wbi_retry_times` | `int` | wbi 重试次数. |
+
+
+
+
+### def sets()
+
+设置传入的项目
+
+
+| name | type | description |
+| - | - | - |
+| `settings` | `dict` | 设置项，键为设置名称，值为设置值。 |
 
 
 
