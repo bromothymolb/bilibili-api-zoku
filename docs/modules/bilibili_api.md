@@ -61,6 +61,7 @@ from bilibili_api import ...
   - [async def check\_valid()](#async-def-check\_valid)
   - [def clear\_bili\_ticket()](#def-clear\_bili\_ticket)
   - [def clear\_buvid()](#def-clear\_buvid)
+  - [def copy()](#def-copy)
   - [async def get\_cookies()](#async-def-get\_cookies)
   - [def get\_core\_cookies()](#def-get\_core\_cookies)
   - [def has\_ac\_time\_value()](#def-has\_ac\_time\_value)
@@ -78,6 +79,7 @@ from bilibili_api import ...
   - [def raise\_for\_no\_dedeuserid()](#def-raise\_for\_no\_dedeuserid)
   - [def raise\_for\_no\_sessdata()](#def-raise\_for\_no\_sessdata)
   - [async def refresh()](#async-def-refresh)
+  - [async def update()](#async-def-update)
 - [class CredentialNoAcTimeValueException()](#class-CredentialNoAcTimeValueException)
 - [class CredentialNoBiliJctException()](#class-CredentialNoBiliJctException)
 - [class CredentialNoBuvid3Exception()](#class-CredentialNoBuvid3Exception)
@@ -795,8 +797,8 @@ class BiliAPIClient(ABC):
 | `cnt` | `int` | 过滤器执行编号，一个编号对应一次函数调用 |
 | `data` | `FilterData` | 用于数据交换的 FilterData 实例 |
 | `settings` | `dict` | 请求客户端相关设置 |
-| `event_loop` | `str` | 请求客户端的事件循环，对应模块内部编号 |
-| `loop` | `asyncio.AbstractEventLoop \| None` | 请求客户端的事件循环(仅 asyncio) |
+| `event_loop_token` | `str` | 请求客户端的事件循环，对应模块内部编号 |
+| `anyio_token` | `anyio.lowlevel.EventLoopToken` | AnyIO 的事件循环 token 对象 |
 | `filter_index` | `int` | 过滤器在运行列表中的位置下标 |
 | `filter_locate` | `str` | 过滤器位置，前置为 `pre`，后置为 `post`。 |
 
@@ -1142,6 +1144,17 @@ buvid3 和 buvid4 建议配合食用，bili_ticket 和 bili_ticket_expires 亦�
 
 
 
+### def copy()
+
+复制凭据类
+
+
+
+**Returns:** `Credential`:  复制后的凭据类
+
+
+
+
 ### async def get_cookies()
 
 获取请求 Cookies 字典，同时处理 buvid / bili_ticket。
@@ -1311,6 +1324,15 @@ buvid3 / buvid4 是否已生成
 ### async def refresh()
 
 刷新 cookies
+
+
+
+
+
+
+### async def update()
+
+判断并更新 cookies
 
 
 
@@ -3232,7 +3254,7 @@ async def handle(desc: str, data: dict) -> None:
 | `session` | `object` | 会话对象 |
 | `client` | `str \| None, optional` | 请求客户端类型. Defaults to None. |
 | `instance` | `str \| None, optional` | 请求客户端实例名称. Defaults to None. |
-| `loop` | `asyncio.AbstractEventLoop \| None, optional` | 事件循环，不提供则采用当前事件循环. Defaults to None. |
+| `loop` | `anyio.lowlevel.EventLoopToken \| None, optional` | 事件循环，不提供则采用当前事件循环. Defaults to None. |
 
 
 
@@ -3292,7 +3314,7 @@ async def handle(desc: str, data: dict) -> None:
 | - | - | - |
 | `client` | `str \| None, optional` | 请求客户端类型. Defaults to None. |
 | `instance` | `str \| None, optional` | 请求客户端实例名称. Defaults to None. |
-| `loop` | `asyncio.AbstractEventLoop \| None, optional` | 事件循环，不提供则采用当前事件循环. Defaults to None. |
+| `loop` | `anyio.lowlevel.EventLoopToken \| None, optional` | 事件循环，不提供则采用当前事件循环. Defaults to None. |
 
 
 

@@ -55,9 +55,8 @@ bilibili-api 一切行为的核心即在网络请求上。自然，掌管网络�
 
 ### 2. 会话调度 (事件循环相关)
 
-- (`ensure_event_loop`)
-- (`event_loop_to_str`)
-- (`get_event_loop`)
+- (`event_loop_token_to_str`)
+- (`get_event_loop_token`)
 - (`_BiliAPIClientGroup`)
 
 ### 3. `client` 管理
@@ -112,7 +111,7 @@ bilibili-api 一切行为的核心即在网络请求上。自然，掌管网络�
 
 `_BiliAPIClientGroup` 负责不同事件循环间的调度。每个事件循环将被编号后维护。
 
-如果使用 trio 作为异步后端，则事件循环编号将统一分发 `<trio>`。
+如果使用 trio 作为异步后端，则事件循环将使用 `trio_token` 代替。
 
 `_BiliAPIClient` 事实上为一个单独 `BiliAPIClient` 的包装，重写了其 getter。
 
@@ -226,6 +225,9 @@ import urllib.parse
 
 import anyio
 import anyio.abc
+import anyio.from_thread
+import anyio.lowlevel
+import anyio.to_thread
 from bs4 import BeautifulSoup
 import chompjs
 from Cryptodome.Cipher import PKCS1_OAEP
@@ -767,7 +769,7 @@ class BiliSettings:
         """
         if not self.has(name):
             raise ArgsException(f"不存在设置: {name}") from None
-        return deepcopy(self.__settings[name])
+        return self.__settings[name]
 
     def set(self, name: str, value: Any) -> None:
         """
@@ -777,7 +779,7 @@ class BiliSettings:
             name (str): 设置名称
             value (Any): 设置的值
         """
-        self.__settings[name] = deepcopy(value)
+        self.__settings[name] = value
 
     def has(self, name: str) -> bool:
         """
@@ -807,7 +809,7 @@ class BiliSettings:
         Returns:
             dict: 默认设置
         """
-        return self.__defaults
+        return self.__defaults.copy()
 
     def get_wbi_retry_times(self) -> int:
         """
@@ -1010,8 +1012,8 @@ class BiliSettings:
         """
         if name in self.all().keys():
             raise ArgsException(f"设置项 {name} 已注册。")
-        self.__settings[name] = deepcopy(default)
-        self.__defaults[name] = deepcopy(default)
+        self.__settings[name] = default
+        self.__defaults[name] = default
 
 
 class RequestSettings:
@@ -1068,7 +1070,7 @@ class RequestSettings:
         """
         if not self.has(name):
             raise ArgsException(f"不存在设置: {name}") from None
-        return deepcopy(self.__settings[name])
+        return self.__settings[name]
 
     def set(self, name: str, value: Any) -> None:
         """
@@ -1078,8 +1080,8 @@ class RequestSettings:
             name (str): 设置名称
             value (Any): 设置的值
         """
-        self.__settings[name] = deepcopy(value)
-        self.__lazy[name] = deepcopy(value)
+        self.__settings[name] = value
+        self.__lazy[name] = value
 
     def has(self, name: str) -> bool:
         """
@@ -1835,9 +1837,9 @@ class BiliAPIClient(ABC):
 client_func_cnt = 0
 client_lock = threading.Lock()
 loop_cnt = 0
-loop2id: dict[asyncio.AbstractEventLoop, str] = {}
-id2loop: dict[str, asyncio.AbstractEventLoop] = {}
-loop_lock: dict[str, threading.Lock] = {"trio": threading.Lock()}
+loop2id: dict[anyio.lowlevel.EventLoopToken, str] = {}
+id2loop: dict[str, anyio.lowlevel.EventLoopToken] = {}
+loop_lock: dict[str, threading.Lock] = {}
 loop_record_lock = threading.Lock()
 clean_tasks: set[asyncio.Task] = set()
 
@@ -1926,8 +1928,8 @@ class BiliFilterArgs:
         cnt (int): 过滤器执行编号，一个编号对应一次函数调用
         data (FilterData): 用于数据交换的 FilterData 实例
         settings (dict): 请求客户端相关设置
-        event_loop (str): 请求客户端的事件循环，对应模块内部编号
-        loop (asyncio.AbstractEventLoop | None): 请求客户端的事件循环(仅 asyncio)
+        event_loop_token (str): 请求客户端的事件循环，对应模块内部编号
+        anyio_token (anyio.lowlevel.EventLoopToken): AnyIO 的事件循环 token 对象
         filter_index (int): 过滤器在运行列表中的位置下标
         filter_locate (str): 过滤器位置，前置为 `pre`，后置为 `post`。
     """
@@ -1941,8 +1943,8 @@ class BiliFilterArgs:
     cnt: int
     data: BiliFilterData
     settings: dict
-    event_loop: str
-    loop: asyncio.AbstractEventLoop | None
+    event_loop_token: str
+    anyio_token: anyio.lowlevel.EventLoopToken
     filter_index: int
     filter_locate: str
 
@@ -2111,22 +2113,41 @@ class _BiliAPIClient:
                     ret[name] = param.default
             return ret
 
+        def run_filter(
+            filter: Callable[[BiliFilterArgs], Any], args: BiliFilterArgs
+        ) -> list[tuple[BiliFilterFlags, Any]]:
+            result = filter(args)
+            if isgenerator(result):
+                return list(result)  # type: ignore
+            else:
+                return [result]  # type: ignore
+
+        async def arun_filter(
+            filter: Callable[[BiliFilterArgs], Any], args: BiliFilterArgs
+        ) -> list[tuple[BiliFilterFlags, Any]]:
+            result = filter(args)
+            if isasyncgen(result):
+                ret = []
+                async for item in result:
+                    ret.append(item)
+                return ret
+            else:
+                return [await result]
+
         def method_wrapper(method: Callable) -> Callable:
             def wrapped_method(*args, **kwargs) -> Any:
                 args = arg_convert(args, kwargs)
-                ins = self._get_bili_api_client()
                 ret = None
-                data = BiliFilterData()
                 filter_args = {
                     "client": self.__client__,
                     "instance": self.__instance__,
                     "func": key,
-                    "ins": ins,
+                    "ins": self._get_bili_api_client(),
                     "cnt": cnt,
-                    "data": data,
+                    "data": BiliFilterData(),
                     "settings": self.__settings.all(),
-                    "event_loop": self.__event_loop,
-                    "loop": id2loop.get(self.__event_loop),
+                    "event_loop_token": self.__event_loop,
+                    "anyio_token": id2loop[self.__event_loop],
                 }
                 filts = get_registered_filters(in_priority=True)
                 skip_pre = False
@@ -2155,34 +2176,29 @@ class _BiliAPIClient:
                         goto = None
                     elif filt.get("function"):
                         try:
-                            result = filt["function"](
+                            results = run_filter(
+                                filt["function"],
                                 BiliFilterArgs(
                                     **filter_args,
                                     params=args.copy(),
                                     ret=deepcopy(ret),
                                     filter_index=i,
                                     filter_locate=locate,
-                                )
+                                ),
                             )
                         except Exception as e:
                             raise FilterException(locate, filt["name"], e) from e
-                        if isgenerator(result):
+                        for result in results:
                             try:
-                                for sets in result:
-                                    try:
-                                        sflag, sparam = sets[0], sets[1]  # type: ignore
-                                    except Exception:
-                                        raise ArgsException(
-                                            "过滤器抛出值不满足形式 tuple[BiliFilterFlags, Any]。"
-                                        ) from None
-                                    if sflag == BiliFilterFlags.SET_PARAMS:
-                                        args = deepcopy(sparam)
-                                    elif sflag == BiliFilterFlags.SET_RETURN:
-                                        ret = deepcopy(sparam)
-                                    goto = sets
-                            except Exception as e:
-                                raise FilterException(locate, filt["name"], e) from e
-                        else:
+                                sflag, sparam = result[0], result[1]
+                            except Exception:
+                                raise ArgsException(
+                                    "过滤器抛出值不满足形式 tuple[BiliFilterFlags, Any]。"
+                                ) from None
+                            if sflag == BiliFilterFlags.SET_PARAMS:
+                                args = deepcopy(sparam)
+                            elif sflag == BiliFilterFlags.SET_RETURN:
+                                ret = deepcopy(sparam)
                             goto = result
                     else:
                         i += 1
@@ -2221,19 +2237,17 @@ class _BiliAPIClient:
         def coroutine_wrapper(async_function: Callable) -> Callable:
             async def wrapped_amethod(*args, **kwargs) -> Any:
                 args = arg_convert(args, kwargs)
-                ins = self._get_bili_api_client()
                 ret = None
-                data = BiliFilterData()
                 filter_args = {
                     "client": self.__client__,
                     "instance": self.__instance__,
                     "func": key,
-                    "ins": ins,
+                    "ins": self._get_bili_api_client(),
                     "cnt": cnt,
-                    "data": data,
+                    "data": BiliFilterData(),
                     "settings": self.__settings.all(),
-                    "event_loop": self.__event_loop,
-                    "loop": id2loop.get(self.__event_loop),
+                    "event_loop_token": self.__event_loop,
+                    "anyio_token": id2loop[self.__event_loop],
                 }
                 filts = get_registered_filters(in_priority=True)
                 skip_pre = False
@@ -2260,71 +2274,46 @@ class _BiliAPIClient:
                     goto = None  # the return of the function
                     if locate == "pre" and skip_pre:
                         goto = None
-                    elif filt.get("function"):
+                    elif filt.get("function") or filt.get("async_function"):
                         try:
-                            result = filt["function"](
-                                BiliFilterArgs(
-                                    **filter_args,
-                                    params=args.copy(),
-                                    ret=deepcopy(ret),
-                                    filter_index=i,
-                                    filter_locate=locate,
+                            if filt.get("function"):
+                                results = run_filter(
+                                    filt["function"],
+                                    BiliFilterArgs(
+                                        **filter_args,
+                                        params=args.copy(),
+                                        ret=deepcopy(ret),
+                                        filter_index=i,
+                                        filter_locate=locate,
+                                    ),
                                 )
-                            )
+                            elif filt.get("async_function"):
+                                results = await arun_filter(
+                                    filt["async_function"],
+                                    BiliFilterArgs(
+                                        **filter_args,
+                                        params=args.copy(),
+                                        ret=deepcopy(ret),
+                                        filter_index=i,
+                                        filter_locate=locate,
+                                    ),
+                                )
+                            else:
+                                results = []
                         except Exception as e:
-                            raise FilterException("pre", filt["name"], e) from e
-                        if isgenerator(result):
+                            raise FilterException(locate, filt["name"], e) from e
+                        for result in results:
                             try:
-                                for sets in result:
-                                    try:
-                                        sflag, sparam = sets[0], sets[1]  # type: ignore
-                                    except Exception:
-                                        raise ArgsException(
-                                            "过滤器抛出值不满足形式 tuple[BiliFilterFlags, Any]。"
-                                        ) from None
-                                    if sflag == BiliFilterFlags.SET_PARAMS:
-                                        args = deepcopy(sparam)
-                                    elif sflag == BiliFilterFlags.SET_RETURN:
-                                        ret = deepcopy(sparam)
-                                    goto = sets
-                            except Exception as e:
-                                raise FilterException(locate, filt["name"], e) from e
-                        else:
+                                sflag, sparam = result[0], result[1]
+                            except Exception:
+                                raise ArgsException(
+                                    "过滤器抛出值不满足形式 tuple[BiliFilterFlags, Any]。"
+                                ) from None
+                            if sflag == BiliFilterFlags.SET_PARAMS:
+                                args = deepcopy(sparam)
+                            elif sflag == BiliFilterFlags.SET_RETURN:
+                                ret = deepcopy(sparam)
                             goto = result
-                    elif filt.get("async_function"):
-                        try:
-                            result = filt["async_function"](
-                                BiliFilterArgs(
-                                    **filter_args,
-                                    params=args.copy(),
-                                    ret=deepcopy(ret),
-                                    filter_index=i,
-                                    filter_locate=locate,
-                                )
-                            )
-                        except Exception as e:
-                            raise FilterException("pre", filt["name"], e) from e
-                        if isasyncgen(result):
-                            try:
-                                async for sets in result:
-                                    try:
-                                        sflag, sparam = sets[0], sets[1]  # type: ignore
-                                    except Exception:
-                                        raise ArgsException(
-                                            "过滤器抛出值不满足形式 tuple[BiliFilterFlags, Any]。"
-                                        ) from None
-                                    if sflag == BiliFilterFlags.SET_PARAMS:
-                                        args = deepcopy(sparam)
-                                    elif sflag == BiliFilterFlags.SET_RETURN:
-                                        ret = deepcopy(sparam)
-                                    goto = sets
-                            except Exception as e:
-                                raise FilterException("pre", filt["name"], e) from e
-                        else:
-                            try:
-                                goto = await result
-                            except Exception as e:
-                                raise FilterException("pre", filt["name"], e) from e
                     else:
                         i += 1
                         continue
@@ -2366,33 +2355,26 @@ class _BiliAPIClient:
         return None
 
 
-def ensure_event_loop() -> asyncio.AbstractEventLoop:
-    try:
-        asyncio.get_event_loop()
-    except RuntimeError:
-        asyncio.set_event_loop(asyncio.new_event_loop())
-    return asyncio.get_event_loop()
-
-
-def event_loop_to_str(loop: asyncio.AbstractEventLoop) -> str:
+def event_loop_token_to_str(token: anyio.lowlevel.EventLoopToken) -> str:
     global loop2id, loop_lock, loop_cnt
-    if loop2id.get(loop):
-        return loop2id[loop]
+    if loop2id.get(token):
+        return loop2id[token]
     with loop_record_lock:
-        if loop2id.get(loop):
-            return loop2id[loop]
-        loop_name = "asyncio-event-loop-" + str(loop_cnt)
+        if loop2id.get(token):
+            return loop2id[token]
+        if not bili_settings.get_enable_trio():
+            loop_name = "asyncio-event-loop-" + str(loop_cnt)
+        else:
+            loop_name = "trio-token-" + str(loop_cnt)
         loop_cnt += 1
-        loop2id[loop] = loop_name
-        id2loop[loop_name] = loop
+        loop2id[token] = loop_name
+        id2loop[loop_name] = token
         loop_lock[loop_name] = threading.Lock()
         return loop_name
 
 
-def get_event_loop() -> str:
-    if bili_settings.get_enable_trio():
-        return "trio"
-    return event_loop_to_str(ensure_event_loop())
+def get_event_loop_token() -> str:
+    return event_loop_token_to_str(anyio.lowlevel.current_token())
 
 
 class _BiliAPIClientGroup:
@@ -2415,10 +2397,10 @@ class _BiliAPIClientGroup:
         settings._set_base(self.__base_settings.defaults())
         settings.sets(self.__base_settings.all())
         settings.sets(request_settings.all() | self.__force_settings.all())
-        return deepcopy(settings)
+        return settings
 
     def ensure_client(self, loop: str | None = None) -> _BiliAPIClient:
-        loop = loop or get_event_loop()
+        loop = loop or get_event_loop_token()
         with loop_lock[loop]:
             client = self.__session_pool.get(loop)
             if client is None:
@@ -2433,7 +2415,7 @@ class _BiliAPIClientGroup:
             return client
 
     def set_session(self, session: Any, loop: str | None = None) -> None:
-        loop = loop or get_event_loop()
+        loop = loop or get_event_loop_token()
         client = _BiliAPIClient(
             self.__client__,
             self.__instance__,
@@ -2444,13 +2426,13 @@ class _BiliAPIClientGroup:
         self.__set_session_pool[loop] = client
 
     def unset_session(self, loop: str | None = None) -> None:
-        loop = loop or get_event_loop()
+        loop = loop or get_event_loop_token()
         if not self.__set_session_pool.get(loop):
             return
         del self.__set_session_pool[loop]
 
     def get_client(self) -> _BiliAPIClient:
-        loop = get_event_loop()
+        loop = get_event_loop_token()
         if self.__set_session_pool.get(loop):
             client = self.__set_session_pool[loop]
         else:
@@ -2761,7 +2743,7 @@ def set_session(
     session: object,
     client: str | None = None,
     instance: str | None = None,
-    loop: asyncio.AbstractEventLoop | None = None,
+    token: anyio.lowlevel.EventLoopToken | None = None,
 ) -> None:
     """
     设置请求客户端的会话对象。
@@ -2770,7 +2752,7 @@ def set_session(
         session (object): 会话对象
         client (str | None, optional): 请求客户端类型. Defaults to None.
         instance (str | None, optional): 请求客户端实例名称. Defaults to None.
-        loop (asyncio.AbstractEventLoop | None, optional): 事件循环，不提供则采用当前事件循环. Defaults to None.
+        token (anyio.lowlevel.EventLoopToken | None, optional): 事件循环，不提供则采用当前事件循环. Defaults to None.
     """
     client = client or get_selected_client()[0]
     instance = instance or get_selected_instance()
@@ -2778,13 +2760,15 @@ def set_session(
         group = client_groups[client][instance]
     except KeyError as e:
         raise Exception("未找到对应请求客户端实例") from e
-    group.set_session(session, event_loop_to_str(loop) if loop else get_event_loop())
+    group.set_session(
+        session, event_loop_token_to_str(token) if token else get_event_loop_token()
+    )
 
 
 def unset_session(
     client: str | None = None,
     instance: str | None = None,
-    loop: asyncio.AbstractEventLoop | None = None,
+    token: anyio.lowlevel.EventLoopToken | None = None,
 ) -> None:
     """
     取消设置请求客户端的会话对象。
@@ -2792,7 +2776,7 @@ def unset_session(
     Args:
         client (str | None, optional): 请求客户端类型. Defaults to None.
         instance (str | None, optional): 请求客户端实例名称. Defaults to None.
-        loop (asyncio.AbstractEventLoop | None, optional): 事件循环，不提供则采用当前事件循环. Defaults to None.
+        token (anyio.lowlevel.EventLoopToken | None, optional): 事件循环，不提供则采用当前事件循环. Defaults to None.
     """
     client = client or get_selected_client()[0]
     instance = instance or get_selected_instance()
@@ -2800,7 +2784,9 @@ def unset_session(
         group = client_groups[client][instance]
     except KeyError as e:
         raise Exception("未找到对应请求客户端实例") from e
-    group.unset_session(event_loop_to_str(loop) if loop else get_event_loop())
+    group.unset_session(
+        event_loop_token_to_str(token) if token else get_event_loop_token()
+    )
 
 
 ##### filter #####
@@ -2969,6 +2955,48 @@ def _gen_uuid_infoc() -> str:
     )
 
 
+class MultiEventLoopLocks:
+    def __init__(self) -> None:
+        # helper class for Credential locking
+        # for Credential is used by many event loops
+        self._locks: dict[str, anyio.Lock] = {}
+        self._lock: threading.Lock = threading.Lock()
+        self._running: bool = False
+        self._multithread_lock: threading.Lock = threading.Lock()
+        self._events: dict[str, anyio.Event] = {}
+
+    def get_lock(self) -> anyio.Lock:
+        event_loop = get_event_loop_token()
+        if self._locks.get(event_loop):
+            return self._locks[event_loop]
+        with self._lock:
+            if not self._locks.get(event_loop):
+                self._locks[event_loop] = anyio.Lock()
+        return self._locks[event_loop]
+
+    def check_multithread_state(self) -> bool:
+        with self._multithread_lock:
+            if not self._running:
+                self._running = True
+                return True  # the first thread is able to execute
+        return False  # other threads won't execute, as duplicated
+
+    async def wait_multithread(self) -> None:
+        # this function should be locked in get_lock() while running
+        event_loop = get_event_loop_token()
+        self._events[event_loop] = anyio.Event()
+        await self._events[event_loop].wait()
+        del self._events[event_loop]
+
+    async def done_multithread(self) -> None:
+        # this function should be run after completing multithread task
+        def stop_waiting_anyio_events():
+            for event_loop, event in list(self._events.items()):
+                anyio.from_thread.run_sync(event.set, token=id2loop[event_loop])
+
+        await anyio.to_thread.run_sync(stop_waiting_anyio_events)
+
+
 class Credential:
     """
     凭据类，用于各种请求操作的验证。
@@ -3077,9 +3105,9 @@ class Credential:
         self.extra_cookies = {k: str(v) for k, v in kwargs.items()}
 
         # locks
-        self._refresh_lock: anyio.Lock = anyio.Lock()
-        self._buvid_lock: anyio.Lock = anyio.Lock()
-        self._bili_ticket_lock: anyio.Lock = anyio.Lock()
+        self._refresh_locks = MultiEventLoopLocks()
+        self._buvid_locks = MultiEventLoopLocks()
+        self._bili_ticket_locks = MultiEventLoopLocks()
 
     def _gen_local_cookies(self) -> None:
         """
@@ -3291,6 +3319,11 @@ class Credential:
         没有提供 sessdata 则抛出异常。
         """
         if not self.has_sessdata():
+            if (
+                bili_settings.get_global_credential()
+                and bili_settings.get_global_credential().has_sessdata()  # type: ignore
+            ):
+                return
             raise CredentialNoSessdataException()
 
     def raise_for_no_bili_jct(self) -> None:
@@ -3298,6 +3331,11 @@ class Credential:
         没有提供 bili_jct 则抛出异常。
         """
         if not self.has_bili_jct():
+            if (
+                bili_settings.get_global_credential()
+                and bili_settings.get_global_credential().has_bili_jct()  # type: ignore
+            ):
+                return
             raise CredentialNoBiliJctException()
 
     def raise_for_no_buvid3(self) -> None:
@@ -3305,6 +3343,11 @@ class Credential:
         没有提供 buvid3 时抛出异常。
         """
         if not self.has_buvid3():
+            if (
+                bili_settings.get_global_credential()
+                and bili_settings.get_global_credential().has_buvid3()  # type: ignore
+            ):
+                return
             raise CredentialNoBuvid3Exception()
 
     def raise_for_no_buvid4(self) -> None:
@@ -3312,6 +3355,11 @@ class Credential:
         没有提供 buvid4 时抛出异常。
         """
         if not self.has_buvid4():
+            if (
+                bili_settings.get_global_credential()
+                and bili_settings.get_global_credential().has_buvid4()  # type: ignore
+            ):
+                return
             raise CredentialNoBuvid4Exception()
 
     def raise_for_no_dedeuserid(self) -> None:
@@ -3319,6 +3367,11 @@ class Credential:
         没有提供 DedeUserID 时抛出异常。
         """
         if not self.has_dedeuserid():
+            if (
+                bili_settings.get_global_credential()
+                and bili_settings.get_global_credential().has_dedeuserid()  # type: ignore
+            ):
+                return
             raise CredentialNoDedeUserIDException()
 
     def raise_for_no_ac_time_value(self) -> None:
@@ -3326,6 +3379,11 @@ class Credential:
         没有提供 ac_time_value 时抛出异常。
         """
         if not self.has_ac_time_value():
+            if (
+                bili_settings.get_global_credential()
+                and bili_settings.get_global_credential().has_ac_time_value()  # type: ignore
+            ):
+                return
             raise CredentialNoAcTimeValueException()
 
     async def check_valid(self) -> bool:
@@ -3344,33 +3402,75 @@ class Credential:
         Returns:
             bool: cookies 是否需要刷新
         """
-        async with self._refresh_lock:
-            return await _check_cookies(self)
+        return await _check_cookies(self)
 
     async def refresh(self) -> None:
         """
         刷新 cookies
         """
-        async with self._refresh_lock:
-            new_cred: Credential = await _refresh_cookies(self)
-            self.sessdata = new_cred.sessdata
-            self.bili_jct = new_cred.bili_jct
-            self.dedeuserid = new_cred.dedeuserid
-            self.dedeuserid_ckmd5 = new_cred.dedeuserid_ckmd5
-            self.ac_time_value = new_cred.ac_time_value
-            self.sid = new_cred.sid
+        new_cred: Credential = await _refresh_cookies(self)
+        self.sessdata = new_cred.sessdata
+        self.bili_jct = new_cred.bili_jct
+        self.dedeuserid = new_cred.dedeuserid
+        self.dedeuserid_ckmd5 = new_cred.dedeuserid_ckmd5
+        self.ac_time_value = new_cred.ac_time_value
+        self.sid = new_cred.sid
+
+    async def update(self) -> None:
+        """
+        判断并更新 cookies
+        """
+        async with self._refresh_locks.get_lock():
+            if self._refresh_locks.check_multithread_state():
+                if await self.check_refresh():
+                    await self.refresh()
+                await self._refresh_locks.done_multithread()
+            else:
+                await self._refresh_locks.wait_multithread()
 
     async def _get_buvid(self) -> None:
         # helper function for ensure_buvid
-        async with self._buvid_lock:
-            if not self.is_buvid_generated():
-                await obtain_buvid(self)
+        async with self._buvid_locks.get_lock():
+            if self._buvid_locks.check_multithread_state():
+                if not self.is_buvid_generated():
+                    await obtain_buvid(self)
+                await self._buvid_locks.done_multithread()
+            else:
+                await self._buvid_locks.wait_multithread()
 
     async def _get_bili_ticket(self) -> None:
         # helper function for ensure_bili_ticket
-        async with self._bili_ticket_lock:
-            if not self.is_bili_ticket_valid():
-                await obtain_bili_ticket(self)
+        async with self._bili_ticket_locks.get_lock():
+            if self._bili_ticket_locks.check_multithread_state():
+                if not self.is_bili_ticket_valid():
+                    await obtain_bili_ticket(self)
+                await self._bili_ticket_locks.done_multithread()
+            else:
+                await self._bili_ticket_locks.wait_multithread()
+
+    def copy(self) -> "Credential":
+        """
+        复制凭据类
+
+        Returns:
+            Credential: 复制后的凭据类
+        """
+        c = Credential()
+        c.sessdata = self.sessdata
+        c.bili_jct = self.bili_jct
+        c.buvid3 = self.buvid3
+        c.buvid4 = self.buvid4
+        c.dedeuserid = self.dedeuserid
+        c.dedeuserid_ckmd5 = self.dedeuserid_ckmd5
+        c.ac_time_value = self.ac_time_value
+        c.b_lsid = self.b_lsid
+        c.b_nut = self.b_nut
+        c.uuid_infoc = self.uuid_infoc
+        c.bili_ticket = self.bili_ticket
+        c.bili_ticket_expires = self.bili_ticket_expires
+        c.buvid_fp = self.buvid_fp
+        c.extra_cookies = self.extra_cookies
+        return c
 
     @classmethod
     def from_cookies(
@@ -4116,7 +4216,7 @@ def __register_builtin_log_filters():
             "act_id": args.cnt,
             "client": args.client,
             "instance": args.instance,
-            "event_loop": args.event_loop,
+            "event_loop": args.event_loop_token,
         }
         match args.func:
             case "request":
@@ -4157,7 +4257,7 @@ def __register_builtin_log_filters():
             "act_id": args.cnt,
             "client": args.client,
             "instance": args.instance,
-            "event_loop": args.event_loop,
+            "event_loop": args.event_loop_token,
         }
         match args.func:
             case "request":
@@ -4283,20 +4383,21 @@ class GlobalCredential(Credential):
         super().__init__(*args, **kwargs)
 
 
-global_credentials = {}
-global_credential_lock = threading.Lock()
+global_credential = GlobalCredential(
+    sessdata="ujimatsu", bili_jct="chiya", dedeuserid="919"
+)
 
 
 def get_global_credential() -> GlobalCredential:
-    event_loop = get_event_loop()
-    if global_credentials.get(event_loop):
-        return global_credentials[event_loop]
-    with global_credential_lock:
-        if not global_credentials.get(event_loop):
-            global_credentials[event_loop] = GlobalCredential(
-                sessdata="ujimatsu", bili_jct="chiya", dedeuserid=event_loop
-            )
-    return global_credentials[event_loop]
+    """
+    返回 `global` 凭据类，以供 `blank` 凭据类获取反爬 cookies
+
+    此函数与 bili_settings.get_global_credential() 无关
+
+    Returns:
+        GlobalCredential: _description_
+    """
+    return global_credential
 
 
 async def ensure_buvid(credential: Credential | None = None) -> tuple[str, str, str]:

@@ -14,6 +14,7 @@ from ..utils.network import (
     BiliAPIClient,
     BiliAPIFile,
     BiliAPIResponse,
+    MultiEventLoopLocks,
 )
 
 
@@ -62,8 +63,8 @@ class HTTPXClient(BiliAPIClient):
         self.__download_cnt: int = 0
 
         self.__need_update_session: bool = False
-        self.__session_update_lock = anyio.Lock()
-        self.__down_cnt_lock = anyio.Lock()
+        self.__session_update_lock = MultiEventLoopLocks()
+        self.__down_cnt_lock = MultiEventLoopLocks()
 
     def get_wrapped_session(self) -> httpx.AsyncClient:
         return self.__session
@@ -86,17 +87,21 @@ class HTTPXClient(BiliAPIClient):
 
     async def __auto_update_session(self) -> None:
         if self.__need_update_session:
-            async with self.__session_update_lock:
-                if self.__need_update_session:
-                    await self.__session.aclose()
-                    self.__session = httpx.AsyncClient(
-                        timeout=self.__timeout,
-                        proxy=self.__proxy if self.__proxy != "" else None,
-                        verify=self.__verify_ssl,
-                        trust_env=self.__trust_env,
-                        http2=self.__http2,
-                    )
-                    self.__need_update_session = False
+            async with self.__session_update_lock.get_lock():
+                if self.__session_update_lock.check_multithread_state():
+                    if self.__need_update_session:
+                        await self.__session.aclose()
+                        self.__session = httpx.AsyncClient(
+                            timeout=self.__timeout,
+                            proxy=self.__proxy if self.__proxy != "" else None,
+                            verify=self.__verify_ssl,
+                            trust_env=self.__trust_env,
+                            http2=self.__http2,
+                        )
+                        self.__need_update_session = False
+                    await self.__session_update_lock.done_multithread()
+                else:
+                    await self.__session_update_lock.wait_multithread()
 
     def set_http2(self, http2: bool = False) -> None:
         """
@@ -174,10 +179,15 @@ class HTTPXClient(BiliAPIClient):
     ) -> int:
         headers = headers or {}
         await self.__auto_update_session()
-        await self.__down_cnt_lock.acquire()
-        self.__download_cnt += 1
-        cnt = self.__download_cnt
-        self.__down_cnt_lock.release()
+        async with self.__down_cnt_lock.get_lock():
+            while True:
+                if self.__down_cnt_lock.check_multithread_state():
+                    self.__download_cnt += 1
+                    cnt = self.__download_cnt
+                    await self.__down_cnt_lock.done_multithread()
+                    break
+                else:
+                    await self.__down_cnt_lock.wait_multithread()
         req = self.__session.build_request(method="GET", url=url, headers=headers)
         self.__downloads[cnt] = await self.__session.send(
             req, stream=True, follow_redirects=True
