@@ -55,8 +55,8 @@ bilibili-api 一切行为的核心即在网络请求上。自然，掌管网络�
 
 ### 2. 会话调度 (事件循环相关)
 
-- (`event_loop_token_to_str`)
-- (`get_event_loop_token`)
+- (`get_loop_lock`)
+- (`MultiEventLoopLocks`)
 - (`_BiliAPIClientGroup`)
 
 ### 3. `client` 管理
@@ -110,8 +110,6 @@ bilibili-api 一切行为的核心即在网络请求上。自然，掌管网络�
 第一二层均通过 `client_groups` 字典进行维护，第三层通过 `_BiliAPIClientGroup` 维护。
 
 `_BiliAPIClientGroup` 负责不同事件循环间的调度。每个事件循环将被编号后维护。
-
-如果使用 trio 作为异步后端，则事件循环将使用 `trio_token` 代替。
 
 `_BiliAPIClient` 事实上为一个单独 `BiliAPIClient` 的包装，重写了其 getter。
 
@@ -226,7 +224,7 @@ import urllib.parse
 import anyio
 import anyio.abc
 import anyio.from_thread
-import anyio.lowlevel
+from anyio.lowlevel import EventLoopToken, current_token
 import anyio.to_thread
 from bs4 import BeautifulSoup
 import chompjs
@@ -608,7 +606,7 @@ class RequestLog(AsyncEvent):
             client = real_data.pop("client")
             instance = real_data.pop("instance")
             loop = real_data.pop("event_loop")
-            info_str = f"#{act_id} [{client}/{instance}] <{loop}>"
+            info_str = f"#{act_id} [{client}/{instance}] <{loop.backend_class.__name__}({hash(loop)})>"
             log_str = ""
             middle_str = " "
             if evt.startswith("WS_"):
@@ -1836,12 +1834,62 @@ class BiliAPIClient(ABC):
 
 client_func_cnt = 0
 client_lock = threading.Lock()
-loop_cnt = 0
-loop2id: dict[anyio.lowlevel.EventLoopToken, str] = {}
-id2loop: dict[str, anyio.lowlevel.EventLoopToken] = {}
-loop_lock: dict[str, threading.Lock] = {}
+loop_lock: dict[EventLoopToken, threading.Lock] = {}
 loop_record_lock = threading.Lock()
 clean_tasks: set[asyncio.Task] = set()
+
+
+def get_loop_lock(loop: EventLoopToken) -> threading.Lock:
+    if loop_lock.get(loop):
+        return loop_lock[loop]
+    with loop_record_lock:
+        if not loop_lock.get(loop):
+            loop_lock[loop] = threading.Lock()
+        return loop_lock[loop]
+
+
+class MultiEventLoopLocks:
+    def __init__(self) -> None:
+        # helper class for Credential locking
+        # for Credential is used by many event loops
+        self._locks: dict[EventLoopToken, anyio.Lock] = {}
+        self._lock: threading.Lock = threading.Lock()
+        self._running: bool = False
+        self._multithread_lock: threading.Lock = threading.Lock()
+        self._events: dict[EventLoopToken, anyio.Event] = {}
+
+    def get_lock(self) -> anyio.Lock:
+        event_loop = current_token()
+        if self._locks.get(event_loop):
+            return self._locks[event_loop]
+        with self._lock:
+            if not self._locks.get(event_loop):
+                self._locks[event_loop] = anyio.Lock()
+        return self._locks[event_loop]
+
+    def check_multithread_state(self) -> bool:
+        with self._multithread_lock:
+            if not self._running:
+                self._running = True
+                return True  # the first thread is able to execute
+        return False  # other threads won't execute, as duplicated
+
+    async def wait_multithread(self) -> None:
+        # this function should be locked in get_lock() while running
+        event_loop = current_token()
+        self._events[event_loop] = anyio.Event()
+        await self._events[event_loop].wait()
+        del self._events[event_loop]
+
+    async def done_multithread(self) -> None:
+        # this function should be run after completing multithread task
+        self._running = False
+
+        def stop_waiting_anyio_events():
+            for token, event in list(self._events.items()):
+                anyio.from_thread.run_sync(event.set, token=token)
+
+        await anyio.to_thread.run_sync(stop_waiting_anyio_events)
 
 
 class BiliFilterFlags(Enum):
@@ -1921,30 +1969,31 @@ class BiliFilterArgs:
     Attributes:
         client (str): 当前选择的的客户端
         instance (str): 请求所属的实例
+        settings (dict): 请求客户端相关设置
+        event_loop_token (anyio.lowlevel.EventLoopToken): 请求客户端的事件循环，对应模块内部编号
+        sess (BiliAPIClient): 调用的 BiliAPIClient 实例
         func (str): 当前调用的函数
         params (dict): 调用函数的参数
         ret (Any): 函数运行返回结果 (可能存在)
-        ins (BiliAPIClient): 调用的 BiliAPIClient 实例
-        cnt (int): 过滤器执行编号，一个编号对应一次函数调用
-        data (FilterData): 用于数据交换的 FilterData 实例
-        settings (dict): 请求客户端相关设置
-        event_loop_token (str): 请求客户端的事件循环，对应模块内部编号
-        anyio_token (anyio.lowlevel.EventLoopToken): AnyIO 的事件循环 token 对象
+        filter_cnt (int): 过滤器执行编号，一个编号对应一次函数调用
+        filter_data (FilterData): 用于数据交换的 FilterData 实例
         filter_index (int): 过滤器在运行列表中的位置下标
         filter_locate (str): 过滤器位置，前置为 `pre`，后置为 `post`。
     """
 
+    # 1. session related
     client: str
     instance: str
+    settings: dict
+    event_loop_token: EventLoopToken
+    # 2. invokation related
+    sess: BiliAPIClient
     func: str
     params: dict
     ret: Any
-    ins: BiliAPIClient
-    cnt: int
-    data: BiliFilterData
-    settings: dict
-    event_loop_token: str
-    anyio_token: anyio.lowlevel.EventLoopToken
+    # 3. filter execution related
+    filter_cnt: int
+    filter_data: BiliFilterData
     filter_index: int
     filter_locate: str
 
@@ -2053,7 +2102,7 @@ class _BiliAPIClient:
         client_instance: str,
         client_settings: RequestSettings,
         client_session: Any,
-        event_loop: str,
+        event_loop: EventLoopToken,
     ) -> None:
         self.__client__: str = client_name
         self.__instance__: str = client_instance
@@ -2142,12 +2191,11 @@ class _BiliAPIClient:
                     "client": self.__client__,
                     "instance": self.__instance__,
                     "func": key,
-                    "ins": self._get_bili_api_client(),
-                    "cnt": cnt,
-                    "data": BiliFilterData(),
+                    "sess": self._get_bili_api_client(),
+                    "filter_cnt": cnt,
+                    "filter_data": BiliFilterData(),
                     "settings": self.__settings.all(),
                     "event_loop_token": self.__event_loop,
-                    "anyio_token": id2loop[self.__event_loop],
                 }
                 filts = get_registered_filters(in_priority=True)
                 skip_pre = False
@@ -2242,12 +2290,11 @@ class _BiliAPIClient:
                     "client": self.__client__,
                     "instance": self.__instance__,
                     "func": key,
-                    "ins": self._get_bili_api_client(),
-                    "cnt": cnt,
-                    "data": BiliFilterData(),
+                    "sess": self._get_bili_api_client(),
+                    "filter_cnt": cnt,
+                    "filter_data": BiliFilterData(),
                     "settings": self.__settings.all(),
                     "event_loop_token": self.__event_loop,
-                    "anyio_token": id2loop[self.__event_loop],
                 }
                 filts = get_registered_filters(in_priority=True)
                 skip_pre = False
@@ -2355,36 +2402,14 @@ class _BiliAPIClient:
         return None
 
 
-def event_loop_token_to_str(token: anyio.lowlevel.EventLoopToken) -> str:
-    global loop2id, loop_lock, loop_cnt
-    if loop2id.get(token):
-        return loop2id[token]
-    with loop_record_lock:
-        if loop2id.get(token):
-            return loop2id[token]
-        if not bili_settings.get_enable_trio():
-            loop_name = "asyncio-event-loop-" + str(loop_cnt)
-        else:
-            loop_name = "trio-token-" + str(loop_cnt)
-        loop_cnt += 1
-        loop2id[token] = loop_name
-        id2loop[loop_name] = token
-        loop_lock[loop_name] = threading.Lock()
-        return loop_name
-
-
-def get_event_loop_token() -> str:
-    return event_loop_token_to_str(anyio.lowlevel.current_token())
-
-
 class _BiliAPIClientGroup:
     """
     helper class to sync settings among clients in different event loops
     """
 
     def __init__(self, client: str, name: str) -> None:
-        self.__session_pool: dict[str, "_BiliAPIClient"] = {}
-        self.__set_session_pool: dict[str, "_BiliAPIClient"] = {}
+        self.__session_pool: dict[EventLoopToken, "_BiliAPIClient"] = {}
+        self.__set_session_pool: dict[EventLoopToken, "_BiliAPIClient"] = {}
         self.__base_settings = RequestSettings()
         self.__base_settings._set_base(DEFAULT_SETTINGS | optional_settings[client])
         self.__force_settings = RequestSettings()
@@ -2399,9 +2424,9 @@ class _BiliAPIClientGroup:
         settings.sets(request_settings.all() | self.__force_settings.all())
         return settings
 
-    def ensure_client(self, loop: str | None = None) -> _BiliAPIClient:
-        loop = loop or get_event_loop_token()
-        with loop_lock[loop]:
+    def ensure_client(self, loop: EventLoopToken | None = None) -> _BiliAPIClient:
+        loop = loop or current_token()
+        with get_loop_lock(loop):
             client = self.__session_pool.get(loop)
             if client is None:
                 client = _BiliAPIClient(
@@ -2414,8 +2439,8 @@ class _BiliAPIClientGroup:
                 self.__session_pool[loop] = client
             return client
 
-    def set_session(self, session: Any, loop: str | None = None) -> None:
-        loop = loop or get_event_loop_token()
+    def set_session(self, session: Any, loop: EventLoopToken | None = None) -> None:
+        loop = loop or current_token()
         client = _BiliAPIClient(
             self.__client__,
             self.__instance__,
@@ -2425,14 +2450,14 @@ class _BiliAPIClientGroup:
         )
         self.__set_session_pool[loop] = client
 
-    def unset_session(self, loop: str | None = None) -> None:
-        loop = loop or get_event_loop_token()
+    def unset_session(self, loop: EventLoopToken | None = None) -> None:
+        loop = loop or current_token()
         if not self.__set_session_pool.get(loop):
             return
         del self.__set_session_pool[loop]
 
     def get_client(self) -> _BiliAPIClient:
-        loop = get_event_loop_token()
+        loop = current_token()
         if self.__set_session_pool.get(loop):
             client = self.__set_session_pool[loop]
         else:
@@ -2743,7 +2768,7 @@ def set_session(
     session: object,
     client: str | None = None,
     instance: str | None = None,
-    token: anyio.lowlevel.EventLoopToken | None = None,
+    token: EventLoopToken | None = None,
 ) -> None:
     """
     设置请求客户端的会话对象。
@@ -2760,15 +2785,13 @@ def set_session(
         group = client_groups[client][instance]
     except KeyError as e:
         raise Exception("未找到对应请求客户端实例") from e
-    group.set_session(
-        session, event_loop_token_to_str(token) if token else get_event_loop_token()
-    )
+    group.set_session(session, token or current_token())
 
 
 def unset_session(
     client: str | None = None,
     instance: str | None = None,
-    token: anyio.lowlevel.EventLoopToken | None = None,
+    token: EventLoopToken | None = None,
 ) -> None:
     """
     取消设置请求客户端的会话对象。
@@ -2784,9 +2807,7 @@ def unset_session(
         group = client_groups[client][instance]
     except KeyError as e:
         raise Exception("未找到对应请求客户端实例") from e
-    group.unset_session(
-        event_loop_token_to_str(token) if token else get_event_loop_token()
-    )
+    group.unset_session(token or current_token())
 
 
 ##### filter #####
@@ -2953,48 +2974,6 @@ def _gen_uuid_infoc() -> str:
     return (
         "-".join([gen_part(length) for length in pck]) + str(t).ljust(5, "0") + "infoc"
     )
-
-
-class MultiEventLoopLocks:
-    def __init__(self) -> None:
-        # helper class for Credential locking
-        # for Credential is used by many event loops
-        self._locks: dict[str, anyio.Lock] = {}
-        self._lock: threading.Lock = threading.Lock()
-        self._running: bool = False
-        self._multithread_lock: threading.Lock = threading.Lock()
-        self._events: dict[str, anyio.Event] = {}
-
-    def get_lock(self) -> anyio.Lock:
-        event_loop = get_event_loop_token()
-        if self._locks.get(event_loop):
-            return self._locks[event_loop]
-        with self._lock:
-            if not self._locks.get(event_loop):
-                self._locks[event_loop] = anyio.Lock()
-        return self._locks[event_loop]
-
-    def check_multithread_state(self) -> bool:
-        with self._multithread_lock:
-            if not self._running:
-                self._running = True
-                return True  # the first thread is able to execute
-        return False  # other threads won't execute, as duplicated
-
-    async def wait_multithread(self) -> None:
-        # this function should be locked in get_lock() while running
-        event_loop = get_event_loop_token()
-        self._events[event_loop] = anyio.Event()
-        await self._events[event_loop].wait()
-        del self._events[event_loop]
-
-    async def done_multithread(self) -> None:
-        # this function should be run after completing multithread task
-        def stop_waiting_anyio_events():
-            for event_loop, event in list(self._events.items()):
-                anyio.from_thread.run_sync(event.set, token=id2loop[event_loop])
-
-        await anyio.to_thread.run_sync(stop_waiting_anyio_events)
 
 
 class Credential:
@@ -4213,7 +4192,7 @@ async def _get_bili_ticket(credential: Credential) -> tuple[str, int]:
 def __register_builtin_log_filters():
     def log_pre(args: BiliFilterArgs):
         running_info = {
-            "act_id": args.cnt,
+            "act_id": args.filter_cnt,
             "client": args.client,
             "instance": args.instance,
             "event_loop": args.event_loop_token,
@@ -4254,7 +4233,7 @@ def __register_builtin_log_filters():
 
     def log_post(args: BiliFilterArgs):
         running_info = {
-            "act_id": args.cnt,
+            "act_id": args.filter_cnt,
             "client": args.client,
             "instance": args.instance,
             "event_loop": args.event_loop_token,
@@ -4315,7 +4294,7 @@ def __register_global_credential_filter():
         gcred = bili_settings.get_global_credential()
         if not gcred:
             return BiliFilterReturn.continue_exec()
-        sig = inspect.signature(getattr(args.ins, args.func))
+        sig = inspect.signature(getattr(args.sess, args.func))
 
         def check_refreshing_urls(cred: Credential) -> bool:
             if (

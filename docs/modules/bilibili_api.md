@@ -790,15 +790,14 @@ class BiliAPIClient(ABC):
 | - | - | - |
 | `client` | `str` | 当前选择的的客户端 |
 | `instance` | `str` | 请求所属的实例 |
+| `settings` | `dict` | 请求客户端相关设置 |
+| `event_loop_token` | `anyio.lowlevel.EventLoopToken` | 请求客户端的事件循环，对应模块内部编号 |
+| `sess` | `BiliAPIClient` | 调用的 BiliAPIClient 实例 |
 | `func` | `str` | 当前调用的函数 |
 | `params` | `dict` | 调用函数的参数 |
 | `ret` | `Any` | 函数运行返回结果 (可能存在) |
-| `ins` | `BiliAPIClient` | 调用的 BiliAPIClient 实例 |
-| `cnt` | `int` | 过滤器执行编号，一个编号对应一次函数调用 |
-| `data` | `FilterData` | 用于数据交换的 FilterData 实例 |
-| `settings` | `dict` | 请求客户端相关设置 |
-| `event_loop_token` | `str` | 请求客户端的事件循环，对应模块内部编号 |
-| `anyio_token` | `anyio.lowlevel.EventLoopToken` | AnyIO 的事件循环 token 对象 |
+| `filter_cnt` | `int` | 过滤器执行编号，一个编号对应一次函数调用 |
+| `filter_data` | `FilterData` | 用于数据交换的 FilterData 实例 |
 | `filter_index` | `int` | 过滤器在运行列表中的位置下标 |
 | `filter_locate` | `str` | 过滤器位置，前置为 `pre`，后置为 `post`。 |
 
@@ -3254,7 +3253,7 @@ async def handle(desc: str, data: dict) -> None:
 | `session` | `object` | 会话对象 |
 | `client` | `str \| None, optional` | 请求客户端类型. Defaults to None. |
 | `instance` | `str \| None, optional` | 请求客户端实例名称. Defaults to None. |
-| `loop` | `anyio.lowlevel.EventLoopToken \| None, optional` | 事件循环，不提供则采用当前事件循环. Defaults to None. |
+| `token` | `anyio.lowlevel.EventLoopToken \| None, optional` | 事件循环，不提供则采用当前事件循环. Defaults to None. |
 
 
 
@@ -3314,7 +3313,7 @@ async def handle(desc: str, data: dict) -> None:
 | - | - | - |
 | `client` | `str \| None, optional` | 请求客户端类型. Defaults to None. |
 | `instance` | `str \| None, optional` | 请求客户端实例名称. Defaults to None. |
-| `loop` | `anyio.lowlevel.EventLoopToken \| None, optional` | 事件循环，不提供则采用当前事件循环. Defaults to None. |
+| `token` | `anyio.lowlevel.EventLoopToken \| None, optional` | 事件循环，不提供则采用当前事件循环. Defaults to None. |
 
 
 
