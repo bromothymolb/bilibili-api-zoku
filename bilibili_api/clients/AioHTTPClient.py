@@ -5,6 +5,7 @@ AioHTTPClient 实现
 """
 
 import asyncio
+import os
 
 import aiohttp
 import anyio  # pylint: disable=E0401
@@ -122,7 +123,7 @@ class AioHTTPClient(BiliAPIClient):
                     name=key,
                     value=content,
                     content_type=value.mime_type,
-                    filename=value.path.split("/")[-1],
+                    filename=os.path.basename(value.path),
                 )
             data = form  # type: ignore
         if self.__use_args:

@@ -392,7 +392,7 @@ async def send_msg(
                 "url": content.url,
                 "height": content.height,
                 "width": content.width,
-                "imageType": content.imageType,
+                "imageType": content.format,
                 "original": 1,
                 "size": content.size,
             }

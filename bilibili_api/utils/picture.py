@@ -4,12 +4,12 @@ bilibili_api.utils.picture
 Picture 类
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+import io
 import os
 import tempfile
-from typing import Any
 
-import anyio
+from anyio import to_thread
 from PIL import Image
 from yarl import URL
 
@@ -25,44 +25,56 @@ class Picture:
 
     Args:
         height    (int)  : 高度
-
-        imageType (str)  : 格式，例如: png
-
-        size      (Any)  : 大小。单位 KB
-
-        url       (str)  : 图片链接
-
         width     (int)  : 宽度
-
+        url       (str)  : 图片链接
+        format    (str)  : 格式，例如: png
+        mime_type (str)  : MIME 类型。
         content   (bytes): 图片内容
+        size      (int)  : 大小。单位 KB
 
-    可以不实例化，用 `load_url`, `from_content` 或 `from_file` 加载图片。
+    可以使用静态类方法 `load_url`, `from_content` 或 `from_file` 加载图片。
     """
 
     height: int = -1
-    imageType: str = ""
-    size: Any = ""
-    url: str = ""
     width: int = -1
+    url: str = ""
+    format: str = ""
+    mime_type: str = ""
     content: bytes = b""
+    size: int = 0
+
+    _image_file: Image.Image = field(default_factory=Image.Image)
+    _image_path: str = ""
 
     def __str__(self) -> str:
-        return f"Picture(height={self.height}, width={self.width}, imageType='{self.imageType}', size={self.size}, url='{self.url}')"
+        return f"Picture(height={self.height}, width={self.width}, format='{self.format}', size~={self.size}KB, url='{self.url}')"
 
     def __repr__(self) -> str:
         # no content...
-        return f"Picture(height={self.height}, width={self.width}, imageType='{self.imageType}', size={self.size}, url='{self.url}')"
+        return f"Picture(height={self.height}, width={self.width}, format='{self.format}', size~={self.size}B, url='{self.url}')"
 
-    def __set_picture_meta_from_bytes(self, imgtype: str) -> None:
+    def _set_picture_meta_from_bytes(self, format: str) -> None:
         tmp_dir = tempfile.gettempdir()
-        img_path = os.path.join(tmp_dir, "test." + imgtype)
+        img_path = os.path.join(tmp_dir, "test." + format)
         with open(img_path, "wb+") as file:
             file.write(self.content)
-        img = Image.open(img_path)
+        self._image_path = img_path
+        self._image_file = Image.open(img_path)
+        self.height = self._image_file.height
+        self.width = self._image_file.width
+        self.format = format
+        self.mime_type = self._image_file.get_format_mimetype()  # type: ignore
         self.size = int(round(os.path.getsize(img_path) / 1024, 0))
-        self.height = img.height
-        self.width = img.width
-        self.imageType = imgtype
+
+    def _set_picture_meta_from_file(self, img_path: str, format: str) -> None:
+        self._image_path = img_path
+        self._image_file = Image.open(img_path)
+        self.content = self._image_file.fp.read()  # type: ignore
+        self.height = self._image_file.height
+        self.width = self._image_file.width
+        self.format = format
+        self.mime_type = self._image_file.get_format_mimetype()  # type: ignore
+        self.size = int(round(os.path.getsize(img_path) / 1024, 0))
 
     @staticmethod
     async def load_url(url: str) -> "Picture":
@@ -89,8 +101,9 @@ class Picture:
         )
         obj.content = resp.raw
         obj.url = url
-        obj.__set_picture_meta_from_bytes(
-            url.split("/")[-1].split(".")[-1].split("?")[0]
+        await to_thread.run_sync(
+            obj._set_picture_meta_from_bytes,
+            url.split("/")[-1].split(".")[-1].split("?")[0],
         )
         return obj
 
@@ -106,32 +119,14 @@ class Picture:
             Picture: 加载后的图片对象
         """
         obj = Picture()
-        async with await anyio.open_file(path, "rb") as file:
-            obj.content = await file.read()
         obj.url = "file://" + path
-        obj.__set_picture_meta_from_bytes(os.path.basename(path).split(".")[-1])
+        await to_thread.run_sync(
+            obj._set_picture_meta_from_file, path, os.path.basename(path).split(".")[-1]
+        )
         return obj
 
     @staticmethod
-    def from_file(path: str) -> "Picture":
-        """
-        加载本地图片。
-
-        Args:
-            path (str): 图片地址
-
-        Returns:
-            Picture: 加载后的图片对象
-        """
-        obj = Picture()
-        with open(path, "rb") as file:
-            obj.content = file.read()
-        obj.url = "file://" + path
-        obj.__set_picture_meta_from_bytes(os.path.basename(path).split(".")[-1])
-        return obj
-
-    @staticmethod
-    def from_content(content: bytes, format: str) -> "Picture":
+    async def from_content(content: bytes, format: str) -> "Picture":
         """
         加载字节数据
 
@@ -144,18 +139,12 @@ class Picture:
         """
         obj = Picture()
         obj.content = content
-        obj.url = "bytes://" + content.decode("utf-8", errors="ignore")
-        obj.__set_picture_meta_from_bytes(format)
+        obj.url = "<bytes>"
+        await to_thread.run_sync(obj._set_picture_meta_from_bytes, format)
         return obj
 
     def _to_biliapifile(self) -> BiliAPIFile:
-        tmp_dir = tempfile.gettempdir()
-        img_path = os.path.join(tmp_dir, "test." + self.imageType)
-        with open(img_path, "wb") as file:
-            file.write(self.content)
-        img = Image.open(img_path)
-        mime_type = img.get_format_mimetype()
-        return BiliAPIFile(path=img_path, mime_type=mime_type)  # type: ignore
+        return BiliAPIFile(path=self._image_path, mime_type=self.mime_type)  # type: ignore
 
     async def upload(self, credential: Credential) -> "Picture":
         """
@@ -189,7 +178,7 @@ class Picture:
         self.url = res["location"]
         return self
 
-    def convert_format(self, new_format: str) -> "Picture":
+    async def convert_format(self, new_format: str) -> "Picture":
         """
         将图片转换为另一种格式。
 
@@ -199,19 +188,18 @@ class Picture:
         Returns:
             Picture: `self`
         """
-        tmp_dir = tempfile.gettempdir()
-        img_path = os.path.join(tmp_dir, "test." + self.imageType)
-        with open(img_path, "wb") as file:
-            file.write(self.content)
-        img = Image.open(img_path)
-        new_img_path = os.path.join(tmp_dir, "test." + new_format)
-        img.save(new_img_path)
-        with open(new_img_path, "rb") as file:
-            self.content = file.read()
-        self.__set_picture_meta_from_bytes(new_format)
+
+        def convert():
+            stream = io.BytesIO()
+            self._image_file.save(stream, format=new_format)
+            self.content = stream.getvalue()
+            self.url = "<bytes>"
+            self._set_picture_meta_from_bytes(new_format)
+
+        await to_thread.run_sync(convert)
         return self
 
-    def resize(self, width: int, height: int) -> "Picture":
+    async def resize(self, width: int, height: int) -> "Picture":
         """
         调整大小
 
@@ -222,20 +210,19 @@ class Picture:
         Returns:
             Picture: `self`
         """
-        tmp_dir = tempfile.gettempdir()
-        img_path = os.path.join(tmp_dir, "test." + self.imageType)
-        with open(img_path, "wb") as file:
-            file.write(self.content)
-        img = Image.open(img_path)
-        img = img.resize((width, height))
-        new_img_path = os.path.join(tmp_dir, "test." + self.imageType)
-        img.save(new_img_path)
-        with open(new_img_path, "rb") as file:
-            self.content = file.read()
-        self.__set_picture_meta_from_bytes(self.imageType)
+
+        def resize():
+            self._image_file = self._image_file.resize((width, height))
+            stream = io.BytesIO()
+            self._image_file.save(stream, format=self.format)
+            self.content = stream.getvalue()
+            self.url = "<bytes>"
+            self._set_picture_meta_from_bytes(self.format)
+
+        await to_thread.run_sync(resize)
         return self
 
-    def to_file(self, path: str) -> "Picture":
+    async def download(self, path: str) -> "Picture":
         """
         下载图片至本地。
 
@@ -245,32 +232,14 @@ class Picture:
         Returns:
             Picture: `self`
         """
-        tmp_dir = tempfile.gettempdir()
-        img_path = os.path.join(tmp_dir, "test." + self.imageType)
-        with open(img_path, "wb") as file:
-            file.write(self.content)
-        img = Image.open(img_path)
-        img.save(path, save_all=(True if self.imageType in ["webp", "gif"] else False))
-        self.url = "file://" + path
-        return self
 
-    async def download(self, path: str) -> "Picture":
-        """
-        异步下载图片至本地。
+        def download():
+            self._image_file.save(
+                path, save_all=(True if self.format in ["webp", "gif"] else False)
+            )
+            self.url = "file://" + path
 
-        Args:
-            path (str): 下载地址。
-
-        Returns:
-            Picture: `self`
-        """
-        tmp_dir = await anyio.gettempdir()
-        img_path = os.path.join(tmp_dir, "test." + self.imageType)
-        async with await anyio.open_file(img_path, "wb") as file:
-            await file.write(self.content)
-        img = Image.open(img_path)
-        img.save(path, save_all=(True if self.imageType in ["webp", "gif"] else False))
-        self.url = "file://" + path
+        await to_thread.run_sync(download)
         return self
 
     def to_json(self) -> dict:

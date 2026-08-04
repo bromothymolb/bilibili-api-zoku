@@ -5,6 +5,7 @@ CurlCFFIClient 实现
 """
 
 import asyncio
+import os
 
 import anyio
 import curl_cffi  # pylint: disable=E0401
@@ -122,16 +123,14 @@ class CurlCFFIClient(BiliAPIClient):
             headers.pop("user-agent")
 
         if files != {}:
-            cnt = 1
             multipart = curl_cffi.CurlMime()
             for key, item in files.items():
                 multipart.addpart(
                     name=key,
                     content_type=item.mime_type,
-                    filename=f"{cnt}.{item.path.split('.')[1]}",
+                    filename=os.path.basename(item.path),
                     local_path=item.path,
                 )
-                cnt += 1
         else:
             multipart = None
         resp = await self.__session.request(

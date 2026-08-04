@@ -48,8 +48,8 @@ async def upload_cover(cover: Picture, credential: Credential) -> str:
     """
     credential.raise_for_no_bili_jct()
     api = _API["cover_up"]
-    pic = cover if isinstance(cover, Picture) else Picture().from_file(cover)
-    cover = pic.convert_format("png")
+    pic = cover if isinstance(cover, Picture) else await Picture().load_file(cover)
+    cover = await pic.convert_format("png")
     data = {
         "cover": f"data:image/png;base64,{base64.b64encode(pic.content).decode('utf-8')}"
     }
@@ -366,7 +366,7 @@ class VideoMeta:
     tid: int  # 分区 ID。可以使用 channel 模块进行查询。
     title: str  # 视频标题
     desc: str  # 视频简介。
-    cover: Picture  # 封面 URL
+    cover: Picture | str  # 封面 URL
     tags: list[str] | str  # 视频标签。使用英文半角逗号分隔的标签组。
     topic_id: int | None = None  # 可选，话题 ID。
     mission_id: int | None = None  # 可选，任务 ID。
@@ -465,10 +465,7 @@ class VideoMeta:
         else:
             raise ValueError("tags 不合法或者多于 10 个")
 
-        if isinstance(cover, str):
-            self.cover = Picture().from_file(cover)
-        elif isinstance(cover, Picture):
-            self.cover = cover
+        self.cover = cover
         if topic is not None:
             self.mission_id = mission_id
             if isinstance(topic, int):
@@ -590,6 +587,8 @@ class VideoMeta:
         检查封面是否合法
         """
         try:
+            if isinstance(self.cover, str):
+                self.cover = await Picture.load_file(self.cover)
             await upload_cover(self.cover, self.__credential)
             return True
         except Exception:
@@ -746,13 +745,7 @@ class VideoUploader(AsyncEvent):
         self.meta = meta
         self.pages = pages
         self.credential: Credential = credential
-        self.cover = (
-            self.meta.cover
-            if isinstance(self.meta, VideoMeta)
-            else cover
-            if isinstance(cover, Picture)
-            else Picture().from_file(cover)  # type: ignore
-        )
+        self.cover = self.meta.cover if isinstance(self.meta, VideoMeta) else cover
         self.line_choice = line
         self.line: dict = {}
 
@@ -997,7 +990,9 @@ class VideoUploader(AsyncEvent):
         """
         self.dispatch(VideoUploaderEvents.PRE_COVER.value, None)
         try:
-            cover_url = await upload_cover(cover=self.cover, credential=self.credential)
+            if isinstance(self.cover, str):
+                self.cover = await Picture.load_file(self.cover)
+            cover_url = await upload_cover(cover=self.cover, credential=self.credential)  # type: ignore
             self.dispatch(VideoUploaderEvents.AFTER_COVER.value, {"url": cover_url})
             return cover_url
         except Exception as e:
@@ -1451,7 +1446,7 @@ class VideoEditor(AsyncEvent):
             pic = (
                 self.cover_path
                 if isinstance(self.cover_path, Picture)
-                else Picture().from_file(self.cover_path)
+                else await Picture().load_file(self.cover_path)
             )
             resp = await upload_cover(pic, self.credential)
             self.dispatch(VideoEditorEvents.AFTER_COVER.value, {"url": resp})

@@ -6,11 +6,11 @@ bilibili_api.login_v2
 
 import base64
 import enum
-import os
-import tempfile
+import io
 import time
 from typing import Union
 
+from anyio import to_thread
 from Cryptodome.Cipher import PKCS1_v1_5
 from Cryptodome.PublicKey import RSA
 import qrcode
@@ -419,7 +419,7 @@ class QrCodeLogin:
         raise_for_statement(self.has_done())
         return self.__credential  # type: ignore
 
-    def get_qrcode_picture(self) -> Picture:
+    async def get_qrcode_picture(self) -> Picture:
         """
         获取二维码的 Picture 类
 
@@ -428,16 +428,22 @@ class QrCodeLogin:
         """
         raise_for_statement(self.__qr_link is not None, "未生成二维码。")
         if not self.__qr_picture:
-            qr = qrcode.QRCode()
-            qr.add_data(self.__qr_link)  # type: ignore
-            img = qr.make_image()
-            img_dir = os.path.join(tempfile.gettempdir(), "qrcode.png")
-            img = qrcode.make(self.__qr_link)  # type: ignore
-            img.save(img_dir)  # type: ignore
-            self.__qr_picture = Picture.from_file(img_dir)
+
+            def get_img_bytes():
+                qr = qrcode.QRCode()
+                qr.add_data(self.__qr_link)  # type: ignore
+                img = qr.make_image()
+                img = qrcode.make(self.__qr_link)  # type: ignore
+                stream = io.BytesIO()
+                img.save(stream, bitmap_format="png")  # type: ignore
+                return stream.getvalue()
+
+            self.__qr_picture = await Picture.from_content(
+                await to_thread.run_sync(get_img_bytes), "png"
+            )
         return self.__qr_picture  # type: ignore
 
-    def get_qrcode_terminal(self) -> str:
+    async def get_qrcode_terminal(self) -> str:
         """
         获取二维码的终端字符串
 
@@ -446,7 +452,9 @@ class QrCodeLogin:
         """
         raise_for_statement(self.__qr_link is not None, "未生成二维码。")
         if not self.__qr_terminal:
-            self.__qr_terminal = qrcode_terminal.qr_terminal_str(self.__qr_link)
+            self.__qr_terminal = await to_thread.run_sync(
+                qrcode_terminal.qr_terminal_str, self.__qr_link
+            )
         return self.__qr_terminal
 
     async def generate_qrcode(self) -> None:
