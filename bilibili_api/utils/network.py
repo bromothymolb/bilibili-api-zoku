@@ -90,6 +90,7 @@ bilibili-api 一切行为的核心即在网络请求上。自然，掌管网络�
 - `get_session`
 - `set_session`
 - `unset_session`
+- `clean_session`
 
 此处功能较为复杂，实现了多请求客户端的管理。
 
@@ -186,7 +187,7 @@ bilibili-api 一切行为的核心即在网络请求上。自然，掌管网络�
 """
 
 from abc import ABC, abstractmethod
-import asyncio
+from asyncio import AbstractEventLoop, CancelledError
 import atexit
 import base64
 import binascii
@@ -199,13 +200,13 @@ from enum import Enum
 from functools import cmp_to_key, reduce
 import hashlib
 import hmac
-import inspect
 from inspect import (
     isasyncgen,
     isasyncgenfunction,
     iscoroutinefunction,
     isfunction,
     isgenerator,
+    signature,
 )
 import io
 import json
@@ -216,16 +217,25 @@ import os
 import random
 import re
 import struct
-import threading
+from threading import Lock as ThreadingLock
 import time
 from typing import Any, TypeVar
 import urllib.parse
 
-import anyio
-import anyio.abc
-import anyio.from_thread
+from anyio import (
+    Event,
+    Lock,
+    RunFinishedError,
+    TaskHandle,
+    create_task_group,
+    from_thread,
+    get_available_backends,
+    open_file,
+    to_thread,
+)
+from anyio._backends._asyncio import AsyncIOBackend
+from anyio.abc import TaskGroup
 from anyio.lowlevel import EventLoopToken, current_token
-import anyio.to_thread
 from bs4 import BeautifulSoup
 import chompjs
 from Cryptodome.Cipher import PKCS1_OAEP
@@ -249,6 +259,14 @@ from ..exceptions import (
 )
 from .utils import get_api, raise_for_statement
 
+TRIO_AVAILABLE = "trio" in get_available_backends()
+
+if TRIO_AVAILABLE:
+    from anyio._backends._trio import TrioBackend
+    from trio.lowlevel import TrioToken
+else:
+    TrioToken = None
+
 ################################################## BEGIN AsyncEvent ##################################################
 
 
@@ -270,9 +288,9 @@ class AsyncEvent:
         # don't remove this empty docstring
         self.__handlers = {}
         self.__ignore_events = []
-        self.task_group: anyio.abc.TaskGroup
-        self.__exit_event: anyio.Event
-        self.__task: anyio.TaskHandle
+        self.task_group: TaskGroup
+        self.__exit_event: Event
+        self.__task: TaskHandle
 
     def add_event_listener(self, name: str, handler: Callable | Coroutine) -> None:
         """
@@ -393,8 +411,8 @@ class AsyncEvent:
         Returns:
             ~T | None: 主程序返回值，若中途取消则返回 None
         """
-        self.task_group = anyio.create_task_group()
-        self.__exit_event = anyio.Event()
+        self.task_group = create_task_group()
+        self.__exit_event = Event()
         ret = None
         try:
             async with self.task_group as task_group:
@@ -407,7 +425,7 @@ class AsyncEvent:
                 self.__task = task_group.create_task(coro)
                 ret = await self.__task
                 self.__exit_event.set()
-        except asyncio.CancelledError:
+        except CancelledError:
             self.__exit_event.set()
             pass
         return ret
@@ -415,7 +433,7 @@ class AsyncEvent:
     @asynccontextmanager
     async def async_event_run(
         self, start_coro: Coroutine[Any, Any, T]
-    ) -> AsyncGenerator[anyio.TaskHandle[T | None]]:
+    ) -> AsyncGenerator[TaskHandle[T | None]]:
         """
         非阻塞启动异步事件类
 
@@ -427,7 +445,7 @@ class AsyncEvent:
         Returns:
             AsyncGenerator[anyio.TaskHandle[~T | None]]: 运行主程序的 TaskHandle，若中途取消则返回 None
         """
-        async with anyio.create_task_group() as btg:
+        async with create_task_group() as btg:
             background_task = btg.create_task(self.async_event_start(start_coro))
             yield background_task
 
@@ -606,7 +624,10 @@ class RequestLog(AsyncEvent):
             client = real_data.pop("client")
             instance = real_data.pop("instance")
             loop = real_data.pop("event_loop")
-            info_str = f"#{act_id} [{client}/{instance}] <{loop.backend_class.__name__}({hash(loop)})>"
+            backend = {"AsyncIOBackend": "asyncio", "TrioBackend": "trio"}[
+                loop.backend_class.__name__
+            ]
+            info_str = f"#{act_id} [{client}/{instance}] <{backend}@{hash(loop)}>"
             log_str = ""
             middle_str = " "
             if evt.startswith("WS_"):
@@ -739,9 +760,7 @@ class BiliSettings:
             "enable_buvid_global_persistence": False,
             "enable_bili_ticket_global_persistence": False,
             "enable_fpgen": False,
-            "global_credential": None,
             "fpgen_args": {},
-            "trio": False,
         }
         self.__defaults = {
             "wbi_retry_times": 3,
@@ -750,9 +769,7 @@ class BiliSettings:
             "enable_buvid_global_persistence": False,
             "enable_bili_ticket_global_persistence": False,
             "enable_fpgen": False,
-            "global_credential": None,
             "fpgen_args": {},
-            "trio": False,
         }
 
     def get(self, name: str) -> Any:
@@ -942,42 +959,6 @@ class BiliSettings:
         """
         self.set("fpgen_args", fpgen_args)
 
-    def get_global_credential(self) -> "Credential | None":
-        """
-        获取全局凭据类
-
-        Returns:
-            Credential | None: 全局凭据类
-        """
-        return self.get("global_credential")
-
-    def set_global_credential(self, global_credential: "Credential | None") -> None:
-        """
-        设置全局凭据类
-
-        Args:
-            global_credential (Credential | None): 全局凭据类
-        """
-        self.set("global_credential", global_credential)
-
-    def get_enable_trio(self) -> bool:
-        """
-        获取是否启用 trio 支持
-
-        Returns:
-            bool: 是否启用 trio 支持
-        """
-        return self.get("trio")
-
-    def set_enable_trio(self, enable_trio: bool) -> None:
-        """
-        设置是否启用 trio 支持
-
-        Args:
-            enable_trio (bool): 是否启用 trio 支持
-        """
-        self.set("trio", enable_trio)
-
     def gets(self, keys: list[str]) -> dict:
         """
         获取对应设置项的设置
@@ -1039,6 +1020,11 @@ class RequestSettings:
         self.__is_base = False  # base_settings cannot unset
         self.__defaults: dict = {}
 
+    def _set_base(self, defaults: dict) -> None:
+        self.__is_base = True
+        self.__defaults = defaults.copy()
+        self.sets(self.__defaults)
+
     def _get_lazy(self) -> dict:
         return self.__lazy.copy()
 
@@ -1050,11 +1036,6 @@ class RequestSettings:
                 del ret[key]
         self.__latest_state = self.__settings.copy()
         return ret
-
-    def _set_base(self, defaults: dict) -> None:
-        self.__is_base = True
-        self.__defaults = defaults.copy()
-        self.sets(self.__defaults)
 
     def get(self, name: str) -> Any:
         """
@@ -1833,18 +1814,17 @@ class BiliAPIClient(ABC):
 
 
 client_func_cnt = 0
-client_lock = threading.Lock()
-loop_lock: dict[EventLoopToken, threading.Lock] = {}
-loop_record_lock = threading.Lock()
-clean_tasks: set[asyncio.Task] = set()
+client_lock = ThreadingLock()
+loop_lock: dict[EventLoopToken, ThreadingLock] = {}
+loop_record_lock = ThreadingLock()
 
 
-def get_loop_lock(loop: EventLoopToken) -> threading.Lock:
+def get_loop_lock(loop: EventLoopToken) -> ThreadingLock:
     if loop_lock.get(loop):
         return loop_lock[loop]
     with loop_record_lock:
         if not loop_lock.get(loop):
-            loop_lock[loop] = threading.Lock()
+            loop_lock[loop] = ThreadingLock()
         return loop_lock[loop]
 
 
@@ -1852,19 +1832,19 @@ class MultiEventLoopLocks:
     def __init__(self) -> None:
         # helper class for Credential locking
         # for Credential is used by many event loops
-        self._locks: dict[EventLoopToken, anyio.Lock] = {}
-        self._lock: threading.Lock = threading.Lock()
+        self._locks: dict[EventLoopToken, Lock] = {}
+        self._lock: ThreadingLock = ThreadingLock()
         self._running: bool = False
-        self._multithread_lock: threading.Lock = threading.Lock()
-        self._events: dict[EventLoopToken, anyio.Event] = {}
+        self._multithread_lock: ThreadingLock = ThreadingLock()
+        self._events: dict[EventLoopToken, Event] = {}
 
-    def get_lock(self) -> anyio.Lock:
+    def get_lock(self) -> Lock:
         event_loop = current_token()
         if self._locks.get(event_loop):
             return self._locks[event_loop]
         with self._lock:
             if not self._locks.get(event_loop):
-                self._locks[event_loop] = anyio.Lock()
+                self._locks[event_loop] = Lock()
         return self._locks[event_loop]
 
     def check_multithread_state(self) -> bool:
@@ -1877,7 +1857,7 @@ class MultiEventLoopLocks:
     async def wait_multithread(self) -> None:
         # this function should be locked in get_lock() while running
         event_loop = current_token()
-        self._events[event_loop] = anyio.Event()
+        self._events[event_loop] = Event()
         await self._events[event_loop].wait()
         del self._events[event_loop]
 
@@ -1887,9 +1867,9 @@ class MultiEventLoopLocks:
 
         def stop_waiting_anyio_events():
             for token, event in list(self._events.items()):
-                anyio.from_thread.run_sync(event.set, token=token)
+                from_thread.run_sync(event.set, token=token)
 
-        await anyio.to_thread.run_sync(stop_waiting_anyio_events)
+        await to_thread.run_sync(stop_waiting_anyio_events)
 
 
 class BiliFilterFlags(Enum):
@@ -1996,6 +1976,34 @@ class BiliFilterArgs:
     filter_data: BiliFilterData
     filter_index: int
     filter_locate: str
+
+    def get_event_loop(self) -> AbstractEventLoop:
+        """
+        获取事件循环 (asyncio.AbstractEventLoop)
+
+        Returns:
+            asyncio.AbstractEventLoop: 事件循环
+        """
+        raise_for_statement(
+            self.event_loop_token.backend_class.__name__ == "AsyncIOBackend",
+            "当前异步框架并非 asyncio",
+        )
+        return self.event_loop_token.native_token  # type: ignore
+
+    if TRIO_AVAILABLE:
+
+        def get_trio_token(self) -> TrioToken:  # type: ignore
+            """
+            获取 TrioToken
+
+            Returns:
+                trio.lowlevel.TrioToken: TrioToken
+            """
+            raise_for_statement(
+                self.event_loop_token.backend_class.__name__ == "TrioBackend",
+                "当前异步框架并非 trio",
+            )
+            return self.event_loop_token.native_token  # type: ignore
 
 
 class BiliFilterReturn:
@@ -2152,7 +2160,7 @@ class _BiliAPIClient:
             # functions are not allowed to use *args or **kwargs
             ret: dict = kwargs
             args = list(args)
-            sig = inspect.signature(obj)
+            sig = signature(obj)
             for name, _ in list(sig.parameters.items()):
                 if len(args) == 0:
                     break
@@ -2169,6 +2177,8 @@ class _BiliAPIClient:
             if isgenerator(result):
                 return list(result)  # type: ignore
             else:
+                if not result:
+                    result = BiliFilterReturn.continue_exec()
                 return [result]  # type: ignore
 
         async def arun_filter(
@@ -2181,7 +2191,10 @@ class _BiliAPIClient:
                     ret.append(item)
                 return ret
             else:
-                return [await result]
+                result = await result
+                if not result:
+                    result = BiliFilterReturn.continue_exec()
+                return [result]  # type: ignore
 
         def method_wrapper(method: Callable) -> Callable:
             def wrapped_method(*args, **kwargs) -> Any:
@@ -2219,9 +2232,10 @@ class _BiliAPIClient:
                                 "filter_id": i,
                             },
                         )
-                    goto = None  # the return of the function
+                    gflag = BiliFilterFlags.CONTINUE
+                    gparam: Any = None
                     if locate == "pre" and skip_pre:
-                        goto = None
+                        pass
                     elif filt.get("function"):
                         try:
                             results = run_filter(
@@ -2241,26 +2255,16 @@ class _BiliAPIClient:
                                 sflag, sparam = result[0], result[1]
                             except Exception:
                                 raise ArgsException(
-                                    "过滤器抛出值不满足形式 tuple[BiliFilterFlags, Any]。"
+                                    "过滤器返回值/生成值不满足形式 tuple[BiliFilterFlags, Any]。"
                                 ) from None
                             if sflag == BiliFilterFlags.SET_PARAMS:
                                 args = deepcopy(sparam)
                             elif sflag == BiliFilterFlags.SET_RETURN:
                                 ret = deepcopy(sparam)
-                            goto = result
+                            gflag, gparam = sflag, sparam
                     else:
                         i += 1
                         continue
-                    try:
-                        if goto is None:
-                            gflag = BiliFilterFlags.CONTINUE
-                            gparam: Any = None
-                        else:
-                            gflag, gparam = goto[0], goto[1]  # type: ignore
-                    except Exception:
-                        raise ArgsException(
-                            "过滤器返回值不满足形式 tuple[BiliFilterFlags, Any]。"
-                        ) from None
                     if gflag == BiliFilterFlags.EXECUTE_NOW:
                         skip_pre = True
                     elif gflag == BiliFilterFlags.RETURN_NOW:
@@ -2318,9 +2322,10 @@ class _BiliAPIClient:
                                 "filter_id": i,
                             },
                         )
-                    goto = None  # the return of the function
+                    gflag = BiliFilterFlags.CONTINUE
+                    gparam: Any = None
                     if locate == "pre" and skip_pre:
-                        goto = None
+                        pass
                     elif filt.get("function") or filt.get("async_function"):
                         try:
                             if filt.get("function"):
@@ -2354,26 +2359,16 @@ class _BiliAPIClient:
                                 sflag, sparam = result[0], result[1]
                             except Exception:
                                 raise ArgsException(
-                                    "过滤器抛出值不满足形式 tuple[BiliFilterFlags, Any]。"
+                                    "过滤器返回值/生成值不满足形式 tuple[BiliFilterFlags, Any]。"
                                 ) from None
                             if sflag == BiliFilterFlags.SET_PARAMS:
                                 args = deepcopy(sparam)
                             elif sflag == BiliFilterFlags.SET_RETURN:
                                 ret = deepcopy(sparam)
-                            goto = result
+                            gflag, gparam = sflag, sparam
                     else:
                         i += 1
                         continue
-                    try:
-                        if goto is None:
-                            gflag = BiliFilterFlags.CONTINUE
-                            gparam: Any = None
-                        else:
-                            gflag, gparam = goto[0], goto[1]  # type: ignore
-                    except Exception:
-                        raise ArgsException(
-                            "过滤器返回值不满足形式 tuple[BiliFilterFlags, Any]。"
-                        ) from None
                     if gflag == BiliFilterFlags.EXECUTE_NOW:
                         skip_pre = True
                     elif gflag == BiliFilterFlags.RETURN_NOW:
@@ -2444,7 +2439,7 @@ class _BiliAPIClientGroup:
         client = _BiliAPIClient(
             self.__client__,
             self.__instance__,
-            self._prepare_settings(),  # update base settings
+            RequestSettings(),  # unable to configure
             session,
             loop,
         )
@@ -2456,14 +2451,17 @@ class _BiliAPIClientGroup:
             return
         del self.__set_session_pool[loop]
 
-    def get_client(self) -> _BiliAPIClient:
-        loop = current_token()
+    def get_client(self, loop: EventLoopToken | None = None) -> _BiliAPIClient:
+        loop = loop or current_token()
         if self.__set_session_pool.get(loop):
             client = self.__set_session_pool[loop]
         else:
-            client = self.ensure_client(loop)
-        # sync _BiliAPIClientGroup settings to _BiliAPIClient
-        client._sync_settings(self._prepare_settings().all())
+            if loop == current_token():
+                client = self.ensure_client(loop)
+            else:
+                client = from_thread.run_sync(self.ensure_client, loop, token=loop)
+            # sync _BiliAPIClientGroup settings to _BiliAPIClient
+            client._sync_settings(self._prepare_settings().all())
         return client
 
     def get_base_settings(self) -> RequestSettings:
@@ -2472,11 +2470,20 @@ class _BiliAPIClientGroup:
     def get_force_settings(self) -> RequestSettings:
         return self.__force_settings
 
-    async def clean(self) -> None:
-        for _, client in self.__session_pool.items():
-            await client.close()
-        for _, client in self.__set_session_pool.items():
-            await client.close()
+    async def clean(self, loop: EventLoopToken | None = None) -> None:
+        loop = loop or current_token()
+        sess = self.__session_pool.get(loop)
+        if sess:
+            if loop == current_token():
+                await sess.close()
+            else:
+                await to_thread.run_sync(from_thread.run, sess.close, loop)
+        set_sess = self.__set_session_pool.get(loop)
+        if set_sess:
+            if loop == current_token():
+                await set_sess.close()
+            else:
+                await to_thread.run_sync(from_thread.run, set_sess.close, loop)
 
 
 sessions: dict[str, type["BiliAPIClient"]] = {}
@@ -2689,7 +2696,7 @@ def get_instance_settings(
     try:
         group = client_groups[client][instance]
     except KeyError as e:
-        raise Exception("未找到对应请求客户端实例") from e
+        raise ArgsException("未找到对应请求客户端实例") from e
     return group.get_base_settings()
 
 
@@ -2711,7 +2718,7 @@ def get_force_settings(
     try:
         group = client_groups[client][instance]
     except KeyError as e:
-        raise Exception("未找到对应请求客户端实例") from e
+        raise ArgsException("未找到对应请求客户端实例") from e
     return group.get_force_settings()
 
 
@@ -2725,49 +2732,71 @@ def get_settings() -> RequestSettings:
     return request_settings
 
 
-##### get_client() / get_session() / set_session() / unset_session() #####
+##### get_client() / get_session() / set_session() / unset_session() / clean_session() #####
 
 
-def get_client(client: str | None = None, instance: str | None = None) -> BiliAPIClient:
+def get_client(
+    client: str | None = None,
+    instance: str | None = None,
+    loop: AbstractEventLoop | TrioToken | None = None,  # type: ignore
+    token: EventLoopToken | None = None,
+) -> BiliAPIClient:
     """
     获取模块正在使用的请求客户端
 
     Args:
         client (str | None, optional): 请求客户端类型. Defaults to None.
         instance (str | None, optional): 请求客户端实例名称. Defaults to None.
+        loop (asyncio.AbstractEventLoop | trio.lowlevel.TrioToken | None): 事件循环，不提供则采用当前事件循环. Defaults to None.
+        token (anyio.lowlevel.EventLoopToken | None, optional): anyio 事件循环令牌，不提供则使用 loop 参数. Defaults to None.
 
     Returns:
         BiliAPIClient: 请求客户端
     """
+    if not token:
+        if isinstance(loop, AbstractEventLoop):
+            token = EventLoopToken(backend_class=AsyncIOBackend, native_token=loop)
+        elif TRIO_AVAILABLE and isinstance(loop, TrioToken):  # type: ignore
+            token = EventLoopToken(backend_class=TrioBackend, native_token=loop)  # type: ignore
+        else:
+            token = current_token()
     client = client or get_selected_client()[0]
     instance = instance or get_selected_instance()
     try:
         group = client_groups[client][instance]  # type: ignore
     except KeyError as e:
-        raise Exception("未找到对应请求客户端实例") from e
-    return group.get_client()  # type: ignore
+        raise ArgsException("未找到对应请求客户端实例") from e
+    return group.get_client(token)  # type: ignore
 
 
-def get_session(client: str | None = None, instance: str | None = None) -> object:
+def get_session(
+    client: str | None = None,
+    instance: str | None = None,
+    loop: AbstractEventLoop | TrioToken | None = None,  # type: ignore
+    token: EventLoopToken | None = None,
+) -> object:
     """
     在当前事件循环下获取请求客户端的会话对象。
 
     Args:
         client (str | None, optional): 请求客户端类型. Defaults to None.
         instance (str | None, optional): 请求客户端实例名称. Defaults to None.
+        loop (asyncio.AbstractEventLoop | trio.lowlevel.TrioToken | None): 事件循环，不提供则采用当前事件循环. Defaults to None.
+        token (anyio.lowlevel.EventLoopToken | None, optional): anyio 事件循环令牌，不提供则使用 loop 参数. Defaults to None.
 
     Returns:
         object: 会话对象
     """
     client = client or get_selected_client()[0]
     instance = instance or get_selected_instance()
-    return get_client(client, instance).get_wrapped_session()
+    return get_client(client, instance, loop, token).get_wrapped_session()
 
 
 def set_session(
     session: object,
     client: str | None = None,
     instance: str | None = None,
+    loop: AbstractEventLoop | TrioToken | None = None,  # type: ignore
     token: EventLoopToken | None = None,
 ) -> None:
     """
@@ -2777,20 +2806,29 @@ def set_session(
         session (object): 会话对象
         client (str | None, optional): 请求客户端类型. Defaults to None.
         instance (str | None, optional): 请求客户端实例名称. Defaults to None.
-        token (anyio.lowlevel.EventLoopToken | None, optional): 事件循环，不提供则采用当前事件循环. Defaults to None.
+        loop (asyncio.AbstractEventLoop | trio.lowlevel.TrioToken | None): 事件循环，不提供则采用当前事件循环. Defaults to None.
+        token (anyio.lowlevel.EventLoopToken | None, optional): anyio 事件循环令牌，不提供则使用 loop 参数. Defaults to None.
     """
+    if not token:
+        if isinstance(loop, AbstractEventLoop):
+            token = EventLoopToken(backend_class=AsyncIOBackend, native_token=loop)
+        elif TRIO_AVAILABLE and isinstance(loop, TrioToken):  # type: ignore
+            token = EventLoopToken(backend_class=TrioBackend, native_token=loop)  # type: ignore
+        else:
+            token = current_token()
     client = client or get_selected_client()[0]
     instance = instance or get_selected_instance()
     try:
         group = client_groups[client][instance]
     except KeyError as e:
-        raise Exception("未找到对应请求客户端实例") from e
-    group.set_session(session, token or current_token())
+        raise ArgsException("未找到对应请求客户端实例") from e
+    group.set_session(session, token)
 
 
 def unset_session(
     client: str | None = None,
     instance: str | None = None,
+    loop: AbstractEventLoop | TrioToken | None = None,  # type: ignore
     token: EventLoopToken | None = None,
 ) -> None:
     """
@@ -2799,15 +2837,47 @@ def unset_session(
     Args:
         client (str | None, optional): 请求客户端类型. Defaults to None.
         instance (str | None, optional): 请求客户端实例名称. Defaults to None.
-        token (anyio.lowlevel.EventLoopToken | None, optional): 事件循环，不提供则采用当前事件循环. Defaults to None.
+        loop (asyncio.AbstractEventLoop | trio.lowlevel.TrioToken | None): 事件循环，不提供则采用当前事件循环. Defaults to None.
+        token (anyio.lowlevel.EventLoopToken | None, optional): anyio 事件循环令牌，不提供则使用 loop 参数. Defaults to None.
     """
+    if not token:
+        if isinstance(loop, AbstractEventLoop):
+            token = EventLoopToken(backend_class=AsyncIOBackend, native_token=loop)
+        elif TRIO_AVAILABLE and isinstance(loop, TrioToken):  # type: ignore
+            token = EventLoopToken(backend_class=TrioBackend, native_token=loop)  # type: ignore
+        else:
+            token = current_token()
     client = client or get_selected_client()[0]
     instance = instance or get_selected_instance()
     try:
         group = client_groups[client][instance]
     except KeyError as e:
-        raise Exception("未找到对应请求客户端实例") from e
-    group.unset_session(token or current_token())
+        raise ArgsException("未找到对应请求客户端实例") from e
+    group.unset_session(token)
+
+
+async def clean_session(
+    loop: AbstractEventLoop | TrioToken | None = None,  # type: ignore
+    token: EventLoopToken | None = None,
+) -> None:
+    """
+    关闭所有请求客户端的会话对象。
+
+    Args:
+        loop (asyncio.AbstractEventLoop | trio.lowlevel.TrioToken | None): 事件循环，不提供则采用当前事件循环. Defaults to None.
+        token (anyio.lowlevel.EventLoopToken | None, optional): anyio 事件循环令牌，不提供则使用 loop 参数. Defaults to None.
+    """
+    if not token:
+        if isinstance(loop, AbstractEventLoop):
+            token = EventLoopToken(backend_class=AsyncIOBackend, native_token=loop)
+        elif TRIO_AVAILABLE and isinstance(loop, TrioToken):  # type: ignore
+            token = EventLoopToken(backend_class=TrioBackend, native_token=loop)  # type: ignore
+        else:
+            token = current_token()
+    async with create_task_group() as tg:
+        for client in client_groups.keys():
+            for instance in client_groups[client].keys():
+                tg.create_task(client_groups[client][instance].clean(token))
 
 
 ##### filter #####
@@ -2926,27 +2996,11 @@ def __clean() -> None:
     """
     程序退出清理操作。
     """
-
-    async def __clean_task():
-        for _, instances in client_groups.items():
-            for _, instance in instances.items():
-                await instance.clean()
-
-    if bili_settings.get_enable_trio():
-        anyio.run(__clean_task, backend="trio")
-        return
-
-    try:
-        loop = asyncio.get_event_loop()
-    except RuntimeError:
-        return
-
-    if loop.is_running():
-        task = loop.create_task(__clean_task())
-        clean_tasks.add(task)
-        task.add_done_callback(clean_tasks.discard)
-    elif not loop.is_closed():
-        loop.run_until_complete(__clean_task())
+    for loop in loop_lock.keys():
+        try:
+            from_thread.run(clean_session, loop, token=loop)
+        except RunFinishedError:
+            pass
 
 
 ################################################## END Session Management ##################################################
@@ -3298,11 +3352,6 @@ class Credential:
         没有提供 sessdata 则抛出异常。
         """
         if not self.has_sessdata():
-            if (
-                bili_settings.get_global_credential()
-                and bili_settings.get_global_credential().has_sessdata()  # type: ignore
-            ):
-                return
             raise CredentialNoSessdataException()
 
     def raise_for_no_bili_jct(self) -> None:
@@ -3310,11 +3359,6 @@ class Credential:
         没有提供 bili_jct 则抛出异常。
         """
         if not self.has_bili_jct():
-            if (
-                bili_settings.get_global_credential()
-                and bili_settings.get_global_credential().has_bili_jct()  # type: ignore
-            ):
-                return
             raise CredentialNoBiliJctException()
 
     def raise_for_no_buvid3(self) -> None:
@@ -3322,11 +3366,6 @@ class Credential:
         没有提供 buvid3 时抛出异常。
         """
         if not self.has_buvid3():
-            if (
-                bili_settings.get_global_credential()
-                and bili_settings.get_global_credential().has_buvid3()  # type: ignore
-            ):
-                return
             raise CredentialNoBuvid3Exception()
 
     def raise_for_no_buvid4(self) -> None:
@@ -3334,11 +3373,6 @@ class Credential:
         没有提供 buvid4 时抛出异常。
         """
         if not self.has_buvid4():
-            if (
-                bili_settings.get_global_credential()
-                and bili_settings.get_global_credential().has_buvid4()  # type: ignore
-            ):
-                return
             raise CredentialNoBuvid4Exception()
 
     def raise_for_no_dedeuserid(self) -> None:
@@ -3346,11 +3380,6 @@ class Credential:
         没有提供 DedeUserID 时抛出异常。
         """
         if not self.has_dedeuserid():
-            if (
-                bili_settings.get_global_credential()
-                and bili_settings.get_global_credential().has_dedeuserid()  # type: ignore
-            ):
-                return
             raise CredentialNoDedeUserIDException()
 
     def raise_for_no_ac_time_value(self) -> None:
@@ -3358,11 +3387,6 @@ class Credential:
         没有提供 ac_time_value 时抛出异常。
         """
         if not self.has_ac_time_value():
-            if (
-                bili_settings.get_global_credential()
-                and bili_settings.get_global_credential().has_ac_time_value()  # type: ignore
-            ):
-                return
             raise CredentialNoAcTimeValueException()
 
     async def check_valid(self) -> bool:
@@ -4289,51 +4313,7 @@ def __register_builtin_log_filters():
     register_post_filter(name="__builtin_log_post", func=log_post, priority=-998244353)
 
 
-def __register_global_credential_filter():
-    async def add_credential(args: BiliFilterArgs):
-        gcred = bili_settings.get_global_credential()
-        if not gcred:
-            return BiliFilterReturn.continue_exec()
-        sig = inspect.signature(getattr(args.sess, args.func))
-
-        def check_refreshing_urls(cred: Credential) -> bool:
-            if (
-                not cred.is_buvid_generated() and bili_settings.get_enable_auto_buvid()
-            ) or (
-                not cred.is_bili_ticket_valid()
-                and bili_settings.get_enable_bili_ticket()
-            ):  # need refresh
-                if (
-                    args.params.get("url")
-                    in [
-                        "https://api.bilibili.com/x/frontend/finger/spi_v2",  # buvid3 / buvid4
-                        "https://api.bilibili.com/bapis/bilibili.api.ticket.v1.Ticket/GenWebTicket",  # bili_ticket
-                        "https://api.bilibili.com/x/internal/gaia-gateway/ExClimbWuzhi",  # exclimbwuzhi
-                        "https://api.bilibili.com/x/web-interface/nav",  # wbi
-                        "https://www.bilibili.com",  # gaining buvid_fp
-                    ]
-                ):
-                    return False
-            return True
-
-        if "cookies" in sig.parameters.keys():
-            if not check_refreshing_urls(gcred):
-                if not args.params.get("cookies"):
-                    args.params["cookies"] = {}
-                args.params["cookies"] |= gcred.get_core_cookies()
-            else:
-                args.params["cookies"] = await gcred.get_cookies()
-        return BiliFilterReturn.set_params(args.params.copy())
-
-    register_pre_filter(
-        name="__builtin_global_credential",
-        func=add_credential,
-        priority=0,
-    )
-
-
 __register_builtin_log_filters()
-__register_global_credential_filter()
 
 
 ################################################## END Builtin-Filters ##################################################
@@ -4916,7 +4896,7 @@ async def bili_simple_download(
     dwn_id = await client.download_create(url=url, headers=get_bili_headers())
     bts = 0
     tot = client.download_content_length(cnt=dwn_id)
-    async with await anyio.open_file(out, "wb") as file:
+    async with await open_file(out, "wb") as file:
         while True:
             bts += await file.write(await client.download_chunk(cnt=dwn_id))
             print(f"{intro} - {out} [{bts} / {tot}]", end="\r")

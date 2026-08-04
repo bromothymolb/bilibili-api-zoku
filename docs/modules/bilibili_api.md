@@ -38,6 +38,8 @@ from bilibili_api import ...
   - [def json()](#def-json)
   - [def utf8\_text()](#def-utf8\_text)
 - [class BiliFilterArgs()](#class-BiliFilterArgs)
+  - [def get\_event\_loop()](#def-get\_event\_loop)
+  - [def get\_trio\_token()](#def-get\_trio\_token)
 - [class BiliFilterData()](#class-BiliFilterData)
   - [def \_\_init\_\_()](#def-\_\_init\_\_)
   - [def get\_data()](#def-get\_data)
@@ -163,9 +165,7 @@ from bilibili_api import ...
   - [def get\_enable\_bili\_ticket\_global\_persistence()](#def-get\_enable\_bili\_ticket\_global\_persistence)
   - [def get\_enable\_buvid\_global\_persistence()](#def-get\_enable\_buvid\_global\_persistence)
   - [def get\_enable\_fpgen()](#def-get\_enable\_fpgen)
-  - [def get\_enable\_trio()](#def-get\_enable\_trio)
   - [def get\_fpgen\_args()](#def-get\_fpgen\_args)
-  - [def get\_global\_credential()](#def-get\_global\_credential)
   - [def get\_wbi\_retry\_times()](#def-get\_wbi\_retry\_times)
   - [def gets()](#def-gets)
   - [def has()](#def-has)
@@ -176,13 +176,12 @@ from bilibili_api import ...
   - [def set\_enable\_bili\_ticket\_global\_persistence()](#def-set\_enable\_bili\_ticket\_global\_persistence)
   - [def set\_enable\_buvid\_global\_persistence()](#def-set\_enable\_buvid\_global\_persistence)
   - [def set\_enable\_fpgen()](#def-set\_enable\_fpgen)
-  - [def set\_enable\_trio()](#def-set\_enable\_trio)
   - [def set\_fpgen\_args()](#def-set\_fpgen\_args)
-  - [def set\_global\_credential()](#def-set\_global\_credential)
   - [def set\_wbi\_retry\_times()](#def-set\_wbi\_retry\_times)
   - [def sets()](#def-sets)
 - [async def bili\_simple\_download()](#async-def-bili\_simple\_download)
 - [def bvid2aid()](#def-bvid2aid)
+- [async def clean\_session()](#async-def-clean\_session)
 - [def configure\_dynamic\_fingerprint()](#def-configure\_dynamic\_fingerprint)
 - [async def ensure\_bili\_ticket()](#async-def-ensure\_bili\_ticket)
 - [async def ensure\_buvid()](#async-def-ensure\_buvid)
@@ -800,6 +799,28 @@ class BiliAPIClient(ABC):
 | `filter_data` | `FilterData` | 用于数据交换的 FilterData 实例 |
 | `filter_index` | `int` | 过滤器在运行列表中的位置下标 |
 | `filter_locate` | `str` | 过滤器位置，前置为 `pre`，后置为 `post`。 |
+
+
+### def get_event_loop()
+
+获取事件循环 (asyncio.AbstractEventLoop)
+
+
+
+**Returns:** `asyncio.AbstractEventLoop`:  事件循环
+
+
+
+
+### def get_trio_token()
+
+获取 TrioToken
+
+
+
+**Returns:** `trio.lowlevel.TrioToken`:  TrioToken
+
+
 
 
 ---
@@ -2398,17 +2419,6 @@ AV 号转 BV 号。
 
 
 
-### def get_enable_trio()
-
-获取是否启用 trio 支持
-
-
-
-**Returns:** `bool`:  是否启用 trio 支持
-
-
-
-
 ### def get_fpgen_args()
 
 获取调用 fpgen 的参数
@@ -2416,17 +2426,6 @@ AV 号转 BV 号。
 
 
 **Returns:** `dict`:  调用 fpgen 的参数
-
-
-
-
-### def get_global_credential()
-
-获取全局凭据类
-
-
-
-**Returns:** `Credential | None`:  全局凭据类
 
 
 
@@ -2556,18 +2555,6 @@ AV 号转 BV 号。
 
 
 
-### def set_enable_trio()
-
-设置是否启用 trio 支持
-
-
-| name | type | description |
-| - | - | - |
-| `enable_trio` | `bool` | 是否启用 trio 支持 |
-
-
-
-
 ### def set_fpgen_args()
 
 设置调用 fpgen 的参数
@@ -2576,18 +2563,6 @@ AV 号转 BV 号。
 | name | type | description |
 | - | - | - |
 | `fpgen_args` | `dict` | 调用 fpgen 的参数 |
-
-
-
-
-### def set_global_credential()
-
-设置全局凭据类
-
-
-| name | type | description |
-| - | - | - |
-| `global_credential` | `Credential \| None` | 全局凭据类 |
 
 
 
@@ -2648,6 +2623,21 @@ BV 号转 AV 号。
 | `bvid` | `str` | BV 号。 |
 
 **Returns:** `int`:  AV 号。
+
+
+
+
+---
+
+## async def clean_session()
+
+关闭所有请求客户端的会话对象。
+
+
+| name | type | description |
+| - | - | - |
+| `loop` | `asyncio.AbstractEventLoop \| trio.lowlevel.TrioToken \| None` | 事件循环，不提供则采用当前事件循环. Defaults to None. |
+| `token` | `anyio.lowlevel.EventLoopToken \| None, optional` | anyio 事件循环令牌，不提供则采用当前事件循环. Defaults to None. |
 
 
 
@@ -2744,11 +2734,15 @@ BV 号转 AV 号。
 
 获取模块正在使用的请求客户端
 
+loop 与 token 提供一个即可，token 优先级更高。
+
 
 | name | type | description |
 | - | - | - |
 | `client` | `str \| None, optional` | 请求客户端类型. Defaults to None. |
 | `instance` | `str \| None, optional` | 请求客户端实例名称. Defaults to None. |
+| `loop` | `asyncio.AbstractEventLoop \| trio.lowlevel.TrioToken \| None` | 事件循环，不提供则采用当前事件循环. Defaults to None. |
+| `token` | `anyio.lowlevel.EventLoopToken \| None, optional` | anyio 事件循环令牌，不提供则采用当前事件循环. Defaults to None. |
 
 **Returns:** `BiliAPIClient`:  请求客户端
 
@@ -2914,6 +2908,8 @@ BV 号转 AV 号。
 | - | - | - |
 | `client` | `str \| None, optional` | 请求客户端类型. Defaults to None. |
 | `instance` | `str \| None, optional` | 请求客户端实例名称. Defaults to None. |
+| `loop` | `asyncio.AbstractEventLoop \| trio.lowlevel.TrioToken \| None` | 事件循环，不提供则采用当前事件循环. Defaults to None. |
+| `token` | `anyio.lowlevel.EventLoopToken \| None, optional` | anyio 事件循环令牌，不提供则采用当前事件循环. Defaults to None. |
 
 **Returns:** `object`:  会话对象
 
@@ -3253,7 +3249,8 @@ async def handle(desc: str, data: dict) -> None:
 | `session` | `object` | 会话对象 |
 | `client` | `str \| None, optional` | 请求客户端类型. Defaults to None. |
 | `instance` | `str \| None, optional` | 请求客户端实例名称. Defaults to None. |
-| `token` | `anyio.lowlevel.EventLoopToken \| None, optional` | 事件循环，不提供则采用当前事件循环. Defaults to None. |
+| `loop` | `asyncio.AbstractEventLoop \| trio.lowlevel.TrioToken \| None` | 事件循环，不提供则采用当前事件循环. Defaults to None. |
+| `token` | `anyio.lowlevel.EventLoopToken \| None, optional` | anyio 事件循环令牌，不提供则采用当前事件循环. Defaults to None. |
 
 
 
@@ -3268,6 +3265,7 @@ async def handle(desc: str, data: dict) -> None:
 | name | type | description |
 | - | - | - |
 | `coroutine` | `Coroutine[Any, Any, ~T] \| Future[~T]` | 异步函数 |
+| `backend` | `str, optional` | 异步框架，可选 asyncio / trio。Defaults to "asyncio". |
 
 **Returns:** `~T`:  该异步函数的返回值
 
@@ -3313,7 +3311,8 @@ async def handle(desc: str, data: dict) -> None:
 | - | - | - |
 | `client` | `str \| None, optional` | 请求客户端类型. Defaults to None. |
 | `instance` | `str \| None, optional` | 请求客户端实例名称. Defaults to None. |
-| `token` | `anyio.lowlevel.EventLoopToken \| None, optional` | 事件循环，不提供则采用当前事件循环. Defaults to None. |
+| `loop` | `asyncio.AbstractEventLoop \| trio.lowlevel.TrioToken \| None` | 事件循环，不提供则采用当前事件循环. Defaults to None. |
+| `token` | `anyio.lowlevel.EventLoopToken \| None, optional` | anyio 事件循环令牌，不提供则采用当前事件循环. Defaults to None. |
 
 
 

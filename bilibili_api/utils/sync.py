@@ -11,8 +11,6 @@ from typing import Any, TypeVar
 
 import anyio
 
-from .network import bili_settings
-
 T = TypeVar("T")
 
 
@@ -24,12 +22,13 @@ def ensure_event_loop() -> asyncio.AbstractEventLoop:
     return asyncio.get_event_loop()
 
 
-def sync(coroutine: Coroutine[Any, Any, T] | Future[T]) -> T:
+def sync(coroutine: Coroutine[Any, Any, T] | Future[T], backend: str = "asyncio") -> T:
     """
     同步执行异步函数，使用可参考 [同步执行异步代码](https://bromothymolb.github.io/bilibili-api-zoku/#/docs/common/sync-executor)
 
     Args:
         coroutine (Coroutine[Any, Any, ~T] | Future[~T]): 异步函数
+        backend (str, optional): 异步框架，可选 asyncio / trio。Defaults to "asyncio".
 
     Returns:
         ~T: 该异步函数的返回值
@@ -38,6 +37,4 @@ def sync(coroutine: Coroutine[Any, Any, T] | Future[T]) -> T:
     async def sync_task() -> T:
         return await coroutine
 
-    return anyio.run(
-        sync_task, backend=["asyncio", "trio"][bili_settings.get_enable_trio()]
-    )
+    return anyio.run(sync_task, backend=backend)
