@@ -438,7 +438,7 @@ class QrCodeLogin:
                 img.save(stream, bitmap_format="png")  # type: ignore
                 return stream.getvalue()
 
-            self.__qr_picture = await Picture.from_content(
+            self.__qr_picture = Picture.from_content(
                 await to_thread.run_sync(get_img_bytes), "png"
             )
         return self.__qr_picture  # type: ignore

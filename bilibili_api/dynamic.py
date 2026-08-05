@@ -178,7 +178,7 @@ async def upload_image(
     if data is None:
         data = {"biz": "new_dyn", "category": "daily"}
 
-    files = {"file_up": image._to_biliapifile()}
+    files = {"file_up": await image.to_biliapifile()}
     return_info = (
         await Api(**api, credential=credential)
         .update_data(**data)

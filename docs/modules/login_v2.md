@@ -22,8 +22,8 @@ from bilibili_api import login_v2
   - [async def check\_state()](#async-def-check\_state)
   - [async def generate\_qrcode()](#async-def-generate\_qrcode)
   - [def get\_credential()](#def-get\_credential)
-  - [def get\_qrcode\_picture()](#def-get\_qrcode\_picture)
-  - [def get\_qrcode\_terminal()](#def-get\_qrcode\_terminal)
+  - [async def get\_qrcode\_picture()](#async-def-get\_qrcode\_picture)
+  - [async def get\_qrcode\_terminal()](#async-def-get\_qrcode\_terminal)
   - [def has\_done()](#def-has\_done)
   - [def has\_qrcode()](#def-has\_qrcode)
 - [class QrCodeLoginChannel()](#class-QrCodeLoginChannel)
@@ -160,7 +160,7 @@ from bilibili_api import login_v2
 
 
 
-### def get_qrcode_picture()
+### async def get_qrcode_picture()
 
 获取二维码的 Picture 类
 
@@ -171,7 +171,7 @@ from bilibili_api import login_v2
 
 
 
-### def get_qrcode_terminal()
+### async def get_qrcode_terminal()
 
 获取二维码的终端字符串
 

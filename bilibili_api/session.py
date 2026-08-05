@@ -385,7 +385,7 @@ async def send_msg(
     elif msg_type == EventType.PICTURE or msg_type == EventType.GROUPS_PICTURE:
         if not isinstance(content, Picture):
             raise ApiException("发送信息类型不属于图片 (Picture)。")
-        if content.url.startswith("file://") or content.url.startswith("bytes://"):
+        if content.url.startswith("file://") or content.url.startswith("<bytes>"):
             await content.upload(credential=credential)
         real_content = json.dumps(
             {
@@ -394,7 +394,7 @@ async def send_msg(
                 "width": content.width,
                 "imageType": content.format,
                 "original": 1,
-                "size": content.size,
+                "size": len(await content.content()) // 1024,
             }
         )
     else:

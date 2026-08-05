@@ -213,6 +213,7 @@ import json
 from json import scanner
 from json.decoder import scanstring  # type: ignore
 import logging
+import mimetypes
 import os
 import random
 import re
@@ -1340,12 +1341,28 @@ class BiliAPIFile:
     上传文件类。
 
     Attributes:
-        path      (str): 文件地址
-        mime_type (str): 文件类型
+        name      (str)  : 文件名
+        content   (bytes): 文件内容
+        mime_type (str)  : 文件类型
     """
 
-    path: str
+    name: str
+    content: bytes
     mime_type: str
+
+    @staticmethod
+    async def open(path: str) -> "BiliAPIFile":
+        """
+        打开文件
+
+        Args:
+            path (str): 文件地址
+        """
+        async with await open_file(path, "rb") as file:
+            content = await file.read()
+            name = os.path.basename(path)
+            mime_type = mimetypes.guess_type(name)[0] or ""
+            return BiliAPIFile(name=name, content=content, mime_type=mime_type)
 
 
 class BiliAPIClient(ABC):
@@ -4646,7 +4663,7 @@ class Api:
         self.data = dict.fromkeys(self.data.keys(), "")
         self.params = dict.fromkeys(self.params.keys(), "")
         self.files = dict.fromkeys(
-            self.files.keys(), BiliAPIFile(path="", mime_type="")
+            self.files.keys(), BiliAPIFile(name="", content=b"", mime_type="")
         )
         self.headers = dict.fromkeys(self.headers.keys(), "")
         self.credential = self.credential or Credential()

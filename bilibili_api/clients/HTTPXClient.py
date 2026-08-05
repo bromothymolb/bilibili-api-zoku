@@ -6,7 +6,6 @@ HTTPXClient 实现
 
 from collections.abc import AsyncGenerator
 
-import anyio
 import httpx
 
 from ..exceptions import ApiException
@@ -139,12 +138,11 @@ class HTTPXClient(BiliAPIClient):
         if files != {}:
             requests_like_files = {}
             for key, item in files.items():
-                async with await anyio.open_file(item.path, "rb") as f:
-                    requests_like_files[key] = (
-                        item.path,
-                        await f.read(),
-                        item.mime_type,
-                    )
+                requests_like_files[key] = (
+                    item.name,
+                    item.content,
+                    item.mime_type,
+                )
             files = requests_like_files
         resp: httpx.Response = await self.__session.request(
             method=method,

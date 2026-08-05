@@ -8,6 +8,7 @@ bilibili_api.vote
 
 from enum import Enum
 
+from .exceptions import ArgsException
 from .user import fetch_dedeuserid
 from .utils.network import Api, Credential
 from .utils.picture import Picture
@@ -56,6 +57,8 @@ class VoteChoices:
         """
         if isinstance(image, Picture):
             image = image.url
+            if image.startswith("file://") or image.startswith("<bytes>"):
+                raise ArgsException("请先上传图片。")
         self.choices.append({"desc": desc, "img_url": image or ""})
         return self
 

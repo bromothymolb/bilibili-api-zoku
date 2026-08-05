@@ -5,7 +5,6 @@ CurlCFFIClient 实现
 """
 
 import asyncio
-import os
 
 import anyio
 import curl_cffi  # pylint: disable=E0401
@@ -128,8 +127,8 @@ class CurlCFFIClient(BiliAPIClient):
                 multipart.addpart(
                     name=key,
                     content_type=item.mime_type,
-                    filename=os.path.basename(item.path),
-                    local_path=item.path,
+                    filename=item.name,
+                    data=item.content,
                 )
         else:
             multipart = None

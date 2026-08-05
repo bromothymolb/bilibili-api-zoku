@@ -38,7 +38,7 @@ async def upload_image(img: Picture, credential: Credential) -> dict:
     credential.raise_for_no_sessdata()
     credential.raise_for_no_bili_jct()
     api = API["operate"]["upload_img"]
-    files = {"file": img._to_biliapifile()}
+    files = {"file": await img.to_biliapifile()}
     return await Api(**api, credential=credential).update_files(**files).result
 
 

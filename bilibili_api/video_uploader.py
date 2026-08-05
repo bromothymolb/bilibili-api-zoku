@@ -48,10 +48,10 @@ async def upload_cover(cover: Picture, credential: Credential) -> str:
     """
     credential.raise_for_no_bili_jct()
     api = _API["cover_up"]
-    pic = cover if isinstance(cover, Picture) else await Picture().load_file(cover)
-    cover = await pic.convert_format("png")
+    pic = cover if isinstance(cover, Picture) else Picture().from_file(cover)
+    cover = pic.set_extension("png")
     data = {
-        "cover": f"data:image/png;base64,{base64.b64encode(pic.content).decode('utf-8')}"
+        "cover": f"data:image/png;base64,{base64.b64encode(await pic.content()).decode('utf-8')}"
     }
     return (await Api(**api, credential=credential).update_data(**data).result)["url"]
 
@@ -588,7 +588,7 @@ class VideoMeta:
         """
         try:
             if isinstance(self.cover, str):
-                self.cover = await Picture.load_file(self.cover)
+                self.cover = Picture.from_file(self.cover)
             await upload_cover(self.cover, self.__credential)
             return True
         except Exception:
@@ -991,7 +991,7 @@ class VideoUploader(AsyncEvent):
         self.dispatch(VideoUploaderEvents.PRE_COVER.value, None)
         try:
             if isinstance(self.cover, str):
-                self.cover = await Picture.load_file(self.cover)
+                self.cover = Picture.from_file(self.cover)
             cover_url = await upload_cover(cover=self.cover, credential=self.credential)  # type: ignore
             self.dispatch(VideoUploaderEvents.AFTER_COVER.value, {"url": cover_url})
             return cover_url
@@ -1446,7 +1446,7 @@ class VideoEditor(AsyncEvent):
             pic = (
                 self.cover_path
                 if isinstance(self.cover_path, Picture)
-                else await Picture().load_file(self.cover_path)
+                else Picture().from_file(self.cover_path)
             )
             resp = await upload_cover(pic, self.credential)
             self.dispatch(VideoEditorEvents.AFTER_COVER.value, {"url": resp})

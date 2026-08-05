@@ -34,6 +34,7 @@ from bilibili_api import ...
   - [def remove\_ignore\_events()](#def-remove\_ignore\_events)
 - [class BiliAPIClient()](#class-BiliAPIClient)
 - [class BiliAPIFile()](#class-BiliAPIFile)
+  - [async def open()](#async-def-open)
 - [class BiliAPIResponse()](#class-BiliAPIResponse)
   - [def json()](#def-json)
   - [def utf8\_text()](#def-utf8\_text)
@@ -117,15 +118,13 @@ from bilibili_api import ...
 - [class LoginError()](#class-LoginError)
 - [class NetworkException()](#class-NetworkException)
 - [class Picture()](#class-Picture)
-  - [def convert\_format()](#def-convert\_format)
+  - [async def content()](#async-def-content)
   - [async def download()](#async-def-download)
   - [def from\_content()](#def-from\_content)
   - [def from\_file()](#def-from\_file)
-  - [async def load\_file()](#async-def-load\_file)
   - [async def load\_url()](#async-def-load\_url)
-  - [def resize()](#def-resize)
-  - [def to\_file()](#def-to\_file)
-  - [def to\_json()](#def-to\_json)
+  - [def set\_extension()](#def-set\_extension)
+  - [async def to\_biliapifile()](#async-def-to\_biliapifile)
   - [async def upload()](#async-def-upload)
   - [async def upload\_by\_note()](#async-def-upload\_by\_note)
 - [class RequestSettings()](#class-RequestSettings)
@@ -732,8 +731,23 @@ class BiliAPIClient(ABC):
 
 | name | type | description |
 | - | - | - |
-| `path` | `str` | 文件地址 |
+| `name` | `str` | 文件名 |
+| `content` | `bytes` | 文件内容 |
 | `mime_type` | `str` | 文件类型 |
+
+
+### async def open()
+
+> `@staticmethod` 
+
+打开文件
+
+
+| name | type | description |
+| - | - | - |
+| `path` | `str` | 文件地址 |
+
+
 
 
 ---
@@ -1778,36 +1792,34 @@ NOTE: `gt`, `challenge`, `token` 为验证码基本字段。`seccode`, `validate
 
 图片类，包含图片链接、尺寸以及下载操作。
 
-可以不实例化，用 `load_url`, `from_content` 或 `from_file` 加载图片。
+可以使用静态类方法 `load_url`, `from_content` 或 `from_file` 加载图片。
 
 
 | name | type | description |
 | - | - | - |
 | `height` | `int` | 高度 |
-| `imageType` | `str` | 格式，例如 |
-| `size` | `Any` | 大小。单位 KB |
-| `url` | `str` | 图片链接 |
 | `width` | `int` | 宽度 |
-| `content` | `bytes` | 图片内容 |
+| `url` | `str` | 图片链接 |
+| `extension` | `str` | 文件格式 |
+| `format` | `str` | 图片格式 |
+| `mime_type` | `str` | MIME 类型。 |
+| `image` | `PIL.Image.Image` | Image 实例 |
 
 
-### def convert_format()
+### async def content()
 
-将图片转换为另一种格式。
+获取图片内容
 
 
-| name | type | description |
-| - | - | - |
-| `new_format` | `str` | 新的格式。例：`png`, `ico`, `webp`. |
 
-**Returns:** `Picture`:  `self`
+**Returns:** `bytes`:  图片内容
 
 
 
 
 ### async def download()
 
-异步下载图片至本地。
+下载图片至本地。支持自定义文件格式。
 
 
 | name | type | description |
@@ -1829,7 +1841,7 @@ NOTE: `gt`, `challenge`, `token` 为验证码基本字段。`seccode`, `validate
 | name | type | description |
 | - | - | - |
 | `content` | `bytes` | 图片内容 |
-| `format` | `str` | 图片后缀名，如 `webp`, `jpg`, `ico` |
+| `extension` | `str` | 图片后缀名，如 `webp`, `jpg`, `ico` |
 
 **Returns:** `Picture`:  加载后的图片对象
 
@@ -1840,23 +1852,7 @@ NOTE: `gt`, `challenge`, `token` 为验证码基本字段。`seccode`, `validate
 
 > `@staticmethod` 
 
-加载本地图片。
-
-
-| name | type | description |
-| - | - | - |
-| `path` | `str` | 图片地址 |
-
-**Returns:** `Picture`:  加载后的图片对象
-
-
-
-
-### async def load_file()
-
-> `@staticmethod` 
-
-异步加在本地图片
+加载本地图片
 
 
 | name | type | description |
@@ -1884,42 +1880,27 @@ NOTE: `gt`, `challenge`, `token` 为验证码基本字段。`seccode`, `validate
 
 
 
-### def resize()
+### def set_extension()
 
-调整大小
+更改图片后缀名
 
 
 | name | type | description |
 | - | - | - |
-| `width` | `int` | 宽度 |
-| `height` | `int` | 高度 |
+| `extension` | `str` | 新后缀名 |
 
 **Returns:** `Picture`:  `self`
 
 
 
 
-### def to_file()
+### async def to_biliapifile()
 
-下载图片至本地。
-
-
-| name | type | description |
-| - | - | - |
-| `path` | `str` | 下载地址。 |
-
-**Returns:** `Picture`:  `self`
+将图片实例转换为 BiliAPIFile 实例
 
 
 
-
-### def to_json()
-
-转换为 bilibili api 中的 json 格式，提供图片链接/长宽/大小
-
-
-
-**Returns:** `dict`:  图片链接/长宽/大小
+**Returns:** `BiliAPIFile`:  BiliAPIFile 实例
 
 
 
@@ -2637,7 +2618,7 @@ BV 号转 AV 号。
 | name | type | description |
 | - | - | - |
 | `loop` | `asyncio.AbstractEventLoop \| trio.lowlevel.TrioToken \| None` | 事件循环，不提供则采用当前事件循环. Defaults to None. |
-| `token` | `anyio.lowlevel.EventLoopToken \| None, optional` | anyio 事件循环令牌，不提供则采用当前事件循环. Defaults to None. |
+| `token` | `anyio.lowlevel.EventLoopToken \| None, optional` | anyio 事件循环令牌，不提供则使用 loop 参数. Defaults to None. |
 
 
 
@@ -2734,15 +2715,13 @@ BV 号转 AV 号。
 
 获取模块正在使用的请求客户端
 
-loop 与 token 提供一个即可，token 优先级更高。
-
 
 | name | type | description |
 | - | - | - |
 | `client` | `str \| None, optional` | 请求客户端类型. Defaults to None. |
 | `instance` | `str \| None, optional` | 请求客户端实例名称. Defaults to None. |
 | `loop` | `asyncio.AbstractEventLoop \| trio.lowlevel.TrioToken \| None` | 事件循环，不提供则采用当前事件循环. Defaults to None. |
-| `token` | `anyio.lowlevel.EventLoopToken \| None, optional` | anyio 事件循环令牌，不提供则采用当前事件循环. Defaults to None. |
+| `token` | `anyio.lowlevel.EventLoopToken \| None, optional` | anyio 事件循环令牌，不提供则使用 loop 参数. Defaults to None. |
 
 **Returns:** `BiliAPIClient`:  请求客户端
 
@@ -2909,7 +2888,7 @@ loop 与 token 提供一个即可，token 优先级更高。
 | `client` | `str \| None, optional` | 请求客户端类型. Defaults to None. |
 | `instance` | `str \| None, optional` | 请求客户端实例名称. Defaults to None. |
 | `loop` | `asyncio.AbstractEventLoop \| trio.lowlevel.TrioToken \| None` | 事件循环，不提供则采用当前事件循环. Defaults to None. |
-| `token` | `anyio.lowlevel.EventLoopToken \| None, optional` | anyio 事件循环令牌，不提供则采用当前事件循环. Defaults to None. |
+| `token` | `anyio.lowlevel.EventLoopToken \| None, optional` | anyio 事件循环令牌，不提供则使用 loop 参数. Defaults to None. |
 
 **Returns:** `object`:  会话对象
 
@@ -3250,7 +3229,7 @@ async def handle(desc: str, data: dict) -> None:
 | `client` | `str \| None, optional` | 请求客户端类型. Defaults to None. |
 | `instance` | `str \| None, optional` | 请求客户端实例名称. Defaults to None. |
 | `loop` | `asyncio.AbstractEventLoop \| trio.lowlevel.TrioToken \| None` | 事件循环，不提供则采用当前事件循环. Defaults to None. |
-| `token` | `anyio.lowlevel.EventLoopToken \| None, optional` | anyio 事件循环令牌，不提供则采用当前事件循环. Defaults to None. |
+| `token` | `anyio.lowlevel.EventLoopToken \| None, optional` | anyio 事件循环令牌，不提供则使用 loop 参数. Defaults to None. |
 
 
 
@@ -3312,7 +3291,7 @@ async def handle(desc: str, data: dict) -> None:
 | `client` | `str \| None, optional` | 请求客户端类型. Defaults to None. |
 | `instance` | `str \| None, optional` | 请求客户端实例名称. Defaults to None. |
 | `loop` | `asyncio.AbstractEventLoop \| trio.lowlevel.TrioToken \| None` | 事件循环，不提供则采用当前事件循环. Defaults to None. |
-| `token` | `anyio.lowlevel.EventLoopToken \| None, optional` | anyio 事件循环令牌，不提供则采用当前事件循环. Defaults to None. |
+| `token` | `anyio.lowlevel.EventLoopToken \| None, optional` | anyio 事件循环令牌，不提供则使用 loop 参数. Defaults to None. |
 
 
 
