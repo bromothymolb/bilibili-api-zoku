@@ -60,6 +60,7 @@ from bilibili_api import interactive_video
   - [async def get\_edge\_info()](#async-def-get\_edge\_info)
   - [async def get\_graph()](#async-def-get\_graph)
   - [async def get\_graph\_version()](#async-def-get\_graph\_version)
+  - [async def get\_nodes()](#async-def-get\_nodes)
   - [async def mark\_score()](#async-def-mark\_score)
   - [async def up\_get\_ivideo\_pages()](#async-def-up\_get\_ivideo\_pages)
   - [async def up\_submit\_story\_tree()](#async-def-up\_submit\_story\_tree)
@@ -69,7 +70,6 @@ from bilibili_api import interactive_video
   - [async def start()](#async-def-start)
 - [class InteractiveVideoDownloaderEvents()](#class-InteractiveVideoDownloaderEvents)
 - [class InteractiveVideoDownloaderMode()](#class-InteractiveVideoDownloaderMode)
-- [def get\_ivi\_file\_meta()](#def-get\_ivi\_file\_meta)
 
 ---
 
@@ -634,6 +634,20 @@ o----|xxx| (TEXT_RIGHT)
 
 
 
+### async def get_nodes()
+
+获取所有节点，返回异步生成器。
+
+
+| name | type | description |
+| - | - | - |
+| `retry` | `int, optional` | 重试次数. Defaults to 3. |
+
+**Returns:** `AsyncGenerator[None, InteractiveNode]`:  异步生成器
+
+
+
+
 ### async def mark_score()
 
 为互动视频打分
@@ -697,6 +711,7 @@ o----|xxx| (TEXT_RIGHT)
 | `downloader_mode` | `InteractiveVideoDownloaderMode, optional` | 下载模式. Defaults to InteractiveVideoDownloaderMode.IVI. |
 | `stream_detecting_params` | `dict \| None, optional` | `VideoDownloadURLDataDetecter` 提取最佳流时传入的参数，可控制视频及音频品质. Defaults to None. |
 | `fetching_nodes_retry_times` | `int, optional` | 获取节点时的最大重试次数. Defaults to 3. |
+| `download_retry_times` | `int, optional` | 下载时的最大重试次数. Defaults to 3. |
 
 
 ### def abort()
@@ -725,7 +740,7 @@ o----|xxx| (TEXT_RIGHT)
 
 互动视频下载器事件枚举
 
-| event | meaning | IVI mode | NODE_VIDEOS mode | DOT_GRAPH mode | NO_PACKAGING mode | Is Built-In downloader event |
+| event | meaning | IVI mode | NODE_VIDEOS mode | DOT_GRAPH or JSON mode | NO_PACKAGING mode | Is Built-In downloader event |
 | ----- | ------- | -------- | ---------------- | -------------- | ----------------- | ------------------------- |
 | START | 开始下载 | [x] | [x] | [x] | [x] | [ ] |
 | GET | 获取到节点信息 | [x] | [x] | [x] | [x] | [ ] |
@@ -753,22 +768,7 @@ o----|xxx| (TEXT_RIGHT)
 - NODE_VIDEOS: 下载所有节点的所有视频并存放在某个文件夹，每一个节点的视频命名为 `{节点 id} {节点标题 (自动去除敏感字符)}.mp4`
 - DOT_GRAPH: 下载 dot 格式的情节树图表
 - NO_PACKAGING: 前面按照 ivi 文件下载步骤进行下载，但是最终不会打包成为 ivi 文件，所有文件将存放于一个文件夹中。互动视频数据将存放在一个文件夹中，里面的文件命名/含义与拆包后的 ivi 文件完全相同。
-
-
-
-
----
-
-## def get_ivi_file_meta()
-
-获取 ivi 文件信息
-
-
-| name | type | description |
-| - | - | - |
-| `path` | `str` | 文件地址 |
-
-**Returns:** `dict`:  文件信息
+- JSON: 获取 json 格式情节树，不下载视频。
 
 
 
