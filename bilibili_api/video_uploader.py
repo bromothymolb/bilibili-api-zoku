@@ -138,7 +138,7 @@ class VideoUploaderPage:
 
         self.cached_size: int | None = None
 
-    def get_size(self) -> int:
+    async def get_size(self) -> int:
         """
         获取文件大小
 
@@ -149,16 +149,16 @@ class VideoUploaderPage:
             return self.cached_size
 
         size: int = 0
-        stream = open(self.path, "rb")
+        stream = await anyio.open_file(self.path, "rb")
         while True:
-            s: bytes = stream.read(1024)
+            s: bytes = await stream.read(1024)
 
             if not s:
                 break
 
             size += len(s)
 
-        stream.close()
+        await stream.aclose()
 
         self.cached_size = size
         return size
@@ -768,7 +768,7 @@ class VideoUploader(AsyncEvent):
             params={
                 "profile": "ugcfx/bup",
                 "name": os.path.basename(page.path),
-                "size": page.get_size(),
+                "size": await page.get_size(),
                 "r": self.line["os"],
                 "ssl": "0",
                 "version": "2.14.0",
@@ -808,7 +808,7 @@ class VideoUploader(AsyncEvent):
                 "uploads": "",
                 "output": "json",
                 "profile": "ugcfx/bup",
-                "filesize": page.get_size(),
+                "filesize": await page.get_size(),
                 "partsize": preupload["chunk_size"],
                 "biz_id": preupload["biz_id"],
             },
@@ -1012,7 +1012,7 @@ class VideoUploader(AsyncEvent):
         preupload = await self._preupload(page)
         self.dispatch(VideoUploaderEvents.PRE_PAGE.value, {"page": page})
 
-        page_size = page.get_size()
+        page_size = await page.get_size()
         # 所有分块起始位置
         chunk_offset_list = list(range(0, page_size, preupload["chunk_size"]))
         # 分块总数
@@ -1131,7 +1131,7 @@ class VideoUploader(AsyncEvent):
             "size": str(real_chunk_size),
             "start": str(offset),
             "end": str(offset + real_chunk_size),
-            "total": page.get_size(),
+            "total": await page.get_size(),
         }
 
         ok_return = {

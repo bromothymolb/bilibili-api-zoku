@@ -9,6 +9,7 @@ import json
 from tempfile import gettempdir
 
 import anyio
+from anyio import to_thread
 
 from .bangumi import Episode
 from .cheese import CheeseVideo
@@ -640,7 +641,8 @@ async def make_ass_file_danmakus_protobuf(
         for d in danmakus:
             await file.write(d.to_xml())
         await file.write("</i>")
-    _export_ass_from_xml(
+    await to_thread.run_sync(
+        _export_ass_from_xml,
         gettempdir() + "/danmaku_temp.xml",
         out,
         stage_size,
@@ -714,7 +716,8 @@ async def make_ass_file_danmakus_xml(
         gettempdir() + "/danmaku_temp.xml", "w+", encoding="utf-8"
     ) as file:
         await file.write(xml_content)
-    _export_ass_from_xml(
+    await to_thread.run_sync(
+        _export_ass_from_xml,
         gettempdir() + "/danmaku_temp.xml",
         out,
         stage_size,

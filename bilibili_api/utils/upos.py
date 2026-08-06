@@ -19,13 +19,12 @@ class UposFile:
     """
 
     path: str
-    size: int
 
     def __init__(self, path: str) -> None:
         self.path = path
-        self.size = self._get_size()
+        self.size = None
 
-    def _get_size(self) -> int:
+    async def get_size(self) -> int:
         """
         获取文件大小
 
@@ -33,18 +32,17 @@ class UposFile:
             int: 文件大小
         """
 
-        size: int = 0
-        stream = open(self.path, "rb")
-        while True:
-            s: bytes = stream.read(1024)
-
-            if not s:
-                break
-
-            size += len(s)
-
-        stream.close()
-        return size
+        if not self.size:
+            size: int = 0
+            stream = await anyio.open_file(self.path, "rb")
+            while True:
+                s: bytes = await stream.read(1024)
+                if not s:
+                    break
+                size += len(s)
+            await stream.aclose()
+            self.size = size
+        return self.size
 
 
 class UposFileUploader:
@@ -70,7 +68,7 @@ class UposFileUploader:
         Returns:
             dict: filename, cid
         """
-        page_size = self.file.size
+        page_size = await self.file.get_size()
         # 所有分块起始位置
         chunk_offset_list = list(range(0, page_size, self.preupload["chunk_size"]))
         # 分块总数
@@ -156,7 +154,7 @@ class UposFileUploader:
             "size": str(real_chunk_size),
             "start": str(offset),
             "end": str(offset + real_chunk_size),
-            "total": self.file.size,
+            "total": await self.file.get_size(),
         }
 
         ok_return = {
