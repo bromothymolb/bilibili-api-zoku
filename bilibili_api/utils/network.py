@@ -980,7 +980,6 @@ class BiliSettings:
             settings (dict): 设置项，键为设置名称，值为设置值。
         """
         self.__settings |= settings
-        self.__lazy |= settings
 
     def register(self, name: str, default: Any) -> None:
         """
