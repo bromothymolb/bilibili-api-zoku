@@ -138,15 +138,11 @@ if __name__ == '__main__':
 
 # 异步迁移
 
-由于从 v5 版本开始，基本全部改为异步，如果你不会异步，可以参考 [`asyncio`](https://docs.python.org/zh-cn/3/library/asyncio.html)
+由于从 v5 版本开始，基本全部改为异步。
 
-得益于 [`anyio`][anyio]，模块同时支持 [`trio`][trio] 作为异步后端，仅需在设置项中进行设置即可：
+得益于 [`anyio`][anyio]，模块同时支持 `asyncio` 与 [`trio`][trio] 作为异步后端。前者为 Python 的标准库。
 
-``` python
-from bilibili_api import bili_settings
-
-bili_settings.set_enable_trio(True)
-```
+如果你不会异步，可以参考 [`asyncio` 的文档](https://docs.python.org/zh-cn/3/library/asyncio.html)
 
 异步可以进行并发请求，性能更高，不过如果请求过快仍然会导致被屏蔽。
 

@@ -10,8 +10,6 @@ import json
 import os
 import time
 
-import anyio
-
 from . import user
 from .exceptions.ApiException import ApiException
 from .exceptions.NetworkException import NetworkException
@@ -480,7 +478,6 @@ class AudioUploader(AsyncEvent):
 
     __song_id: int
     __upos_file: UposFile
-    __task: anyio.TaskHandle | None
 
     def _check_meta(self):
         raise_for_statement(self.meta.content_type is not None)

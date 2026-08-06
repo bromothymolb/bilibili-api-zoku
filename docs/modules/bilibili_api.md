@@ -122,6 +122,7 @@ from bilibili_api import ...
   - [async def download()](#async-def-download)
   - [def from\_content()](#def-from\_content)
   - [def from\_file()](#def-from\_file)
+  - [async def image\_call()](#async-def-image\_call)
   - [async def load\_url()](#async-def-load\_url)
   - [def set\_extension()](#def-set\_extension)
   - [async def to\_biliapifile()](#async-def-to\_biliapifile)
@@ -1870,6 +1871,22 @@ NOTE: `gt`, `challenge`, `token` 为验证码基本字段。`seccode`, `validate
 
 
 
+### async def image_call()
+
+调用 PIL.Image.Image 中的返回 Image 的操作函数
+
+
+| name | type | description |
+| - | - | - |
+| `func` | `str` | 调用的函数名。如 `resize` 调整大小，`filter` 添加滤镜。 |
+| `args` | `Any` | 要传递给函数的参数。 *args 传递。 |
+| `kwargs` | `Any` | 要传递给函数的参数。 **kwargs 传递。 |
+
+**Returns:** `Picture`:  `self`
+
+
+
+
 ### async def load_url()
 
 > `@staticmethod` 
@@ -2327,9 +2344,7 @@ AV 号转 BV 号。
 | `enable_buvid_global_persistence` | `bool` | `False` | 允许模块使用统一的全局 buvid |
 | `enable_bili_ticket_global_persistence` | `bool` | `False` | 允许模块使用统一的全局 bili_ticket |
 | `enable_fpgen` | `bool` | `False` | 是否启用 `fpgen` 进行指纹伪装 |
-| `enable_trio` | `bool` | `False` | 是否启用 `trio` 支持 |
 | `fpgen_args` | `dict` | `{}` | 传入 `fpgen.generate` 的 keyword args 参数 |
-| `global_credential` | `Credential \| None` | `None` | 全局凭据类，所有请求都将传入此凭据类的 cookies |
 
 
 

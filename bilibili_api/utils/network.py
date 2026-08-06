@@ -1226,9 +1226,7 @@ bili_settings = BiliSettings()
 | `enable_buvid_global_persistence` | `bool` | `False` | 允许模块使用统一的全局 buvid |
 | `enable_bili_ticket_global_persistence` | `bool` | `False` | 允许模块使用统一的全局 bili_ticket |
 | `enable_fpgen` | `bool` | `False` | 是否启用 `fpgen` 进行指纹伪装 |
-| `enable_trio` | `bool` | `False` | 是否启用 `trio` 支持 |
 | `fpgen_args` | `dict` | `{}` | 传入 `fpgen.generate` 的 keyword args 参数 |
-| `global_credential` | `Credential \\| None` | `None` | 全局凭据类，所有请求都将传入此凭据类的 cookies |
 """
 bili_settings.__doc__ = """
 模块通用设置
@@ -1241,9 +1239,7 @@ bili_settings.__doc__ = """
 | `enable_buvid_global_persistence` | `bool` | `False` | 允许模块使用统一的全局 buvid |
 | `enable_bili_ticket_global_persistence` | `bool` | `False` | 允许模块使用统一的全局 bili_ticket |
 | `enable_fpgen` | `bool` | `False` | 是否启用 `fpgen` 进行指纹伪装 |
-| `enable_trio` | `bool` | `False` | 是否启用 `trio` 支持 |
 | `fpgen_args` | `dict` | `{}` | 传入 `fpgen.generate` 的 keyword args 参数 |
-| `global_credential` | `Credential \\| None` | `None` | 全局凭据类，所有请求都将传入此凭据类的 cookies |
 """
 
 

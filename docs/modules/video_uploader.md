@@ -31,7 +31,7 @@ from bilibili_api import video_uploader
 - [class VideoUploaderEvents()](#class-VideoUploaderEvents)
 - [class VideoUploaderPage()](#class-VideoUploaderPage)
   - [def \_\_init\_\_()](#def-\_\_init\_\_)
-  - [def get\_size()](#def-get\_size)
+  - [async def get\_size()](#async-def-get\_size)
 - [async def get\_available\_topics()](#async-def-get\_available\_topics)
 - [async def get\_missions()](#async-def-get\_missions)
 - [async def upload\_cover()](#async-def-upload\_cover)
@@ -423,7 +423,7 @@ Events:
 | `description` | `str, optional` | 视频简介. Defaults to ''. |
 
 
-### def get_size()
+### async def get_size()
 
 获取文件大小
 
