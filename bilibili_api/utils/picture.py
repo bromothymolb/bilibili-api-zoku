@@ -5,13 +5,15 @@ Picture 类
 """
 
 from dataclasses import dataclass, field
+import inspect
 import io
 import os
 
-from anyio import to_thread
-from PIL import Image
+from anyio import TaskHandle, create_task_group, to_thread
+from PIL import Image, ImageSequence
 from yarl import URL
 
+from ..exceptions import ArgsException
 from .network import BiliAPIFile, Credential, get_client
 
 
@@ -242,4 +244,47 @@ class Picture:
         except KeyError as e:
             msg = f"unknown file extension: {extension}"
             raise ValueError(msg) from e
+        return self
+
+    async def image_call(self, func: str, *args, **kwargs) -> "Picture":
+        """
+        调用 PIL.Image.Image 中的返回 Image 的操作函数
+
+        Args:
+            func (str): 调用的函数名。如 `resize` 调整大小，`filter` 添加滤镜。
+            args (Any): 要传递给函数的参数。 *args 传递。
+            kwargs (Any): 要传递给函数的参数。 **kwargs 传递。
+
+        Returns:
+            Picture: `self`
+        """
+
+        def call(image) -> Image.Image:
+            callable = getattr(image, func)
+            if inspect.signature(callable).return_annotation != "Image":
+                raise ArgsException("不支持返回值不为 Image 的函数调用")
+            return callable(*args, **kwargs)
+
+        if self.format not in ["WEBP", "GIF"]:
+            self.image = await to_thread.run_sync(call, self.image)
+        else:
+            images = ImageSequence.all_frames(self.image)
+            handles: list[TaskHandle] = []
+            async with create_task_group() as tg:
+                for image in images:
+                    handles.append(tg.create_task(to_thread.run_sync(call, image)))
+            results: list[Image.Image] = [handle.return_value for handle in handles]
+
+            def fetch_result():
+                io_stream = io.BytesIO()
+                results.pop().save(
+                    io_stream,
+                    format=self.format,
+                    append_images=results,
+                    save_all=True,
+                )
+                return io_stream
+
+            self.image = Image.open(await to_thread.run_sync(fetch_result))
+
         return self
