@@ -4,7 +4,7 @@ bilibili_api.clients.httpx
 HTTPXClient 实现
 """
 
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncIterator
 
 import httpx
 
@@ -58,7 +58,7 @@ class HTTPXClient(BiliAPIClient):
                 http2=self.__http2,
             )
         self.__downloads: dict[int, httpx.Response] = {}
-        self.__download_iter: dict[int, AsyncGenerator] = {}
+        self.__download_iter: dict[int, AsyncIterator] = {}
         self.__download_cnt: int = 0
 
         self.__need_update_session: bool = False
@@ -174,6 +174,7 @@ class HTTPXClient(BiliAPIClient):
         self,
         url: str = "",
         headers: dict | None = None,
+        chunk_size: int = 4096,
     ) -> int:
         headers = headers or {}
         await self.__auto_update_session()
@@ -190,16 +191,21 @@ class HTTPXClient(BiliAPIClient):
         self.__downloads[cnt] = await self.__session.send(
             req, stream=True, follow_redirects=True
         )
-        self.__download_iter[cnt] = self.__downloads[cnt].aiter_bytes(4096)  # type: ignore
+        self.__download_iter[cnt] = self.__downloads[cnt].aiter_bytes(chunk_size)
         return cnt
 
     async def download_chunk(self, cnt: int) -> bytes:
         iter = self.__download_iter[cnt]
-        data = await anext(iter)
+        try:
+            data = await anext(iter)
+        except StopAsyncIteration:
+            data = b""
         return data
 
     def download_content_length(self, cnt: int) -> int:
         resp = self.__downloads[cnt]
+        if resp.headers.get("Content-Length"):
+            return int(resp.headers["Content-Length"])
         return int(resp.headers.get("content-length", "0"))
 
     async def download_close(self, cnt: int) -> None:

@@ -1172,6 +1172,7 @@
   - [class VideoUploadException()](./modules/bilibili_api#class-VideoUploadException)
   - [class WbiRetryTimesExceedException()](./modules/bilibili_api#class-WbiRetryTimesExceedException)
   - [def aid2bvid()](./modules/bilibili_api#def-aid2bvid)
+  - [async def bili\_fast\_download()](./modules/bilibili_api#async-def-bili\_fast\_download)
   - [var bili\_settings](./modules/bilibili_api#var-bili\_settings)
     - [def all()](./modules/bilibili_api#def-all)
     - [def defaults()](./modules/bilibili_api#def-defaults)

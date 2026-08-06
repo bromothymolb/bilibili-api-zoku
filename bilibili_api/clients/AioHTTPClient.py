@@ -51,6 +51,7 @@ class AioHTTPClient(BiliAPIClient):
         self.__wss: dict[int, aiohttp.ClientWebSocketResponse[bool]] = {}
         self.__ws_cnt: int = 0
         self.__downloads: dict[int, aiohttp.ClientResponse] = {}
+        self.__download_iter: dict[int, aiohttp.streams.AsyncStreamIterator] = {}
         self.__download_cnt: int = 0
 
         self.__session_update_lock = anyio.Lock()
@@ -167,6 +168,7 @@ class AioHTTPClient(BiliAPIClient):
         self,
         url: str = "",
         headers: dict | None = None,
+        chunk_size: int = 4096,
     ) -> int:
         headers = headers or {}
         await self.__auto_update_session()
@@ -175,15 +177,21 @@ class AioHTTPClient(BiliAPIClient):
         cnt = self.__download_cnt
         self.__down_cnt_lock.release()
         self.__downloads[cnt] = await self.__session.get(url=url, headers=headers)
+        self.__download_iter[cnt] = self.__downloads[cnt].content.iter_chunked(chunk_size)
         return cnt
 
     async def download_chunk(self, cnt: int) -> bytes:
-        resp = self.__downloads[cnt]
-        data = await anext(resp.content.iter_chunked(4096))
+        iter = self.__download_iter[cnt]
+        try:
+            data = await anext(iter)
+        except StopAsyncIteration:
+            data = b""
         return data
 
     def download_content_length(self, cnt: int) -> int:
         resp = self.__downloads[cnt]
+        if resp.headers.get("Content-Length"):
+            return int(resp.headers["Content-Length"])
         return int(resp.headers.get("content-length", "0"))
 
     async def download_close(self, cnt: int) -> None:
@@ -191,6 +199,7 @@ class AioHTTPClient(BiliAPIClient):
         resp.release()
         await resp.wait_for_close()
         del self.__downloads[cnt]
+        del self.__download_iter[cnt]
 
     async def ws_create(
         self, url: str = "", params: dict | None = None, headers: dict | None = None

@@ -5,6 +5,7 @@ CurlCFFIClient 实现
 """
 
 import asyncio
+from collections.abc import AsyncGenerator
 
 import anyio
 import curl_cffi  # pylint: disable=E0401
@@ -61,6 +62,7 @@ class CurlCFFIClient(BiliAPIClient):
         self.__ws: dict[int, requests.AsyncWebSocket] = {}
         self.__ws_cnt: int = 0
         self.__downloads: dict[int, requests.Response] = {}
+        self.__download_iter: dict[int, AsyncGenerator] = {}
         self.__download_cnt: int = 0
 
         self.__ws_cnt_lock = anyio.Lock()
@@ -165,6 +167,7 @@ class CurlCFFIClient(BiliAPIClient):
         self,
         url: str = "",
         headers: dict | None = None,
+        chunk_size: int = 4096,
     ) -> int:
         headers = headers or {}
         if headers.get("User-Agent") and self.__session.impersonate != "":
@@ -178,21 +181,28 @@ class CurlCFFIClient(BiliAPIClient):
         self.__downloads[cnt] = await self.__session.get(
             url=url, headers=headers, stream=True
         )
+        self.__download_iter[cnt] = self.__downloads[cnt].aiter_content(chunk_size)
         return cnt
 
     async def download_chunk(self, cnt: int) -> bytes:
-        resp = self.__downloads[cnt]
-        data = await anext(resp.aiter_content())
+        iter = self.__download_iter[cnt]
+        try:
+            data = await anext(iter)
+        except StopAsyncIteration:
+            data = b""
         return data
 
     def download_content_length(self, cnt: int) -> int:
         resp = self.__downloads[cnt]
+        if resp.headers.get("Content-Length"):
+            return int(resp.headers["Content-Length"] or "0")
         return int(resp.headers.get("content-length", "0"))
 
     async def download_close(self, cnt: int) -> None:
         resp = self.__downloads[cnt]
         await resp.aclose()
         del self.__downloads[cnt]
+        del self.__download_iter[cnt]
 
     async def ws_create(
         self, url: str = "", params: dict | None = None, headers: dict | None = None

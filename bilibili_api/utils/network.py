@@ -1278,16 +1278,16 @@ class BiliAPIResponse:
     响应对象类。
 
     Attributes:
-        code    (int)  : 响应码
-        headers (dict) : 响应头
-        cookies (dict) : 当前状态的 cookies
-        raw     (bytes): 响应数据
-        url     (str)  : 当前 url
+        code    (int)            : 响应码
+        headers (dict[str, str]) : 响应头
+        cookies (dict[str, str]) : 当前状态的 cookies
+        raw     (bytes)          : 响应数据
+        url     (str)            : 当前 url
     """
 
     code: int
-    headers: dict
-    cookies: dict
+    headers: dict[str, str]
+    cookies: dict[str, str]
     raw: bytes
     url: str
 
@@ -1367,10 +1367,13 @@ class BiliAPIFile:
 
 class BiliAPIClient(ABC):
     '''
-    请求客户端抽象类。
+    请求客户端抽象类。通过对第三方模块请求客户端的封装令模块可对其进行调用。
 
     ``` python
     class BiliAPIClient(ABC):
+        """
+        请求客户端抽象类。通过对第三方模块请求客户端的封装令模块可对其进行调用。
+        """
         @abstractmethod
         def __init__(
             self,
@@ -1484,13 +1487,15 @@ class BiliAPIClient(ABC):
             self,
             url: str = "",
             headers: dict | None = None,
+            chunk_size: int = 4096,
         ) -> int:
             """
             开始下载文件
 
             Args:
-                url     (str, optional)        : 请求地址. Defaults to "".
-                headers (dict | None, optional): 请求头. Defaults to None.
+                url        (str, optional)        : 请求地址. Defaults to "".
+                headers    (dict | None, optional): 请求头. Defaults to None.
+                chunk_size (int, optional)        : 单次迭代数据大小. Defaults to 4096.
 
             Returns:
                 int: 下载编号，用于后续操作。
@@ -1711,13 +1716,15 @@ class BiliAPIClient(ABC):
         self,
         url: str = "",
         headers: dict | None = None,
+        chunk_size: int = 4096,
     ) -> int:
         """
         开始下载文件
 
         Args:
-            url     (str, optional)        : 请求地址. Defaults to "".
-            headers (dict | None, optional): 请求头. Defaults to None.
+            url        (str, optional)        : 请求地址. Defaults to "".
+            headers    (dict | None, optional): 请求头. Defaults to None.
+            chunk_size (int, optional)        : 单次迭代数据大小. Defaults to 4096.
 
         Returns:
             int: 下载编号，用于后续操作。
@@ -4895,7 +4902,7 @@ class Api:
 
 
 async def bili_simple_download(
-    url: str, out: str, intro: str = "bili-simple-download"
+    url: str, out: str, intro: str = "bili-simple-download", chunk: int = 4096
 ) -> None:
     """
     适用于下载 bilibili 链接的简易终端下载函数
@@ -4908,11 +4915,16 @@ async def bili_simple_download(
         url (str): 链接
         out (str): 输出地址
         intro (str, optional): 下载简述. Defaults to 'bili-simple-download'.
+        chunk (int, optional): 单次下载流拉取数据量. Defaults to 4096.
     """
     client = get_client()
-    dwn_id = await client.download_create(url=url, headers=get_bili_headers())
+    dwn_id = await client.download_create(
+        url=url, headers=get_bili_headers(), chunk_size=chunk
+    )
     bts = 0
     tot = client.download_content_length(cnt=dwn_id)
+    if tot == 0:
+        raise ArgsException("Unsupported link.")
     async with await open_file(out, "wb") as file:
         while True:
             bts += await file.write(await client.download_chunk(cnt=dwn_id))
@@ -4921,6 +4933,74 @@ async def bili_simple_download(
                 break
     await client.download_close(cnt=dwn_id)
     print()
+
+
+async def bili_fast_download(
+    url: str,
+    out: str,
+    intro: str = "bili-fast-download",
+    chunk: int = 4096,
+    part_size: int = 16 * 1024 * 1024,
+    part_max: int = 128,
+) -> None:
+    """
+    更快的 bili_simple_download
+
+    Args:
+        url (str): 链接
+        out (str): 输出地址
+        intro (str, optional): 下载简述. Defaults to 'bili-fast-download'.
+        chunk (int, optional): 单次下载流拉取数据量. Defaults to 4096.
+        part_size (int, optional): 单个文件分块大小. Defaults to 16\\*1024\\*1024.
+        part_max (int, optional): 最大文件分块数. Defaults to 128.
+    """
+    client = get_client()
+    head_id = await client.download_create(url=url, headers=get_bili_headers())
+    length = client.download_content_length(cnt=head_id)
+    if length == 0:
+        raise ArgsException("Unsupported link.")
+    await client.download_close(cnt=head_id)
+
+    if length / part_size > part_max:
+        part_size = int(length / part_max) + 1
+    else:
+        part_size = min(length, part_size)
+    parts = [
+        (start, min(start + part_size, length)) for start in range(0, length, part_size)
+    ]
+
+    file = await open_file(out, "wb")
+    flock = Lock()
+
+    async def download_part(start: int, end: int):
+        dwn_id = await client.download_create(
+            url=url,
+            headers=get_bili_headers() | {"Range": f"bytes={start}-{end}"},
+            chunk_size=chunk,
+        )
+        raw = bytes(0)
+        tot = client.download_content_length(cnt=dwn_id)
+        while True:
+            raw += await client.download_chunk(cnt=dwn_id)
+            print(
+                f"{intro} - {out} [{len(raw)} / {tot}] <{start}-{end}>"
+                + " " * 2 * len(str(length)),
+                end="\r",
+            )
+            if len(raw) == tot:
+                break
+        await client.download_close(cnt=dwn_id)
+        async with flock:
+            await file.seek(start)
+            await file.write(raw)
+        print(
+            f"{intro} - {out} [{len(raw)} / {tot}] <{start}-{end}>"
+            + " " * 2 * len(str(length))
+        )
+
+    async with create_task_group() as tg:
+        for start, end in parts:
+            tg.create_task(download_part(start, end))
 
 
 def configure_dynamic_fingerprint(os: str, browser: str, version: int) -> None:

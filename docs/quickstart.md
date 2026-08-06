@@ -457,9 +457,7 @@ async def main() -> None:
 sync(main())
 ```
 
-运行代码可以得到很长一串返回字典，视频下载 url 就在其中，但这些数据显然不能直接使用，需要进一步处理。事实上，模块许多函数返回的字典都需要这进一步处理的操作。这些操作主要在确认所需数据的访问路径，或者说，找数据。此处自然是要在这个字典中找 url。
-
-以下是返回字典格式化输出结果（部分）：
+运行代码可以得到很长一串返回字典，视频下载 url 就在其中。以下是返回字典格式化输出结果（部分）：
 
 ``` python
 {
@@ -536,18 +534,9 @@ sync(main())
 }
 ```
 
-可以发现，返回结果 `["dash"]["video"]` 和 `["dash"]["audio"]` 两个列表中的字典对象存储了不同的音视频流，对象 `baseUrl` `backup_url` 等键提供了音视频流链接。与此同时，对象 `codecs` 键给出了其格式。深入探究后可以发现，`id` 键的值对应了音视频流的品质。此处 `id = 32` 对应 480P 的视频清晰度，`id = 30216` 对应 64K 的音频清晰度。
+可以发现，返回结果 `["dash"]["video"]` 和 `["dash"]["audio"]` 两个列表中的字典对象存储了不同的音视频流，对象 `baseUrl` `backup_url` 等键提供了音视频流链接。与此同时，对象 `codecs` 键给出了其格式。深入探究后可以发现，`id` 键的值对应了音视频流的品质。此处 `id = 32` 对应 480P 的视频清晰度，`id = 30216` 对应 64K 的音频清晰度。模块提供 `video.VideoQuality` 和 `video.AudioQuality` 两个枚举类，举个例子，`VideoQuality._480P = 32`，`AudioQuality._64K = 30216`。
 
-很多时候，需要获取的信息都能在接口返回值中找到（前提是得找对接口），有的值则会以一种映射的形式体现在接口返回值中，例如视频/音频清晰度。此时需要使用者自行探索数据结构，有时还需要探究数值背后的映射。
-
-幸运的是，部分数值上的映射模块已经内置，例如视频分区对应的 tid，相关信息可以通过 `video_zone` 或 `video_zone_v2`（新版分区，也是近期视频分区搜索功能维护的原因） 两个子模块查询，此处不展开。此处，模块提供 `video.VideoQuality` 和 `video.AudioQuality` 两个枚举类，举个例子，`VideoQuality._480P = 32`，`AudioQuality._64K = 30216`。包括有的接口参数的传入，需要一些令人费解的数值参数，可实际其背后都有意义，模块的函数设计通常会将其封装为枚举类，调用接口时传入枚举类即可。以拉黑用户为例，通过以下代码即可完成操作。
-
-``` python
-u = user.User(uid=2, credential=credential)
-await u.modify_relation(user.RelationType.BLOCK)
-```
-
-更幸运的是，模块提供了一个工具类，专门用于处理视频下载地址字典，即 `video.VideoDownloadURLDataDetecter`。其提供 `detect` 和 `detect_best_streams` 方法，这里我们只需要一对清晰度最好的音视频流，使用 `detect_best_streams` 即可。
+针对下载视频，模块同时提供了一个工具类，专门用于处理视频下载地址字典，即 `video.VideoDownloadURLDataDetecter`。其提供 `detect` 和 `detect_best_streams` 方法，这里我们只需要一对清晰度最好的音视频流，使用 `detect_best_streams` 即可。
 
 ``` python
 from bilibili_api import sync, video
@@ -620,13 +609,9 @@ async def download(url: str, out: str):
 
 此处代码使用 `\r` 操作符刷新输出行，打印下载进度。`get_bili_headers` 是模块提供的获取一整套请求头的函数，包括我们需要的 `User-Agent` 和 `Referer`。此处使用了 AnyIO 库进行异步文件 IO，AnyIO 也是模块的依赖之一。
 
-然后就是对 `BiliAPIClient` 函数的具体介绍，虽然这边未使用到，但其最重要的函数是 `request` 函数，用于发起一般网络请求，详情可翻阅文档。此处使用了四个函数，`download_create` 用于创建流式下载的响应，`download_content_length` 用于获取下载文件的长度，`download_chunk` 用于片段下载，只支持线性下载，且不支持自定义单次获取片段长度，`download_close` 用于下载完成后关闭响应。
+然后就是对 `BiliAPIClient` 函数的具体介绍，虽然这边未使用到，但其最重要的函数是 `request` 函数，用于发起一般网络请求，详情可翻阅文档。此处使用了四个函数，`download_create` 用于创建流式下载的响应，`download_content_length` 用于获取下载文件的长度，`download_chunk` 用于片段下载，`download_close` 用于下载完成后关闭响应。实际上，`BiliAPIClient` 是模块进行网络请求的核心，所有的请求均从这个类中通过，无论是正常的网络请求，还是与服务器连接的 WebSocket，亦或是此处的基本下载功能。
 
-下载相关函数槽点确实很多，以下是狡辩。首先，下载功能在模块中应用极少，唯一使用是 `InteractiveVideoDownloader` 需要一个默认下载函数，然后，`download_chunk` 为什么不支持指定片段长度？因为模块最早在兼容第三方请求库的时候，`curl_cffi` 尚未完成对这项功能的支持，不支持指定片段长度，鉴于下载功能确实不重要的情况下，模块设计抽象接口时也未保留片段长度参数。最后是，除了现在的情景以外，用户都无需手动使用 `BiliAPIClient` 的 `download_xxx` 函数。
-
-现在读者大抵能猜到为什么视频下载放在了快速上手最后的部分，因为此部分在为了 `BiliAPIClient` 的醋包了一个下载的饺子。`BiliAPIClient` 是模块进行网络请求的核心，所有的请求均从这个类中通过，无论是正常的网络请求，还是与服务器连接的 WebSocket，亦或是鸡肋的下载功能。幸运的是，读者在此无需使用鸡肋的下载功能，因为模块已经贴心地将以上的下载函数封装为了 `bilibili_api.bili_simple_download`，供日常使用。此部分只需要了解 `BiliAPIClient` 定位与作用即可。
-
-同时还请放心，`BiliAPIClient` 的 `request` 和 WebSocket 相关函数设计相较下载功能来说，还是挺科学与人性化的，前者基本按照 `requests` 设计，后者基本按照 `aiohttp` 设计。
+模块已经将以上的下载函数封装为了 `bilibili_api.bili_simple_download`，供日常使用。下面将直接调用此函数。
 
 终于，此处我们使用 `bili_simple_download` 完成了视频下载，接下来到混流了。此处混流直接使用 FFMpeg。这里为防止同步任务堵塞异步事件循环/进程，使用了 `anyio.to_thread.run_sync` 运行 `os.system`，虽然在目前的简单场景下没有这种必要，而且 FFMpeg 没有那么慢，但是，毕竟快速上手不能坏了代码规范。
 
@@ -654,6 +639,4 @@ async def main() -> None:
 sync(main())
 ```
 
-运行后，在运行目录下即有下载完成视频 `video.mp4`。此处代码未编写清理中间文件 `video.m4s` 和 `audio.m4s` 的逻辑，就当作是注重简约性吧。
-
-可以发现在模块的封装下，整个下载视频的代码非常简单，遗憾的是，其他功能的封装未必有那么完善，因此本部分提到的一些技巧与方法，仍有必要熟悉，例如处理返回的字典，使用 `BiliAPIClient` 进行适当网络请求，以备更复杂的情景或任务。
+运行后，在运行目录下即有下载完成视频 `video.mp4`。
