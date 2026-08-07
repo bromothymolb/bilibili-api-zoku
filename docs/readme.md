@@ -7,13 +7,13 @@
 [![API 数量](https://img.shields.io/badge/API%20数量-400+-blue)][api.json]
 [![LICENSE](https://img.shields.io/badge/LICENSE-GPLv3+-red)][LICENSE]
 [![Python](https://img.shields.io/badge/python-3.10+-blue)](https://www.python.org)
-[![Stable Version](https://img.shields.io/github/v/release/bromothymolb/bilibili-api-zoku?label=pre-release&include_prereleases&sort=semver)][pypi]
+[![Stable Version](https://img.shields.io/github/v/release/bromothymolb/bilibili-api-zoku?label=stable)][pypi]
 [![Pre-release Version](https://img.shields.io/github/v/release/bromothymolb/bilibili-api-zoku?label=pre-release&include_prereleases&sort=semver)][pypi]
 [![STARS](https://img.shields.io/github/stars/bromothymolb/bilibili-api-zoku?color=yellow&label=Github%20Stars)][stargazers]
 [![Docs](https://img.shields.io/badge/Docs-Site-green)][docs]
 [![Docs](https://img.shields.io/badge/Docs-Github-green)][docs-github]
 
-> `zoku` ———— 続/續/续（<ruby>ぞ<rp>(</rp><rt>zo</rt><rp>)</rp>く<rp>(</rp><rt>ku</rt><rp>)</rp></ruby>）
+> `zoku` —— 続/續/续（<ruby>ぞ<rp>(</rp><rt>zo</rt><rp>)</rp>く<rp>(</rp><rt>ku</rt><rp>)</rp></ruby>）
 >
 > `bilibili-api-zoku` 是 `bilibili-api` 的接续，旨在对 `bilibili-api` 模块进行进一步维护与开发。
 
