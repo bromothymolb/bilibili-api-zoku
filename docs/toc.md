@@ -1042,6 +1042,7 @@
     - [def add\_event\_listener()](./modules/bilibili_api#def-add\_event\_listener)
     - [def async\_event\_cancel()](./modules/bilibili_api#def-async\_event\_cancel)
     - [async def async\_event\_run()](./modules/bilibili_api#async-def-async\_event\_run)
+    - [def async\_event\_running()](./modules/bilibili_api#def-async\_event\_running)
     - [async def async\_event\_start()](./modules/bilibili_api#async-def-async\_event\_start)
     - [def dispatch()](./modules/bilibili_api#def-dispatch)
     - [def ignore\_event()](./modules/bilibili_api#def-ignore\_event)

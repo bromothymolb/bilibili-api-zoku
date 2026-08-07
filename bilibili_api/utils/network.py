@@ -363,7 +363,31 @@ class AsyncEvent:
         """
         self.__ignore_events = []
 
-    async def __run_handler(self, coro: Coroutine, event_name: str) -> None:
+    def __run_sync_block(
+        self, func: Callable, event_name: str, *args, **kwargs
+    ) -> None:
+        try:
+            func(*args, **kwargs)
+        except Exception as e:
+            if event_name != "__TASK_EXCEPTION__":
+                self.dispatch("__TASK_EXCEPTION__", e)
+            else:
+                raise e
+
+    async def __run_sync(
+        self, func: Callable, event_name: str, *args, **kwargs
+    ) -> None:
+        try:
+            await to_thread.run_sync(
+                lambda func: func(*args, **kwargs), func, abandon_on_cancel=True
+            )
+        except Exception as e:
+            if event_name != "__TASK_EXCEPTION__":
+                self.dispatch("__TASK_EXCEPTION__", e)
+            else:
+                raise e
+
+    async def __run_coro(self, coro: Coroutine, event_name: str) -> None:
         """
         执行异步函数，如果任务抛出异常，分发特殊异常事件，避免 `Task exception was never retrieved`。
         """
@@ -392,11 +416,20 @@ class AsyncEvent:
         name = name.upper()
         if name in self.__handlers:
             for func in self.__handlers[name]:
-                if iscoroutinefunction(func) and not hasattr(self, "task_group"):
-                    continue
-                obj = func(*args, **kwargs)
-                if isinstance(obj, Coroutine):
-                    self.task_group.create_task(self.__run_handler(obj, name))
+                if iscoroutinefunction(func):
+                    if not hasattr(self, "task_group"):
+                        continue
+                    else:
+                        self.task_group.create_task(
+                            self.__run_coro(func(*args, **kwargs), name)
+                        )
+                else:
+                    if not hasattr(self, "task_group"):
+                        self.__run_sync_block(func, name, *args, **kwargs)
+                    else:
+                        self.task_group.create_task(
+                            self.__run_sync(func, name, *args, **kwargs)
+                        )
 
         if name != "__ALL__" and name != "__TASK_EXCEPTION__":
             kwargs.update({"name": name, "data": args})
@@ -428,7 +461,7 @@ class AsyncEvent:
                 self.__exit_event.set()
         except CancelledError:
             self.__exit_event.set()
-            pass
+        del self.task_group
         return ret
 
     @asynccontextmanager
@@ -455,6 +488,15 @@ class AsyncEvent:
         取消异步事件类主任务
         """
         self.__exit_event.set()
+
+    def async_event_running(self) -> bool:
+        """
+        判断异步事件类主任务是否正在运行
+
+        Returns:
+            bool: 异步事件类主任务是否正在运行
+        """
+        return hasattr(self, "task_group")
 
 
 """

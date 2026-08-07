@@ -5,7 +5,6 @@
 + 文档
   + 通用
     + [模块的安装与依赖相关](docs/common/installation.md)
-    + [第三方请求库](docs/common/request-client.md)
     + [同步执行异步代码](docs/common/sync-executor.md)
     + [`Credential` 类](docs/common/credential.md)
     + [`AsyncEvent` 类](docs/common/async-event.md)
@@ -14,6 +13,7 @@
     + [模块配置](docs/common/bili_settings.md)
     + [日志](docs/common/logging.md)
     + [根模块类与函数](docs/common/root-functions.md)
+    + [异常处理](docs/common/errors.md)
   + 子模块相关
     + [专栏](docs/sub/article.md)
     + [番剧](docs/sub/bangumi.md)
