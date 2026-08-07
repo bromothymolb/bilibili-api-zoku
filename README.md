@@ -1,4 +1,4 @@
-![bilibili-api logo](./design/logo.png)
+![bilibili-api logo](./design/logo-alpha-small.png)
 
 <div align="center">
 
