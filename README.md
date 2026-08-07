@@ -1,6 +1,6 @@
-![bilibili-api logo](./design/logo-alpha-small.png)
-
 <div align="center">
+
+![bilibili-api logo](./design/logo-alpha-small.png)
 
 # `bilibili-api-zoku`
 
