@@ -4,6 +4,7 @@
       "url": "https://api.bilibili.com/x/article/viewinfo",
       "method": "GET",
       "verify": false,
+      "wbi": true,
       "params": {
         "id": "int: cv 号",
         "from": "web",

@@ -1,6 +1,6 @@
-![bilibili-api logo](./design/logo.png)
-
 <div align="center">
+
+<img src="./design/logo.png" />
 
 # `bilibili-api-zoku`
 
