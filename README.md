@@ -1,10 +1,6 @@
 <div align="center">
 
-<div style="background-color: #afafaf">
-
-<img src="./design/logo-alpha-small.png">
-
-</div>
+<img src="./design/logo.png" />
 
 # `bilibili-api-zoku`
 
