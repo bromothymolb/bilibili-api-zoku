@@ -8,8 +8,8 @@ import asyncio
 from collections.abc import AsyncGenerator
 
 import anyio
-import curl_cffi  # pylint: disable=E0401
-from curl_cffi import requests  # pylint: disable=E0401
+import curl_cffi
+from curl_cffi import requests
 
 from ..utils.network import (
     BiliAPIClient,

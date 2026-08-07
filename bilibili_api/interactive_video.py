@@ -4,8 +4,6 @@ bilibili_api.interactive_video
 互动视频相关操作
 """
 
-# pylint: skip-file
-
 from collections.abc import AsyncGenerator, Coroutine
 import copy
 import enum

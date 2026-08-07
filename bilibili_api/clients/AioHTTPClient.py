@@ -7,7 +7,7 @@ AioHTTPClient 实现
 import asyncio
 
 import aiohttp
-import anyio  # pylint: disable=E0401
+import anyio
 
 from ..utils.network import (
     BiliAPIClient,
