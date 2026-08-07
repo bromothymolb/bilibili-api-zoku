@@ -10,13 +10,11 @@ from enum import Enum
 import time
 from typing import Union
 
+from .utils import cache_pool
 from .utils.network import Api, Credential
 from .utils.utils import get_api
 
 API = get_api("watchroom")
-
-
-watch_room_bangumi_cache: dict[int, list[int]] = {}
 
 
 class SeasonType(Enum):
@@ -125,9 +123,9 @@ class WatchRoom:
         self.credential: Credential = credential
         self.credential.raise_for_no_sessdata()
         self.credential.raise_for_no_bili_jct()
-        if room_id in watch_room_bangumi_cache.keys():
-            self.set_season_id(watch_room_bangumi_cache[room_id][0])
-            self.set_episode_id(watch_room_bangumi_cache[room_id][1])
+        if room_id in cache_pool.watch_room_bangumi_cache.keys():
+            self.set_season_id(cache_pool.watch_room_bangumi_cache[room_id][0])
+            self.set_episode_id(cache_pool.watch_room_bangumi_cache[room_id][1])
 
     def __str__(self) -> str:
         return f"WatchRoom(room_id={self.__room_id})"
@@ -378,8 +376,6 @@ async def create(
     Returns:
         watchroom.WatchRoom: 放映室
     """
-    global watch_room_bangumi_cache
-
     if credential is None:
         credential = Credential()
 
@@ -394,7 +390,7 @@ async def create(
     room_id = (
         await Api(credential=credential, no_csrf=True, **api).update_data(**data).result
     )["room_id"]
-    watch_room_bangumi_cache[room_id] = [season_id, episode_id]
+    cache_pool.watch_room_bangumi_cache[room_id] = [season_id, episode_id]
     return WatchRoom(room_id=room_id, credential=credential)
 
 

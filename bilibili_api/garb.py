@@ -6,11 +6,9 @@ bilibili_api.garb
 
 from enum import Enum
 
+from .utils import cache_pool
 from .utils.network import Api, Credential
 from .utils.utils import get_api
-
-dlc_lottery_id = {}
-
 
 API = get_api("garb")
 
@@ -87,8 +85,8 @@ class DLC:
         self.__lottery_id = None
         self.__basic_info = None
         self.credential = credential or Credential()
-        if dlc_lottery_id.get(self.__act_id):
-            self.__lottery_id = dlc_lottery_id[self.__act_id]
+        if cache_pool.dlc_lottery_id.get(self.__act_id):
+            self.__lottery_id = cache_pool.dlc_lottery_id[self.__act_id]
 
     def __str__(self) -> str:
         return f"DLC(act_id={self.__act_id})"
@@ -245,7 +243,7 @@ async def search_garb_dlc_obj(
     for obj in res["list"]:
         if obj["item_id"] == 0:
             act_id = int(obj["properties"]["dlc_act_id"])
-            dlc_lottery_id[act_id] = int(obj["properties"]["dlc_lottery_id"])
+            cache_pool.dlc_lottery_id[act_id] = int(obj["properties"]["dlc_lottery_id"])
             ret.append(DLC(act_id, credential=credential))
         else:
             ret.append(Garb(obj["item_id"]))
@@ -275,7 +273,7 @@ async def search_garb_dlc(
     for obj in res["list"]:
         if obj["item_id"] == 0:
             act_id = int(obj["properties"]["dlc_act_id"])
-            dlc_lottery_id[act_id] = int(obj["properties"]["dlc_lottery_id"])
+            cache_pool.dlc_lottery_id[act_id] = int(obj["properties"]["dlc_lottery_id"])
             ret.append((obj, DLC(act_id, credential=credential)))
         else:
             ret.append((obj, Garb(obj["item_id"])))
@@ -343,7 +341,7 @@ async def get_garb_dlc_items_obj(
     for obj in res["list"]:
         if obj["item_id"] == 0:
             act_id = int(obj["properties"]["dlc_act_id"])
-            dlc_lottery_id[act_id] = int(obj["properties"]["dlc_lottery_id"])
+            cache_pool.dlc_lottery_id[act_id] = int(obj["properties"]["dlc_lottery_id"])
             ret.append(DLC(act_id, credential=credential))
         else:
             ret.append(Garb(obj["item_id"]))
@@ -378,7 +376,7 @@ async def get_garb_dlc_items(
     for obj in res["list"]:
         if obj["item_id"] == 0:
             act_id = int(obj["properties"]["dlc_act_id"])
-            dlc_lottery_id[act_id] = int(obj["properties"]["dlc_lottery_id"])
+            cache_pool.dlc_lottery_id[act_id] = int(obj["properties"]["dlc_lottery_id"])
             ret.append((obj, DLC(act_id, credential=credential)))
         else:
             ret.append((obj, Garb(obj["item_id"])))

@@ -7,13 +7,12 @@ bilibili_api.channel_series
 from enum import Enum
 
 from . import user
+from .utils import cache_pool
 from .utils.network import Api, Credential
 from .utils.utils import get_api, raise_for_statement
 
 API_USER = get_api("user")
 API = get_api("channel-series")
-
-channel_meta_cache = {}
 
 
 class ChannelOrder(Enum):
@@ -67,7 +66,6 @@ class ChannelSeries:
             id_ (int, optional): season_id 或 series_id. Defaults to -1.
             credential (Credential | None, optional): 凭证. Defaults to None.
         """
-        global channel_meta_cache
         raise_for_statement(id_ != -1)
         raise_for_statement(type_ is not None)
         from .user import User
@@ -78,8 +76,8 @@ class ChannelSeries:
         self.owner = User(self.__uid, credential=credential)
         self.credential: Credential = credential or Credential()
         self.meta = None
-        if f"{type_.value}-{id_}" in channel_meta_cache.keys():
-            self.meta = channel_meta_cache[f"{type_.value}-{id_}"]
+        if f"{type_.value}-{id_}" in cache_pool.channel_meta_cache.keys():
+            self.meta = cache_pool.channel_meta_cache[f"{type_.value}-{id_}"]
 
     def __str__(self) -> str:
         return (

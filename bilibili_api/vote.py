@@ -10,14 +10,12 @@ from enum import Enum
 
 from .exceptions import ArgsException
 from .user import fetch_dedeuserid
+from .utils import cache_pool
 from .utils.network import Api, Credential
 from .utils.picture import Picture
 from .utils.utils import get_api
 
 API = get_api("vote")
-
-
-vote_info = {}
 
 
 class VoteType(Enum):
@@ -153,8 +151,8 @@ class Vote:
         Returns:
             str: 投票标题
         """
-        if vote_info.get(self.get_vote_id()):
-            return vote_info[self.get_vote_id()]["title"]
+        if cache_pool.vote_info.get(self.get_vote_id()):
+            return cache_pool.vote_info[self.get_vote_id()]["title"]
         return (await self.get_info())["vote_info"]["title"]
 
     async def get_desc(self) -> str:
@@ -164,8 +162,8 @@ class Vote:
         Returns:
             str: 投票描述
         """
-        if vote_info.get(self.get_vote_id()):
-            return vote_info[self.get_vote_id()]["desc"]
+        if cache_pool.vote_info.get(self.get_vote_id()):
+            return cache_pool.vote_info[self.get_vote_id()]["desc"]
         return (await self.get_info())["vote_info"]["desc"]
 
     async def get_choice_cnt(self) -> int:
@@ -175,8 +173,8 @@ class Vote:
         Returns:
             int: 最多选择选项数目
         """
-        if vote_info.get(self.get_vote_id()):
-            return vote_info[self.get_vote_id()]["choice_cnt"]
+        if cache_pool.vote_info.get(self.get_vote_id()):
+            return cache_pool.vote_info[self.get_vote_id()]["choice_cnt"]
         return (await self.get_info())["vote_info"]["choice_cnt"]
 
     async def get_options(self) -> dict:
@@ -186,8 +184,8 @@ class Vote:
         Returns:
             dict: 选项数据
         """
-        if vote_info.get(self.get_vote_id()):
-            return vote_info[self.get_vote_id()]["options"]
+        if cache_pool.vote_info.get(self.get_vote_id()):
+            return cache_pool.vote_info[self.get_vote_id()]["options"]
         return (await self.get_info())["vote_info"]["options"]
 
     async def get_duration(self) -> dict:
@@ -197,8 +195,8 @@ class Vote:
         Returns:
             dict: 选项数据
         """
-        if vote_info.get(self.get_vote_id()):
-            return vote_info[self.get_vote_id()]["duration"]
+        if cache_pool.vote_info.get(self.get_vote_id()):
+            return cache_pool.vote_info[self.get_vote_id()]["duration"]
         info = (await self.get_info())["vote_info"]
         return info["end_time"] - info["ctime"]
 
@@ -240,7 +238,7 @@ class Vote:
         }
         data.update(choices.get_choices())
         self.__info = None
-        vote_info[self.get_vote_id()] = data
+        cache_pool.vote_info[self.get_vote_id()] = data
         if choice_cnt > len(choices.choices):
             raise ValueError("choice_cnt 大于 choices 选项数")
         return (
@@ -320,5 +318,5 @@ async def create_vote(
         .update_headers(Referer="https://t.bilibili.com")
         .result
     )["vote_id"]
-    vote_info[vote_id] = data
+    cache_pool.vote_info[vote_id] = data
     return Vote(vote_id=vote_id, credential=credential)

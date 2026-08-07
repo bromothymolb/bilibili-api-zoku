@@ -177,7 +177,9 @@ class AioHTTPClient(BiliAPIClient):
         cnt = self.__download_cnt
         self.__down_cnt_lock.release()
         self.__downloads[cnt] = await self.__session.get(url=url, headers=headers)
-        self.__download_iter[cnt] = self.__downloads[cnt].content.iter_chunked(chunk_size)
+        self.__download_iter[cnt] = self.__downloads[cnt].content.iter_chunked(
+            chunk_size
+        )
         return cnt
 
     async def download_chunk(self, cnt: int) -> bytes:

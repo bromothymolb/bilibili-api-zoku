@@ -17,16 +17,13 @@ from . import user, vote
 from .article import Article
 from .exceptions import ArgsException
 from .opus import Opus
-from .utils import cache_pool, utils
+from .utils import cache_pool
 from .utils.network import Api, Credential
 from .utils.picture import Picture
+from .utils.utils import get_api
 
-API = utils.get_api("dynamic")
-API_opus = utils.get_api("opus")
-raise_for_statement = utils.raise_for_statement
-
-uid2uname = {}
-uname2uid = {}
+API = get_api("dynamic")
+API_opus = get_api("opus")
 
 
 class DynamicType(Enum):
@@ -75,24 +72,22 @@ class DynamicContentType(Enum):
 
 
 async def _name2uid(uname: str, credential: Credential) -> int:
-    global uname2uid
-    if uname2uid.get(uname) is None:
+    if cache_pool.uname2uid.get(uname) is None:
         resp = (await user.name2uid(uname, credential=credential))["uid_list"]
         if len(resp) == 0:
             return 0
         if resp[0]["name"] != uname:
             return 0
-        uname2uid[uname] = resp[0]["uid"]
-    return uname2uid[uname]
+        cache_pool.uname2uid[uname] = resp[0]["uid"]
+    return cache_pool.uname2uid[uname]
 
 
 async def _uid2name(uid: int, credential: Credential) -> str:
-    global uid2uname
-    if uid2uname.get(uid) is None:
-        uid2uname[uid] = (await user.User(uid, credential=credential).get_user_info())[
-            "name"
-        ]
-    return uid2uname[uid]
+    if cache_pool.uid2uname.get(uid) is None:
+        cache_pool.uid2uname[uid] = (
+            await user.User(uid, credential=credential).get_user_info()
+        )["name"]
+    return cache_pool.uid2uname[uid]
 
 
 async def _parse_at(text: str, credential: Credential) -> tuple[str, str, str]:
@@ -770,22 +765,27 @@ class Dynamic:
             dict: 调用 API 返回的结果
         """
         if not self.__detail:
-            api = API["info"]["detail"]
-            params = {
-                "id": self.__dynamic_id,
-                "timezone_offset": -480,
-                "platform": "web",
-                "gaia_source": "main_web",
-                "features": "itemOpusStyle,opusBigCover,onlyfansVote,endFooterHidden,decorationCard,onlyfansAssetsV2,ugcDelete",
-                "web_location": "333.1368",
-                "x-bili-device-req-json": '{"platform":"web","device":"pc"}',
-                "x-bili-web-req-json": '{"spm_id":"333.1368"}',
-            }
-            self.__detail = (
-                await Api(**api, credential=self.credential)
-                .update_params(**params)
-                .result
-            )
+            if cache_pool.dynamic_info.get(str(self.__dynamic_id)):
+                self.__detail = {
+                    "item": cache_pool.dynamic_info[str(self.__dynamic_id)]
+                }
+            else:
+                api = API["info"]["detail"]
+                params = {
+                    "id": self.__dynamic_id,
+                    "timezone_offset": -480,
+                    "platform": "web",
+                    "gaia_source": "main_web",
+                    "features": "itemOpusStyle,opusBigCover,onlyfansVote,endFooterHidden,decorationCard,onlyfansAssetsV2,ugcDelete",
+                    "web_location": "333.1368",
+                    "x-bili-device-req-json": '{"platform":"web","device":"pc"}',
+                    "x-bili-web-req-json": '{"spm_id":"333.1368"}',
+                }
+                self.__detail = (
+                    await Api(**api, credential=self.credential)
+                    .update_params(**params)
+                    .result
+                )
             cache_pool.dynamic_is_article[self.__dynamic_id] = (
                 self.__detail["item"]["basic"]["comment_type"] == 12
             )

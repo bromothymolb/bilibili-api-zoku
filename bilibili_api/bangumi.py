@@ -14,6 +14,7 @@ import datetime
 from enum import Enum
 
 from .exceptions import ApiException, ArgsException
+from .utils import cache_pool
 from .utils.aid_bvid_transformer import aid2bvid, bvid2aid
 from .utils.danmaku import Danmaku
 from .utils.initial_state import (
@@ -26,11 +27,6 @@ from .video import Video
 
 API = get_api("bangumi")
 API_video = get_api("video")
-
-
-episode_data_cache = {}
-bangumi_ss_to_md = {}
-bangumi_md_to_ss = {}
 
 
 class BangumiCommentOrder(Enum):
@@ -997,8 +993,6 @@ class Bangumi:
             oversea (bool, optional): 是否要采用兼容的港澳台Api,用于仅限港澳台地区番剧的信息请求. Defaults to False.
             credential (Credential | None, optional): 凭据类. Defaults to None.
         """
-        global bangumi_md_to_ss, bangumi_ss_to_md
-
         if media_id == -1 and ssid == -1 and epid == -1:
             raise ValueError("需要 Media_id 或 Season_id 或 epid 中的一个 !")
         self.credential: Credential = credential or Credential()
@@ -1012,20 +1006,20 @@ class Bangumi:
         self.ep_item = None
 
         if self.__media_id != -1 and self.__ssid != -1:
-            bangumi_md_to_ss[self.__media_id] = self.__ssid
-            bangumi_ss_to_md[self.__ssid] = self.__media_id
+            cache_pool.bangumi_md_to_ss[self.__media_id] = self.__ssid
+            cache_pool.bangumi_ss_to_md[self.__ssid] = self.__media_id
         if (
             self.__media_id != -1
             and self.__ssid == -1
-            and self.__media_id in bangumi_md_to_ss.keys()
+            and self.__media_id in cache_pool.bangumi_md_to_ss.keys()
         ):
-            self.__ssid = bangumi_md_to_ss[self.__media_id]
+            self.__ssid = cache_pool.bangumi_md_to_ss[self.__media_id]
         if (
             self.__media_id == -1
             and self.__ssid != -1
-            and self.__ssid in bangumi_ss_to_md.keys()
+            and self.__ssid in cache_pool.bangumi_ss_to_md.keys()
         ):
-            self.__media_id = bangumi_ss_to_md[self.__ssid]
+            self.__media_id = cache_pool.bangumi_ss_to_md[self.__ssid]
 
     def __str__(self) -> str:
         return f"Bangumi(season_id={self.__ssid if self.__ssid != -1 else '[UNKNOWN]'}, media_id={self.__media_id if self.__media_id != -1 else '[UNKNOWN]'})"
@@ -1034,7 +1028,6 @@ class Bangumi:
         return f"Bangumi(season_id={self.__ssid if self.__ssid != -1 else '[UNKNOWN]'}, media_id={self.__media_id if self.__media_id != -1 else '[UNKNOWN]'})"
 
     async def __fetch_raw(self) -> None:
-        global bangumi_md_to_ss, bangumi_ss_to_md
         # 处理极端情况
         params = {}
         if self.__ssid == -1 and self.__epid == -1:
@@ -1067,8 +1060,8 @@ class Bangumi:
             self.__up_info = resp["up_info"]
         else:
             self.__up_info = {}
-        bangumi_md_to_ss[self.__media_id] = self.__ssid
-        bangumi_ss_to_md[self.__ssid] = self.__media_id
+        cache_pool.bangumi_md_to_ss[self.__media_id] = self.__ssid
+        cache_pool.bangumi_ss_to_md[self.__ssid] = self.__media_id
 
     async def get_media_id(self) -> int:
         """
@@ -1251,14 +1244,13 @@ class Bangumi:
         Returns:
             list['Episode']: 剧集类列表
         """
-        global episode_data_cache
         episode_list = await self.get_episode_list()
         if len(episode_list["main_section"]["episodes"]) == 0:
             return []
 
         episodes = []
         for ep in episode_list["main_section"]["episodes"]:
-            episode_data_cache[ep["id"]] = {
+            cache_pool.episode_data_cache[ep["id"]] = {
                 "bangumi_meta": ep,
                 "bangumi_class": self,
             }
@@ -1360,7 +1352,6 @@ class Episode(Video):
             epid (int): 番剧 epid
             credential (Credential | None, optional): 凭据. Defaults to None.
         """
-        global episode_data_cache
         self.credential: Credential = credential or Credential()
         self.__epid: int = epid
         self.bangumi = None
@@ -1369,9 +1360,9 @@ class Episode(Video):
         self.__ep_info_html = None
         self.__playurl = None
 
-        if epid in episode_data_cache.keys():
-            self.bangumi = episode_data_cache[epid]["bangumi_class"]
-            self.__ep_aid = episode_data_cache[epid]["bangumi_meta"]["aid"]
+        if epid in cache_pool.episode_data_cache.keys():
+            self.bangumi = cache_pool.episode_data_cache[epid]["bangumi_class"]
+            self.__ep_aid = cache_pool.episode_data_cache[epid]["bangumi_meta"]["aid"]
             self.__ep_bvid = aid2bvid(self.__ep_aid)
 
         super().__init__(bvid="BV1Am411y7iK", credential=self.credential)

@@ -18,6 +18,7 @@ from typing import Any
 
 from .exceptions import DanmakuClosedException, NetworkException, ResponseException
 from .exceptions.ArgsException import ArgsException
+from .utils import cache_pool
 from .utils.BytesReader import BytesReader
 from .utils.danmaku import Danmaku
 from .utils.network import Api, Credential
@@ -25,9 +26,6 @@ from .utils.utils import get_api
 
 API = get_api("cheese")
 API_video = get_api("video")
-
-
-cheese_video_meta_cache = {}
 
 
 class CheeseList:
@@ -136,7 +134,6 @@ class CheeseList:
         Returns:
             list['CheeseVideo']: 课程视频列表
         """
-        global cheese_video_meta_cache
         api = API["info"]["list"]
         params = {"season_id": await self.get_season_id(), "pn": 1, "ps": 1000}
         lists = (
@@ -145,7 +142,7 @@ class CheeseList:
         cheese_videos = []
         for c in lists["items"]:
             c["ssid"] = await self.get_season_id()
-            cheese_video_meta_cache[c["id"]] = c
+            cache_pool.cheese_video_meta_cache[c["id"]] = c
             cheese_videos.append(CheeseVideo(c["id"], self.credential))
         return cheese_videos
 
@@ -168,13 +165,12 @@ class CheeseVideo:
             epid (int): 单集 ep_id
             credential (Credential | None, optional): 凭据类. Defaults to None.
         """
-        global cheese_video_meta_cache
         self.__epid = epid
         self.cheese = None
         self.__aid = None
         self.__cid = None
         self.__meta = None
-        meta = cheese_video_meta_cache.get(epid)
+        meta = cache_pool.cheese_video_meta_cache.get(epid)
         if meta:
             self.cheese = CheeseList(season_id=meta["ssid"])
             self.__meta = meta

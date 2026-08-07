@@ -10,6 +10,7 @@ import json
 
 from .channel_series import ChannelOrder, ChannelSeries, ChannelSeriesType
 from .exceptions import ResponseCodeException
+from .utils import cache_pool
 from .utils.network import Api, Credential
 from .utils.user_render_data import get_user_dynamic_render_data
 from .utils.utils import get_api, join, raise_for_statement
@@ -644,6 +645,8 @@ class User:
         data = (
             await Api(**api, credential=self.credential).update_params(**params).result
         )
+        for item in data["items"]:
+            cache_pool.dynamic_info[item["basic"]["rid_str"]] = item
         return data
 
     async def get_upower_qa_list(self, anchor: int = 0) -> dict:
@@ -976,8 +979,6 @@ class User:
         Returns:
             list['ChannelSeries']: 合集与列表类的列表
         """
-        from . import channel_series
-
         season_list = []
         series_list = []
         tot, cur, pn = 0, 0, 1
@@ -998,7 +999,7 @@ class User:
         for item in season_list:
             id_ = item["meta"]["season_id"]
             meta = item["meta"]
-            channel_series.channel_meta_cache[
+            cache_pool.channel_meta_cache[
                 str(ChannelSeriesType.SEASON.value) + "-" + str(id_)
             ] = meta
             channels.append(
@@ -1009,7 +1010,7 @@ class User:
         for item in series_list:
             id_ = item["meta"]["series_id"]
             meta = item["meta"]
-            channel_series.channel_meta_cache[
+            cache_pool.channel_meta_cache[
                 str(ChannelSeriesType.SERIES.value) + "-" + str(id_)
             ] = meta
             channels.append(
