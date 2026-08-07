@@ -13,13 +13,9 @@
 [![Docs](https://img.shields.io/badge/Docs-Site-green)][docs]
 [![Docs](https://img.shields.io/badge/Docs-Github-green)][docs-github]
 
-> `zoku` -> 続/續/续（<ruby>ぞ<rp>(</rp><rt>zo</rt><rp>)</rp>く<rp>(</rp><rt>ku</rt><rp>)</rp></ruby>）
+> `zoku` ———— 続/續/续（<ruby>ぞ<rp>(</rp><rt>zo</rt><rp>)</rp>く<rp>(</rp><rt>ku</rt><rp>)</rp></ruby>）
 >
-> `bilibili-api-zoku` 是 `Nemo2011/bilibili-api` 的接续，对 `bilibili-api` 模块进行进一步维护与开发。
->
-> 模块最早起源于 `MoyuScript/bilibili-api`，经由 [`Nemo2011/bilibili-api`](https://github.com/Nemo2011/bilibili-api) 接手继续维护，后该仓库因故删档。
->
-> 本仓库将接续模块的维护工作，感谢前前后后所有的模块贡献者与使用者，也欢迎更多人参与到其中。
+> `bilibili-api-zoku` 是 `bilibili-api` 的接续，旨在对 `bilibili-api` 模块进行进一步维护与开发。
 
 </div>
 

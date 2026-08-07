@@ -99,11 +99,13 @@ bilibili-api 发展到今天，离不开以下项目的直接或间接支持：
 
 另外，模块 aid 与 bvid 转换逻辑参考了 <https://www.zhihu.com/question/381784377/answer/1099438784> 这篇回答。
 
-最后，感谢所有贡献者对 bilibili-api 作出的贡献啊：
+最后，感谢所有贡献者对 bilibili-api 作出的贡献：
 
 <a href="https://github.com/bromothymolb/bilibili-api-zoku/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=bromothymolb/bilibili-api-zoku&max=1000" alt="contributors" />
 </a>
+
+也感谢所有曾经的或现在的模块使用者们！
 
 ## 使用前须知
 
