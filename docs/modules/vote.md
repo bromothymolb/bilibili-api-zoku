@@ -5,7 +5,7 @@ bilibili_api.vote
 
 投票相关操作。
 
-需要 vote_id,获取 vote_id: https://bromothymolb.github.io/bilibili-api-zoku/#/vote_id
+需要 vote_id,获取 vote_id: https://bromothymolb.github.io/bilibili-api-zoku/#/vote-id
 
 
 ``` python
@@ -40,7 +40,7 @@ from bilibili_api import vote
 
 | name | type | description |
 | - | - | - |
-| `vote_id` | `int` | vote_id, 获取：https |
+| `vote_id` | `int` | vote_id, 获取：https://bromothymolb.github.io/bilibili-api-zoku/#/docs/sub/vote-id |
 | `credential` | `Credential` | 凭据类 |
 
 
@@ -49,7 +49,7 @@ from bilibili_api import vote
 
 | name | type | description |
 | - | - | - |
-| `vote_id` | `int` | vote_id, 获取：https |
+| `vote_id` | `int` | vote_id, 获取：https://bromothymolb.github.io/bilibili-api-zoku/#/docs/sub/vote-id |
 | `credential` | `Credential \| None, optional` | 凭据类，非必要. Defaults to None. |
 
 

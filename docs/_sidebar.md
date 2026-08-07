@@ -4,15 +4,16 @@
 + [API 文档目录](toc.md)
 + 文档
   + 通用
+    + [模块的安装与依赖相关](docs/common/installation.md)
     + [第三方请求库](docs/common/request-client.md)
-    + [`Credential` 类](docs/common/credential.md)
     + [同步执行异步代码](docs/common/sync-executor.md)
+    + [`Credential` 类](docs/common/credential.md)
     + [`AsyncEvent` 类](docs/common/async-event.md)
     + [`Picture` 类](docs/common/picture.md)
     + [请求配置](docs/common/configuration.md)
     + [模块配置](docs/common/bili_settings.md)
     + [日志](docs/common/logging.md)
-    + [根模块函数](docs/common/root-functions.md)
+    + [根模块类与函数](docs/common/root-functions.md)
   + 子模块相关
     + [专栏](docs/sub/article.md)
     + [番剧](docs/sub/bangumi.md)
@@ -22,14 +23,13 @@
     + [图文](docs/sub/opus.md)
     + [用户](docs/sub/user.md)
     + [视频](docs/sub/video.md)
-    + [获取 vote_id](docs/sub/vote_id.md)
+    + [投票](docs/sub/vote.md)
   + 进阶
-    + [`Api` 类](docs/advance/api.md)
-    + [使用 `get_client`](docs/advance/client.md)
-    + [`BiliAPIClient` 适配](docs/advance/request_client.md)
-    + [`Credential` 类](docs/advance/credential.md)
+    + [再谈 `Credential` 类](docs/advance/credential.md)
+    + [使用 `BiliAPIClient`](docs/advance/client.md)
+    + [`BiliAPIClient` 适配](docs/advance/request-client.md)
+    + [会话调度](docs/advance/session-management.md)
     + [使用 `instance`](docs/advance/instance.md)
-    + [设置 `instance`](docs/advance/settings.md)
     + [过滤器](docs/advance/filter.md)
 + API 示例
   + [activity.py - 活动](examples/activity.md)

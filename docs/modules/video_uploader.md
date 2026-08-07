@@ -252,7 +252,7 @@ meta 参数示例: (保留 video, cover, tid, aid 字段)
 
 | name | type | description |
 | - | - | - |
-| `porder_type` | `VideoPorderType, optional` | 商业平台类型. Defaults to VideoPorderType.FIREWORK |
+| `porder_type` | `VideoPorderType, optional` | 商业平台类型. Defaults to VideoPorderType.FIREWORK. |
 | `industry_type` | `video_uploader.VideoPorderIndustry \| None, optional` | 商单行业，非花火填写. Defaults to None. |
 | `brand_name` | `str \| None, optional` | 品牌名，非花火填写. Defaults to None. |
 | `show_types` | `list[video_uploader.VideoPorderShowType] \| None, optional` | 商单形式，非花火填写. Defaults to None. |
