@@ -1,7 +1,11 @@
 [project]
 name = "bilibili-api-zoku"
-authors = [{ name = "Nemo2011", email = "yimoxia@outlook.com" }]
-maintainers = [{ name = "MoyuScript" }, { name = "Nemo2011" }]
+authors = [
+    { name = "MoyuScript" },
+    { name = "Nemo2011" },
+    { name = "bromothymolb" },
+]
+maintainers = [{ name = "bromothymolb", email = "bromothymolb@qq.com" }]
 dynamic = ["version"]
 license = { text = "GPL-3.0-or-later" }
 description = "The fork of module bilibili-api. 哔哩哔哩的各种 API 调用便捷整合（视频、动态、直播等），另外附加一些常用的功能。"
@@ -9,30 +13,30 @@ readme = "README.md"
 requires-python = ">=3.11"
 keywords = ["bilibili", "api", "spider"]
 classifiers = [
-  "Development Status :: 3 - Alpha",
-  "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
-  "Natural Language :: Chinese (Simplified)",
-  "Programming Language :: Python :: 3.11",
-  "Programming Language :: Python :: 3.12",
-  "Programming Language :: Python :: 3.13",
-  "Programming Language :: Python :: 3.14",
+    "Development Status :: 3 - Alpha",
+    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+    "Natural Language :: Chinese (Simplified)",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
 ]
 scripts = { "ivitools" = "bilibili_api.tools.ivitools.__main__:main" }
 dependencies = [
-  "PyJWT",
-  "anyio",
-  "beautifulsoup4",
-  "brotli",
-  "chompjs",
-  "colorama",
-  "frozendict",
-  "lxml",
-  "pillow",
-  "pycryptodomex",
-  "pyyaml",
-  "qrcode",
-  "qrcode_terminal",
-  "yarl",
+    "PyJWT",
+    "anyio",
+    "beautifulsoup4",
+    "brotli",
+    "chompjs",
+    "colorama",
+    "frozendict",
+    "lxml",
+    "pillow",
+    "pycryptodomex",
+    "pyyaml",
+    "qrcode",
+    "qrcode_terminal",
+    "yarl",
 ]
 
 [project.optional-dependencies]
@@ -50,15 +54,15 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
 packages = [
-  "bilibili_api",
-  "bilibili_api.utils",
-  "bilibili_api.exceptions",
-  "bilibili_api.clients",
-  "bilibili_api.third_party",
-  "bilibili_api.tools",
-  "bilibili_api.tools.ivitools",
-  "bilibili_api.tools.parser",
-  "bilibili_api._pyinstaller",
+    "bilibili_api",
+    "bilibili_api.utils",
+    "bilibili_api.exceptions",
+    "bilibili_api.clients",
+    "bilibili_api.third_party",
+    "bilibili_api.tools",
+    "bilibili_api.tools.ivitools",
+    "bilibili_api.tools.parser",
+    "bilibili_api._pyinstaller",
 ]
 
 [tool.setuptools.package-data]
@@ -70,7 +74,7 @@ readme = { file = ["README.md"], content-type = "text/markdown" }
 
 [tool.ruff]
 line-length = 88
-target-version = "py310"
+target-version = "py311"
 exclude = ["bilibili_api/third_party/danmaku2ass.py"]
 
 [tool.ruff.format]
@@ -78,31 +82,31 @@ line-ending = "cr-lf"
 
 [tool.ruff.lint]
 select = [
-  "F",     # Pyflakes
-  "W",     # pycodestyle warnings
-  "E",     # pycodestyle errors
-  "I",     # isort
-  "UP",    # pyupgrade
-  "ASYNC", # flake8-async
-  "B",     # flake8-bugbear
-  "C4",    # flake8-comprehensions
-  "T10",   # flake8-debugger
-  "Q",     # flake8-quotes
-  "TID",   # flake8-tidy-imports
-  "RUF",   # Ruff-specific rules
-  "FURB",  # refurb
+    "F",     # Pyflakes
+    "W",     # pycodestyle warnings
+    "E",     # pycodestyle errors
+    "I",     # isort
+    "UP",    # pyupgrade
+    "ASYNC", # flake8-async
+    "B",     # flake8-bugbear
+    "C4",    # flake8-comprehensions
+    "T10",   # flake8-debugger
+    "Q",     # flake8-quotes
+    "TID",   # flake8-tidy-imports
+    "RUF",   # Ruff-specific rules
+    "FURB",  # refurb
 ]
 ignore = [
-  "E402",     # module-import-not-at-top-of-file
-  "E501",     # line-too-long
-  "E741",     # ambiguous-variable-name
-  "UP037",    # quoted-annotation
-  "TID252",   # relative-imports
-  "RUF001",   # ambiguous-unicode-character-string
-  "RUF002",   # ambiguous-unicode-character-docstring
-  "RUF003",   # ambiguous-unicode-character-comment
-  "ASYNC240", # blocking-path-method-in-async-function
-  "FURB116",  # f-string-number-format
+    "E402",     # module-import-not-at-top-of-file
+    "E501",     # line-too-long
+    "E741",     # ambiguous-variable-name
+    "UP037",    # quoted-annotation
+    "TID252",   # relative-imports
+    "RUF001",   # ambiguous-unicode-character-string
+    "RUF002",   # ambiguous-unicode-character-docstring
+    "RUF003",   # ambiguous-unicode-character-comment
+    "ASYNC240", # blocking-path-method-in-async-function
+    "FURB116",  # f-string-number-format
 ]
 
 [tool.ruff.lint.isort]

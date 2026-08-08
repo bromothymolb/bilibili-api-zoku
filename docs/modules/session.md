@@ -32,6 +32,7 @@ from bilibili_api import session
 - [async def get\_unread\_messages()](#async-def-get\_unread\_messages)
 - [async def new\_sessions()](#async-def-new\_sessions)
 - [async def send\_msg()](#async-def-send\_msg)
+- [async def upload\_image()](#async-def-upload\_image)
 
 ---
 
@@ -369,6 +370,23 @@ from bilibili_api import session
 | `content` | `str \| Picture` | 信息内容。支持文字和图片。 |
 
 **Returns:** `dict`:  调用 API 返回结果
+
+
+
+
+---
+
+## async def upload_image()
+
+上传消息图片
+
+
+| name | type | description |
+| - | - | - |
+| `img` | `Picture` | 图片 |
+| `credential` | `Credential` | 凭据类 |
+
+**Returns:** `dict`:  调用 API 返回的结果
 
 
 
