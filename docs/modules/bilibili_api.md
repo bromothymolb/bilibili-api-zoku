@@ -100,6 +100,7 @@ from bilibili_api import ...
   - [def to\_json()](#def-to\_json)
   - [async def upload()](#async-def-upload)
   - [async def upload\_by\_note()](#async-def-upload\_by\_note)
+  - [async def upload\_by\_session()](#async-def-upload\_by\_session)
 - [class ResourceType()](#class-ResourceType)
 - [class ResponseCodeException()](#class-ResponseCodeException)
 - [class ResponseException()](#class-ResponseException)
@@ -1444,6 +1445,20 @@ NOTE: `gt`, `challenge`, `token` 为验证码基本字段。`seccode`, `validate
 ### async def upload_by_note()
 
 通过笔记接口上传图片至 B 站。
+
+
+| name | type | description |
+| - | - | - |
+| `credential` | `Credential` | 凭据类。 |
+
+**Returns:** `Picture`:  `self`
+
+
+
+
+### async def upload_by_session()
+
+通过消息接口上传图片至 B 站。
 
 
 | name | type | description |
