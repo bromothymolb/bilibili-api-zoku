@@ -27,7 +27,10 @@ API = get_api("session")
 
 
 async def fetch_session_msgs(
-    talker_id: int, credential: Credential, session_type: int = 1, begin_seqno: int = 0,
+    talker_id: int,
+    credential: Credential,
+    session_type: int = 1,
+    begin_seqno: int = 0,
 ) -> dict:
     """
     获取指定用户的近三十条消息
@@ -175,7 +178,10 @@ async def get_likes(
 
 
 async def get_at(
-    credential: Credential, last_uid: int = None, at_time: int = None, last_id: int = None
+    credential: Credential,
+    last_uid: int = None,
+    at_time: int = None,
+    last_id: int = None,
 ) -> dict:
     """
     获取收到的 AT
@@ -614,3 +620,27 @@ class Session(AsyncEvent):
         self.sched.remove_job("query")
         self.__status = 2
         self.logger.info("结束轮询")
+
+
+async def upload_image(img: Picture, credential: Credential) -> dict:
+    """
+    上传消息图片
+
+    Args:
+        img        (Picture)   : 图片
+        credential (Credential): 凭据类
+
+    Returns:
+        dict: 调用 API 返回的结果
+    """
+    credential.raise_for_no_sessdata()
+    credential.raise_for_no_bili_jct()
+    api = API["operate"]["upload_img"]
+    data = {"biz": "im"}
+    files = {"file_up": img._to_biliapifile()}
+    return (
+        await Api(**api, credential=credential)
+        .update_data(**data)
+        .update_files(**files)
+        .result
+    )  # type: ignore
