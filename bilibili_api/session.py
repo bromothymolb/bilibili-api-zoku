@@ -614,3 +614,27 @@ class Session(AsyncEvent):
         self.__wait_event.set()
         self.logger.info("结束轮询")
         self.async_event_cancel()
+
+
+async def upload_image(img: Picture, credential: Credential) -> dict:
+    """
+    上传消息图片
+
+    Args:
+        img        (Picture)   : 图片
+        credential (Credential): 凭据类
+
+    Returns:
+        dict: 调用 API 返回的结果
+    """
+    credential.raise_for_no_sessdata()
+    credential.raise_for_no_bili_jct()
+    api = API["operate"]["upload_img"]
+    data = {"biz": "im"}
+    files = {"file_up": await img.to_biliapifile()}
+    return (
+        await Api(**api, credential=credential)
+        .update_data(**data)
+        .update_files(**files)
+        .result
+    )

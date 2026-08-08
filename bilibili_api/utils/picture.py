@@ -178,7 +178,23 @@ class Picture:
         from ..note import upload_image
 
         res = await upload_image(self, credential)
-        self.url = res["location"]
+        self.url = "http:" + res["location"]
+        return self
+
+    async def upload_by_session(self, credential: Credential) -> "Picture":
+        """
+        通过消息接口上传图片至 B 站。
+
+        Args:
+            credential (Credential): 凭据类。
+
+        Returns:
+            Picture: `self`
+        """
+        from ..session import upload_image
+
+        res = await upload_image(self, credential)
+        self.url = res["image_url"]
         return self
 
     async def download(self, path: str) -> "Picture":

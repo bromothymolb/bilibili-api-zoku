@@ -106,6 +106,18 @@
           "receiver_id": "int: 对方 UID"
         },
         "comment": "给用户发信息"
+      },
+      "upload_img": {
+        "url": "https://api.bilibili.com/x/dynamic/feed/draw/upload_bfs",
+        "verify": true,
+        "method": "POST",
+        "data": {
+          "biz": "im"
+        },
+        "files": {
+          "file_up": "二进制 img"
+        },
+        "comment": "上传图片消息"
       }
     }
   }
