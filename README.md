@@ -2,7 +2,9 @@
 
 <img src="./design/logo.png" />
 
-# `bilibili-api-zoku`
+# bilibili-api-zoku
+
+**The Continuation of bilibili-API**
 
 [![API 数量](https://img.shields.io/badge/API%20数量-400+-blue)][api.json]
 [![LICENSE](https://img.shields.io/badge/LICENSE-GPLv3+-red)][LICENSE]
@@ -12,10 +14,6 @@
 [![STARS](https://img.shields.io/github/stars/bromothymolb/bilibili-api-zoku?color=yellow&label=Github%20Stars)][stargazers]
 [![Docs](https://img.shields.io/badge/Docs-Site-green)][docs]
 [![Docs](https://img.shields.io/badge/Docs-Github-green)][docs-github]
-
-> `zoku` —— 続/續/续（<ruby>ぞ<rp>(</rp><rt>zo</rt><rp>)</rp>く<rp>(</rp><rt>ku</rt><rp>)</rp></ruby>）
->
-> `bilibili-api-zoku` 是 `bilibili-api` 的接续，旨在对 `bilibili-api` 模块进行进一步维护与开发。
 
 </div>
 
