@@ -120,6 +120,7 @@ from bilibili_api import ...
 - [class NetworkException()](#class-NetworkException)
 - [class Picture()](#class-Picture)
   - [async def content()](#async-def-content)
+  - [def copy()](#def-copy)
   - [async def download()](#async-def-download)
   - [def from\_content()](#def-from\_content)
   - [def from\_file()](#def-from\_file)
@@ -1833,6 +1834,17 @@ NOTE: `gt`, `challenge`, `token` 为验证码基本字段。`seccode`, `validate
 
 
 **Returns:** `bytes`:  图片内容
+
+
+
+
+### def copy()
+
+复制 Picture 类
+
+
+
+**Returns:** `Picture`:  和 `self` 相同的新 Picture 类
 
 
 

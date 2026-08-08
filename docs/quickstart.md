@@ -41,7 +41,7 @@ $ pip3 install httpx[http2] # http2 support
 $ pip3 install "curl_cffi"
 ```
 
-模块通过抽象第三方请求库的方法，提供了对任意异步网络请求库的支持，因此理论上所有的异步网络请求库，模块都可以正常对其进行调用。模块源代码中已经实现了对 `curl_cffi` `aiohttp` 和 `httpx` 的支持，因此以上三个异步请求库可直接调用。如果需要使用其他网络请求库，你可能需要自行适配，相关文档请阅读 `模块二次开发` 下的 `BiliAPIClient 类` 部分内容。
+模块通过抽象第三方请求库的方法，提供了对任意异步网络请求库的支持，因此理论上所有的异步网络请求库，模块都可以正常对其进行调用。模块源代码中已经实现了对 `curl_cffi` `aiohttp` 和 `httpx` 的支持，因此以上三个异步请求库可直接调用。如果需要使用其他网络请求库，你可能需要自行适配，相关文档请阅读 `进阶` 部分中有关 `BiliAPIClient` 的部分。
 
 ## 使用 `Video`
 
@@ -493,7 +493,121 @@ def dm_msg(data: dict) -> None:
 运行程序，就会发现输出了许多字典对象，此处节选一条弹幕的信息：
 
 ``` python
-{'room_display_id': 33989, 'room_real_id': 33989, 'type': 'DANMU_MSG', 'data': {'cmd': 'DANMU_MSG', 'dm_v2': '', 'info': [[0, 1, 25, 16777215, 1786114405665, 1066685255, 0, 'f0650ae2', 0, 0, 0, '', 0, '{}', '{}', {'extra': '{"send_from_me":false,"master_player_hidden":false,"mode":0,"color":16777215,"dm_type":0,"font_size":25,"player_mode":1,"show_player_type":0,"content":"大叔好贴这个人脸啊","user_hash":"4033153762","emoticon_unique":"","bulge_display":0,"recommend_score":7,"dm_score":0,"chronos_force_display":0,"main_state_dm_color":"","objective_state_dm_color":"","direction":0,"pk_direction":0,"quartet_direction":0,"anniversary_crowd":0,"yeah_space_type":"","yeah_space_url":"","jump_to_url":"","space_type":"","space_url":"","animation":{},"emots":null,"is_audited":false,"id_str":"30c072a5bdb3ce4239b006fcbd6a75f18805","icon":null,"show_reply":true,"reply_mid":0,"reply_uname":"","reply_uname_color":"","reply_is_mystery":false,"reply_type_enum":0,"hit_combo":0,"esports_jump_url":"","is_mirror":false,"is_collaboration_member":false,"card":{"card_type":0,"oid_str":"","oid_str_1":"","origin_oid_str":"","share_id":"","share_origin":"","from":"","card_content":null},"voice":null,"background_type":0}', 'mode': 0, 'show_player_type': 0, 'user': {'anon': None, 'base': {'face': 'https://i0.hdslb.com/bfs/face/6d8a0e1bf1e19c3d63ac451875968dd72d48016c.jpg', 'is_mystery': False, 'name': '姬野家的星奏', 'name_color': 0, 'name_color_str': '', 'official_info': {'desc': '', 'role': 0, 'title': '', 'type': -1}, 'origin_info': {'face': 'https://i0.hdslb.com/bfs/face/6d8a0e1bf1e19c3d63ac451875968dd72d48016c.jpg', 'name': '姬野家的星奏'}, 'risk_ctrl_info': None}, 'guard': None, 'guard_leader': None, 'medal': {'color': 13081892, 'color_border': 13081892, 'color_end': 13081892, 'color_start': 13081892, 'guard_icon': '', 'guard_level': 0, 'honor_icon': '', 'id': 2226, 'is_light': 1, 'level': 18, 'name': '泛团', 'ruid': 63231, 'score': 1165, 'typ': 0, 'user_receive_count': 0, 'v2_medal_color_border': '#C770A499', 'v2_medal_color_end': '#C770A499', 'v2_medal_color_level': '#C770A4E6', 'v2_medal_color_start': '#C770A499', 'v2_medal_color_text': '#FFFFFF'}, 'title': {'old_title_css_id': '', 'title_css_id': ''}, 'uhead_frame': None, 'uid': 67268124, 'wealth': None}}, {'activity_identity': '', 'activity_source': 0, 'not_show': 0}, 0], '大叔好贴这个人脸啊', [67268124, '姬野家的星奏', 0, 0, 0, 10000, 1, ''], [18, '泛团', '泛式', 33989, 13081892, '', 0, 13081892, 13081892, 13081892, 0, 1, 63231], [13, 0, 6406234, '>50000', 0], ['', ''], 0, 0, None, {'ct': '41585B4A', 'ts': 1786114405}, 0, 0, None, None, 0, 260, [20], None]}}
+{
+    "room_display_id": 33989,
+    "room_real_id": 33989,
+    "type": "DANMU_MSG",
+    "data": {
+        "cmd": "DANMU_MSG",
+        "dm_v2": "",
+        "info": [
+            [
+                0,
+                1,
+                25,
+                16777215,
+                1786114405665,
+                1066685255,
+                0,
+                "f0650ae2",
+                0,
+                0,
+                0,
+                "",
+                0,
+                "{}",
+                "{}",
+                {
+                    "extra": '{"send_from_me":false,"master_player_hidden":false,"mode":0,"color":16777215,"dm_type":0,"font_size":25,"player_mode":1,"show_player_type":0,"content":"大叔好贴这个人脸啊","user_hash":"4033153762","emoticon_unique":"","bulge_display":0,"recommend_score":7,"dm_score":0,"chronos_force_display":0,"main_state_dm_color":"","objective_state_dm_color":"","direction":0,"pk_direction":0,"quartet_direction":0,"anniversary_crowd":0,"yeah_space_type":"","yeah_space_url":"","jump_to_url":"","space_type":"","space_url":"","animation":{},"emots":null,"is_audited":false,"id_str":"30c072a5bdb3ce4239b006fcbd6a75f18805","icon":null,"show_reply":true,"reply_mid":0,"reply_uname":"","reply_uname_color":"","reply_is_mystery":false,"reply_type_enum":0,"hit_combo":0,"esports_jump_url":"","is_mirror":false,"is_collaboration_member":false,"card":{"card_type":0,"oid_str":"","oid_str_1":"","origin_oid_str":"","share_id":"","share_origin":"","from":"","card_content":null},"voice":null,"background_type":0}',
+                    "mode": 0,
+                    "show_player_type": 0,
+                    "user": {
+                        "anon": None,
+                        "base": {
+                            "face": "https://i0.hdslb.com/bfs/face/6d8a0e1bf1e19c3d63ac451875968dd72d48016c.jpg",
+                            "is_mystery": False,
+                            "name": "姬野家的星奏",
+                            "name_color": 0,
+                            "name_color_str": "",
+                            "official_info": {
+                                "desc": "",
+                                "role": 0,
+                                "title": "",
+                                "type": -1,
+                            },
+                            "origin_info": {
+                                "face": "https://i0.hdslb.com/bfs/face/6d8a0e1bf1e19c3d63ac451875968dd72d48016c.jpg",
+                                "name": "姬野家的星奏",
+                            },
+                            "risk_ctrl_info": None,
+                        },
+                        "guard": None,
+                        "guard_leader": None,
+                        "medal": {
+                            "color": 13081892,
+                            "color_border": 13081892,
+                            "color_end": 13081892,
+                            "color_start": 13081892,
+                            "guard_icon": "",
+                            "guard_level": 0,
+                            "honor_icon": "",
+                            "id": 2226,
+                            "is_light": 1,
+                            "level": 18,
+                            "name": "泛团",
+                            "ruid": 63231,
+                            "score": 1165,
+                            "typ": 0,
+                            "user_receive_count": 0,
+                            "v2_medal_color_border": "#C770A499",
+                            "v2_medal_color_end": "#C770A499",
+                            "v2_medal_color_level": "#C770A4E6",
+                            "v2_medal_color_start": "#C770A499",
+                            "v2_medal_color_text": "#FFFFFF",
+                        },
+                        "title": {"old_title_css_id": "", "title_css_id": ""},
+                        "uhead_frame": None,
+                        "uid": 67268124,
+                        "wealth": None,
+                    },
+                },
+                {"activity_identity": "", "activity_source": 0, "not_show": 0},
+                0,
+            ],
+            "大叔好贴这个人脸啊",
+            [67268124, "姬野家的星奏", 0, 0, 0, 10000, 1, ""],
+            [
+                18,
+                "泛团",
+                "泛式",
+                33989,
+                13081892,
+                "",
+                0,
+                13081892,
+                13081892,
+                13081892,
+                0,
+                1,
+                63231,
+            ],
+            [13, 0, 6406234, ">50000", 0],
+            ["", ""],
+            0,
+            0,
+            None,
+            {"ct": "41585B4A", "ts": 1786114405},
+            0,
+            0,
+            None,
+            None,
+            0,
+            260,
+            [20],
+            None,
+        ],
+    },
+}
 ```
 
 这坨数据显然也需要进一步处理，此处省略过程，最后可以通过以下键值，获取到单条弹幕的各种信息：
@@ -516,6 +630,8 @@ except Exception:
 @dm.on("__TASK_EXCEPTION__")
 def raise_exception(e: Exception) -> None:
     raise e
+
+
 # 用以上代码即可将所有错误全部抛出，然后程序可能就中断了
 # 显然，在这个回调函数中再有错误抛出，模块就不会再发布 __TASK_EXCEPTION__ 了，而是直接抛出异常。
 ```
@@ -556,7 +672,18 @@ def enter(data: dict) -> None:
 ```
 
 ``` python
-{"room_display_id": 33989,"room_real_id": 33989,"type": "INTERACT_WORD_V2","data": {"cmd": "INTERACT_WORD_V2","data": {"dmscore": 10,"pb": "CLq62owBEgzmpaDmnKhIb3RhcnUiAgMBKAEwxYkCOP7v19MGQJTT9+z9M0ooCP/tAxAWGgbms5vlm6Igy6hpKMuoaTCSu8oCOMuoaUABYMWJAmj3GmIAeMSQ9uX64+PkGJoBALIBygEIurrajAESWgoM5qWg5pyoSG90YXJ1EkpodHRwczovL2kxLmhkc2xiLmNvbS9iZnMvZmFjZS9lYjliZDBjYjVjMzVmOWM0YzNhYzkyMzNkNTljODMxZTBjMzAxYzc1LmpwZxpgCgbms5vlm6IQFhjLqGkgkrvKAijLqGkwy6hpOLIRSAFQ/+0DYPcaegkjM0ZCNEY2OTmCAQkjM0ZCNEY2OTmKAQkjM0ZCNEY2OTmSAQcjRkZGRkZGmgEJIzNGQjRGNkU2IgIIBTIAugEAwgEA"}}}
+{
+    "room_display_id": 33989,
+    "room_real_id": 33989,
+    "type": "INTERACT_WORD_V2",
+    "data": {
+        "cmd": "INTERACT_WORD_V2",
+        "data": {
+            "dmscore": 10,
+            "pb": "CLq62owBEgzmpaDmnKhIb3RhcnUiAgMBKAEwxYkCOP7v19MGQJTT9+z9M0ooCP/tAxAWGgbms5vlm6Igy6hpKMuoaTCSu8oCOMuoaUABYMWJAmj3GmIAeMSQ9uX64+PkGJoBALIBygEIurrajAESWgoM5qWg5pyoSG90YXJ1EkpodHRwczovL2kxLmhkc2xiLmNvbS9iZnMvZmFjZS9lYjliZDBjYjVjMzVmOWM0YzNhYzkyMzNkNTljODMxZTBjMzAxYzc1LmpwZxpgCgbms5vlm6IQFhjLqGkgkrvKAijLqGkwy6hpOLIRSAFQ/+0DYPcaegkjM0ZCNEY2OTmCAQkjM0ZCNEY2OTmKAQkjM0ZCNEY2OTmSAQcjRkZGRkZGmgEJIzNGQjRGNkU2IgIIBTIAugEAwgEA",
+        },
+    },
+}
 ```
 
 可以说，前面弹幕获取到的数据结构乱，但至少许多字段都看得懂，而这边进入直播间获取到的数据……已经进化到字节数据了（这边服务端已对字节进行了 base64 加密），可谓是一点给人理解的可能性都没有。
@@ -568,7 +695,70 @@ def enter(data: dict) -> None:
 好吧，上面的数据其实并非模块传入的数据，模块传入的数据其实长下面这样：
 
 ``` python
-{'room_display_id': 33989, 'room_real_id': 33989, 'type': 'INTERACT_WORD_V2', 'data': {'cmd': 'INTERACT_WORD_V2', 'data': {'dmscore': 10, 'pb': 'CLq62owBEgzmpaDmnKhIb3RhcnUiAgMBKAEwxYkCOP7v19MGQJTT9+z9M0ooCP/tAxAWGgbms5vlm6Igy6hpKMuoaTCSu8oCOMuoaUABYMWJAmj3GmIAeMSQ9uX64+PkGJoBALIBygEIurrajAESWgoM5qWg5pyoSG90YXJ1EkpodHRwczovL2kxLmhkc2xiLmNvbS9iZnMvZmFjZS9lYjliZDBjYjVjMzVmOWM0YzNhYzkyMzNkNTljODMxZTBjMzAxYzc1LmpwZxpgCgbms5vlm6IQFhjLqGkgkrvKAijLqGkwy6hpOLIRSAFQ/+0DYPcaegkjM0ZCNEY2OTmCAQkjM0ZCNEY2OTmKAQkjM0ZCNEY2OTmSAQcjRkZGRkZGmgEJIzNGQjRGNkU2IgIIBTIAugEAwgEA', 'pb_decoded': {'uid': 295083322, 'uname': '楠木Hotaru', 'identities': [2], 'msg_type': 1, 'room_id': 33989, 'timestamp': 1786116094, 'score': 1786129541524, 'fans_medal_info': {'target_id': 63231, 'medal_level': 22, 'medal_name': '泛团', 'medal_color': 1725515, 'medal_color_start': 1725515, 'medal_color_end': 5414290, 'medal_color_border': 1725515, 'is_lighted': 1, 'anchor_roomid': 33989, 'score': 3447}, 'contribution_info': {}, 'trigger_time': 1786116093433972804, 'contribution_info_v2': {}, 'user_info': {'uid': 295083322, 'base': {'name': '楠木Hotaru', 'face': 'https://i1.hdslb.com/bfs/face/eb9bd0cb5c35f9c4c3ac9233d59c831e0c301c75.jpg'}, 'medal': {'name': '泛团', 'level': 22, 'color_start': 1725515, 'color_end': 5414290, 'color_border': 1725515, 'color': 1725515, 'id': 2226, 'is_light': 1, 'ruid': 63231, 'score': 3447, 'v2_medal_color_start': '#3FB4F699', 'v2_medal_color_end': '#3FB4F699', 'v2_medal_color_border': '#3FB4F699', 'v2_medal_color_text': '#FFFFFF', 'v2_medal_color_level': '#3FB4F6E6'}, 'wealth': {'level': 5}, 'guard': {}}, 'user_anchor_relation': {}}, 'pb_decode_message': 'success'}}}
+{
+    "room_display_id": 33989,
+    "room_real_id": 33989,
+    "type": "INTERACT_WORD_V2",
+    "data": {
+        "cmd": "INTERACT_WORD_V2",
+        "data": {
+            "dmscore": 10,
+            "pb": "CLq62owBEgzmpaDmnKhIb3RhcnUiAgMBKAEwxYkCOP7v19MGQJTT9+z9M0ooCP/tAxAWGgbms5vlm6Igy6hpKMuoaTCSu8oCOMuoaUABYMWJAmj3GmIAeMSQ9uX64+PkGJoBALIBygEIurrajAESWgoM5qWg5pyoSG90YXJ1EkpodHRwczovL2kxLmhkc2xiLmNvbS9iZnMvZmFjZS9lYjliZDBjYjVjMzVmOWM0YzNhYzkyMzNkNTljODMxZTBjMzAxYzc1LmpwZxpgCgbms5vlm6IQFhjLqGkgkrvKAijLqGkwy6hpOLIRSAFQ/+0DYPcaegkjM0ZCNEY2OTmCAQkjM0ZCNEY2OTmKAQkjM0ZCNEY2OTmSAQcjRkZGRkZGmgEJIzNGQjRGNkU2IgIIBTIAugEAwgEA",
+            "pb_decoded": {
+                "uid": 295083322,
+                "uname": "楠木Hotaru",
+                "identities": [2],
+                "msg_type": 1,
+                "room_id": 33989,
+                "timestamp": 1786116094,
+                "score": 1786129541524,
+                "fans_medal_info": {
+                    "target_id": 63231,
+                    "medal_level": 22,
+                    "medal_name": "泛团",
+                    "medal_color": 1725515,
+                    "medal_color_start": 1725515,
+                    "medal_color_end": 5414290,
+                    "medal_color_border": 1725515,
+                    "is_lighted": 1,
+                    "anchor_roomid": 33989,
+                    "score": 3447,
+                },
+                "contribution_info": {},
+                "trigger_time": 1786116093433972804,
+                "contribution_info_v2": {},
+                "user_info": {
+                    "uid": 295083322,
+                    "base": {
+                        "name": "楠木Hotaru",
+                        "face": "https://i1.hdslb.com/bfs/face/eb9bd0cb5c35f9c4c3ac9233d59c831e0c301c75.jpg",
+                    },
+                    "medal": {
+                        "name": "泛团",
+                        "level": 22,
+                        "color_start": 1725515,
+                        "color_end": 5414290,
+                        "color_border": 1725515,
+                        "color": 1725515,
+                        "id": 2226,
+                        "is_light": 1,
+                        "ruid": 63231,
+                        "score": 3447,
+                        "v2_medal_color_start": "#3FB4F699",
+                        "v2_medal_color_end": "#3FB4F699",
+                        "v2_medal_color_border": "#3FB4F699",
+                        "v2_medal_color_text": "#FFFFFF",
+                        "v2_medal_color_level": "#3FB4F6E6",
+                    },
+                    "wealth": {"level": 5},
+                    "guard": {},
+                },
+                "user_anchor_relation": {},
+            },
+            "pb_decode_message": "success",
+        },
+    },
+}
 ```
 
 可以看到已经把 protobuf 数据解密了，变成正常的 JSON 格式了。接下来的处理也就简单了：
@@ -582,8 +772,6 @@ print(f"【进入直播间】 {user_name}", end="\r")  # 此处只显示用户�
 最后给到源代码和生草的效果图：
 
 ``` python
-import json
-
 from bilibili_api import Credential, live, sync
 
 credential = Credential(...)
@@ -636,6 +824,127 @@ def on_all(info: dict) -> None:
 绑定此函数回调后再连接直播间，就能感受到被信息包围的氛围感了。
 
 ### 2. `session.Session`
+
+接下来要介绍的是 `session.Session`，用于监听私聊消息的 `AsyncEvent` 类。相较于 `live.LiveDanmaku` 这样核心是 WebSocket 的异步过程来说，这个类的异步过程稍显另类，本质上是一个定时任务，每隔 6 秒钟刷新私聊区信息，拉取新消息。不仅如此，`session.Session` 同时支持消息回复功能，这就允许我们如此部署一个简易的聊天机器人。
+
+事实上，直播间场景下亦可以使用 `live.LiveRoom` 中的函数发送弹幕，即回复弹幕，不过很明显这没有私聊的接发消息来得纯粹。不同于直播间，私聊功能支持多种类型消息，这边我们就只考虑两种基本类型，文字和图片。
+
+前文已提到，私聊中会出现多种类型信息，不但如此，除了信息正文内容外，仍有其他信息的信息，例如发送者、发送时间等等，因此模块使用了 `session.Event` 包装了抓取到的信息。这个类属性很多，此处我们只需要最重要的 `content` 属性，即事件内容。至于事件内容类型的判断，可以使用 `msg_type` 属性，也可以按照下面的方法直接绑定在回调中：
+
+``` python
+@session.on(EventType.TEXT)  # 当收到文字信息时触发
+async def reply(event: Event):
+    pass
+
+
+@session.on(EventType.PICTURE)  # 当收到图片时触发
+async def filter_pic(event: Event):
+    pass
+```
+
+现在问题来了，`event.content` 当收到文字时为 `str`，毋庸置疑，那收到图片的时候，`event.content` 又是什么呢？答案是模块提供的 `Picture` 类 (`bilibili_api.Picture`)。
+
+`Picture` 类本质上是对 `PIL.Image.Image` 的异步封装（此处假设读者对 `Python Imaging Library` a.k.a. `pillow` 有基本了解），接下来将分别介绍如何初始化一个 `Picture` 类、如何将 `Picture` 类转换为图片内容、文件乃至链接，以及如何对 `Picture` 类包装的 `PIL.Image.Image` 对象进行操作。
+
+初始化 `PIL.Image.Image` 只需要提供一个字节流即可，`Image.open` 不会一次性读取全部内容，模块为此提供 `Picture.from_file` 和 `Picture.from_content` 两个同步函数，可以直接在异步函数中使用。如果需要加载网络图片，使用异步方法 `Picture.load_url`，因为此方法内部已经涉及到网络请求。
+
+`Picture` 对象存在以下属性：`url` 为网络链接或本地文件地址，如果图片为从字节中加载或已经更改过，`url` 属性将设置为 `<bytes>.{extension}`，其中 `extension` 为图片后缀名，也是 `Picture` 对象中存在的属性。此外还有 `width` `height` 属性，表示图片宽度和高度。
+
+初始化 `Picture` 对象后，可以通过异步函数 `Picture.content` 获取图片字节内容，异步函数 `Picture.download` 将图片保存到本地文件，亦可以使用哔哩哔哩动态相关功能，将其上传至服务器，只需要调用 `Picture.upload(credential=Credential(...))` 即可，此时获取 `Picture` 类的 `url` 属性，即可获得上传成功后的链接。
+
+`Picture` 类提供 `Picture.image_call` 对 `PIL.Image.Image` 对象进行操作。例如 `Image.resize((width, height))` 可以调整图片大小，并返回一个新的 `Image` 对象，这个过程可能是阻塞的，因此模块会在一个工作进程中执行此函数，以免阻塞事件循环，在函数执行完成后，`Picture` 类会将其包装的图片设置为返回结果。这就是 `Picture.image_call` 函数在做的事，此处调用 `await Picture.image_call("resize", (width, height))` 即可调整 `Picture` 类对应图片的大小了。
+
+接下来就可以开始编写逻辑了。对文字消息来说，我们只特殊识别两个文本：收到 `/close` 的时候结束轮询，和收到 `/pic` 的时候发送一张图片，其余情况统一回复 `你好`。
+
+说到结束轮询，就不得不提开始轮询了，`session.Session` 类使用 `start` 函数开始异步过程，使用 `close` 函数结束异步过程，注意前者为异步函数，后者为同步函数。收到 `/close` 后，只需要调用 `close` 函数即可。
+
+回复消息可以使用 `session.reply`，其接受两个参数，第一个是需要回复的消息，即回调函数的参数 `event`，第二个是具体内容，如果是文本就直接传入文本，如果是图片就需要使用 `Picture` 类了。先使用 `Picture.from_file("path/to/pic")` 加载本地图片，然后使用异步函数 `upload` 将其上传，随后就可以发送了。
+
+> 如果传入的 `Picture` 类尚未上传，模块大多数情况下将自动上传图片。
+
+于是我们可以完善前文收到消息的回调函数如下：
+
+``` python
+@session.on(EventType.TEXT)
+async def reply(event: Event):
+    if event.content == "/close":
+        session.close()
+    elif event.content == "/pic":
+        img = await Picture.from_file("test.jpg").upload(session.credential)
+        await session.reply(event, img)
+    else:
+        await session.reply(event, "你好")
+```
+
+如果收到的是图片，这里实现两个逻辑，首先把图片下载到本地，即调用 `download` 函数，然后给图片加一层滤镜，再发回去，加滤镜可以使用 `Image.Filter` 函数，或是 `Picture.image_call("filter", ...)`，回复图片仍然使用 `reply` 方法。最后回调函数如下：
+
+``` python
+@session.on(EventType.PICTURE)
+async def save_pic(event: Event):
+    await event.content.download(event.content.url.split("/")[-1])  # type: ignore
+    # 截取 url 最后一节作文件名，保存在当前目录
+    await event.content.image_call("filter", ImageFilter.SMOOTH)  # type: ignore
+    # 此处用的滤镜时平滑滤波
+    await session.reply(event, event.content)  # type: ignore
+```
+
+主程序部分，采用和前文连接直播间相同的写法，当 `Ctrl + C` 时停止轮询。
+
+``` python
+try:
+    await session.start()
+except KeyboardInterrupt:
+    session.close()
+```
+
+运行即可。完整代码如下：
+
+``` python
+from PIL import ImageFilter
+from bilibili_api import (
+    Credential,
+    Picture,
+    select_client,
+    sync,
+)
+from bilibili_api.session import Event, EventType, Session
+
+select_client("httpx")
+# 调用 select_client 即可指定网络请求库
+# 此处使用了 httpx 作为网络请求库，以保证稳定性
+
+credential = Credential(...)
+
+session = Session(credential, debug=True)
+
+
+@session.on(EventType.TEXT)
+async def reply(event: Event):
+    if event.content == "/close":
+        session.close()
+    elif event.content == "/pic":
+        img = await Picture.from_file("test.jpg").upload(session.credential)
+        await session.reply(event, img)
+    else:
+        await session.reply(event, "你好")
+
+
+@session.on(EventType.PICTURE)
+async def save_pic(event: Event):
+    await event.content.download(event.content.url.split("/")[-1])  # type: ignore
+    await event.content.image_call("filter", ImageFilter.SMOOTH)  # type: ignore
+    await session.reply(event, event.content)  # type: ignore
+
+
+async def main():
+    try:
+        await session.start()
+    except KeyboardInterrupt:
+        session.close()
+
+
+sync(main())
+```
 
 ## 使用 `login_v2`
 

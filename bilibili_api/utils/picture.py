@@ -132,7 +132,7 @@ class Picture:
             Picture: 加载后的图片对象
         """
         obj = Picture()
-        obj.url = f"<bytes>.{format}"
+        obj.url = f"<bytes>.{extension}"
         obj._set_picture_meta(content, extension)
         return obj
 
@@ -249,6 +249,8 @@ class Picture:
             Picture: `self`
         """
         self.extension = extension
+        self.url = f"<bytes>.{self.extension}"
+        self._content = None
         # copied from PIL source code
         extension = "." + extension
         if not Image._import_plugin_for_extension(extension):
@@ -303,4 +305,22 @@ class Picture:
 
             self.image = Image.open(await to_thread.run_sync(fetch_result))
 
+        self.url = f"<bytes>.{self.extension}"
+        self._content = None
         return self
+
+    def copy(self) -> "Picture":
+        """
+        复制 Picture 类
+
+        Returns:
+            Picture: 和 `self` 相同的新 Picture 类
+        """
+        return Picture(
+            url=self.url,
+            extension=self.extension,
+            format=self.format,
+            mime_type=self.mime_type,
+            image=self.image.copy(),
+            _content=self._content,
+        )

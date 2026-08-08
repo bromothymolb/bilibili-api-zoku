@@ -1138,6 +1138,7 @@
   - [class NetworkException()](./modules/bilibili_api#class-NetworkException)
   - [class Picture()](./modules/bilibili_api#class-Picture)
     - [async def content()](./modules/bilibili_api#async-def-content)
+    - [def copy()](./modules/bilibili_api#def-copy)
     - [async def download()](./modules/bilibili_api#async-def-download)
     - [def from\_content()](./modules/bilibili_api#def-from\_content)
     - [def from\_file()](./modules/bilibili_api#def-from\_file)
