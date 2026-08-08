@@ -8,7 +8,7 @@ authors = [{ name = "MoyuScript" }, { name = "Nemo2011" }, {name = "bromothymolb
 maintainers = [{ name = "bromothymolb", email = "bromothymolb@qq.com" }]
 dynamic = ["version", "readme"] # 移除了 "dependencies"
 license = { text = "GPL-3.0-or-later" }
-description = "The fork of module bilibili-api. 哔哩哔哩的各种 API 调用便捷整合（视频、动态、直播等），另外附加一些常用的功能。"
+description = "The Continuation of bilibili-API. 哔哩哔哩的各种 API 调用便捷整合（视频、动态、直播等），另外附加一些常用的功能。"
 requires-python = ">=3.10"
 keywords = ["bilibili", "api", "spider"]
 classifiers = [
