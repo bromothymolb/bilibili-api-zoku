@@ -70,7 +70,6 @@ packages = [
 
 [tool.setuptools.dynamic]
 version = { attr = "bilibili_api.BILIBILI_API_VERSION" }
-readme = { file = ["README.md"], content-type = "text/markdown" }
 
 [tool.ruff]
 line-length = 88
