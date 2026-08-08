@@ -13,7 +13,7 @@ import time
 
 import anyio
 
-from .exceptions import ApiException
+from .exceptions import ArgsException
 from .user import get_self_info
 from .utils.network import Api, AsyncEvent, Credential
 from .utils.picture import Picture
@@ -290,11 +290,6 @@ class Event:
         self.__dict__.update(data)
         self.uid = self_uid
 
-        try:
-            self.__content()
-        except AttributeError:
-            logging.error(f"解析消息错误：{data}")
-
     def __str__(self):
         msg_type = "[]"
         user_id = 0
@@ -318,7 +313,7 @@ class Event:
 
         return f"{msg_type} {user_id} 信息 {self.content}({self.timestamp})"  # type: ignore
 
-    def __content(self) -> None:
+    async def _content(self) -> None:
         """
         更新消息内容
         """
@@ -335,8 +330,7 @@ class Event:
             self.content = str(content)
 
         elif mt == EventType.PICTURE.value or mt == EventType.GROUPS_PICTURE.value:
-            content.pop("original")
-            self.content = Picture(**content)
+            self.content = await Picture.load_url(content["url"])
 
         elif mt == EventType.SHARE_VIDEO.value or mt == EventType.PUSHED_VIDEO.value:
             self.content = Video(bvid=content.get("bvid"), aid=content.get("id"))
@@ -345,7 +339,7 @@ class Event:
             self.content = content["title"] + " " + content["text"]
 
         else:
-            logging.error(f"未知消息类型：{mt}，消息内容：{content}")
+            raise ArgsException(f"未知消息类型：{mt}，消息内容：{content}")
 
 
 async def send_msg(
@@ -384,7 +378,7 @@ async def send_msg(
         real_content = str(content)
     elif msg_type == EventType.PICTURE or msg_type == EventType.GROUPS_PICTURE:
         if not isinstance(content, Picture):
-            raise ApiException("发送信息类型不属于图片 (Picture)。")
+            raise ArgsException("发送信息类型不属于图片 (Picture)。")
         if content.url.startswith("file://") or content.url.startswith("<bytes>"):
             await content.upload(credential=credential)
         real_content = json.dumps(
@@ -398,7 +392,7 @@ async def send_msg(
             }
         )
     else:
-        raise ApiException("信息类型不支持。")
+        raise ArgsException("信息类型不支持。")
 
     data = {
         "msg[sender_uid]": sender_uid,
@@ -518,6 +512,12 @@ class Session(AsyncEvent):
                     return
                 for message in result.get("messages", [])[::-1]:
                     event = Event(message, self.uid)
+
+                    try:
+                        await event._content()
+                    except Exception as e:
+                        self.logger.warning(f"解析消息错误: {e}")
+
                     if event.msg_type == EventType.WITHDRAW.value:
                         self.logger.info(
                             str(self.events.get(event.content, f"key={event.content}"))
@@ -526,11 +526,11 @@ class Session(AsyncEvent):
                     else:
                         self.logger.info(event)
 
+                    self.events[str(event.msg_key)] = event
+
                     # 自己发出的消息不发布任务
                     if event.sender_uid != self.uid or not exclude_self:
                         self.dispatch(str(event.msg_type), event)
-
-                    self.events[str(event.msg_key)] = event
 
             async with anyio.create_task_group() as tg:
                 for session in js["session_list"]:
