@@ -899,29 +899,32 @@ def parse_user_info(bt6: bytes) -> dict:
                 ret7["risk_ctrl_info"] = {}
                 br114514 = BytesReader(stream=br7.bytes_string())
                 while not br114514.has_end():
-                    if (br114514.varint() >> 3) == 1:
+                    state = br114514.varint() >> 3
+                    if state == 1:
                         ret7["risk_ctrl_info"]["name"] = br114514.string()
-                    elif (br114514.varint() >> 3) == 2:
+                    elif state == 2:
                         ret7["risk_ctrl_info"]["face"] = br114514.string()
             elif type7 == 6:
                 ret7["account_info"] = {}
                 br114514 = BytesReader(stream=br7.bytes_string())
                 while not br114514.has_end():
-                    if (br114514.varint() >> 3) == 1:
+                    state = br114514.varint() >> 3
+                    if state == 1:
                         ret7["account_info"]["name"] = br114514.string()
-                    elif (br114514.varint() >> 3) == 2:
+                    elif state == 2:
                         ret7["account_info"]["face"] = br114514.string()
             elif type7 == 7:
                 ret7["official_info"] = {}
                 br114514 = BytesReader(stream=br7.bytes_string())
                 while not br114514.has_end():
-                    if (br114514.varint() >> 3) == 1:
+                    state = br114514.varint() >> 3
+                    if state == 1:
                         ret7["official_info"]["role"] = br114514.varint()
-                    elif (br114514.varint() >> 3) == 2:
+                    elif state == 2:
                         ret7["official_info"]["title"] = br114514.string()
-                    elif (br114514.varint() >> 3) == 2:
+                    elif state == 3:
                         ret7["official_info"]["desc"] = br114514.string()
-                    elif (br114514.varint() >> 3) == 2:
+                    elif state == 4:
                         ret7["official_info"]["type"] = br114514.varint()
             elif type7 == 8:
                 ret7["name_color_str"] = br7.string()
@@ -1225,6 +1228,151 @@ def parse_online_rank_v3(bt: bytes) -> dict:
             if not ret.get("online_list"):
                 ret["online_list"] = []
             ret["online_list"].append(parse_gold_rank_broadcast_item(br.bytes_string()))
+    return ret
+
+
+def parse_send_gift_v2(bt: bytes) -> dict:
+    def parse_medal_info(bt2: bytes) -> dict:
+        ret2 = {}
+        br2 = BytesReader(stream=bt2)
+        while not br2.has_end():
+            type2 = br2.varint() >> 3
+            if type2 == 1:
+                ret2["target_id"] = br2.varint()
+            elif type2 == 5:
+                ret2["medal_level"] = br2.varint()
+            elif type2 == 6:
+                ret2["medal_name"] = br2.string()
+            elif type2 == 7:
+                ret2["medal_color"] = br2.varint()
+            elif type2 == 8:
+                ret2["medal_color_start"] = br2.varint()
+            elif type2 == 9:
+                ret2["medal_color_end"] = br2.varint()
+            elif type2 == 10:
+                ret2["medal_color_border"] = br2.varint()
+            elif type2 == 11:
+                ret2["is_lighted"] = br2.varint()
+        return ret2
+
+    def parse_blind_gift(bgt: bytes) -> dict:
+        blind_gift = {}
+        br2 = BytesReader(stream=bgt)
+        while not br2.has_end():
+            type2 = br2.varint() >> 3
+            if type2 == 1:
+                blind_gift["gift_action"] = br2.varint()
+            elif type2 == 2:
+                blind_gift["original_gift_id"] = br2.varint()
+            elif type2 == 3:
+                blind_gift["original_gift_name"] = br2.string()
+            elif type2 == 5:
+                blind_gift["action"] = br2.string()
+            elif type2 == 6:
+                blind_gift["blind_price"] = br2.varint()
+        return blind_gift
+
+    def parse_gift_data(gt: bytes) -> dict:
+        gift_data = {}
+        br3 = BytesReader(stream=gt)
+        while not br3.has_end():
+            type3 = br3.varint() >> 3
+            if type3 == 1:
+                gift_data["gift_id"] = br3.varint()
+            elif type3 == 2:
+                gift_data["gift_name"] = br3.string()
+            elif type3 == 3:
+                gift_data["num"] = br3.varint()
+            elif type3 == 4:
+                gift_data["demarcation"] = br3.varint()
+            elif type3 == 5:
+                gift_data["price"] = br3.varint()
+            elif type3 == 6:
+                gift_data["discount_price"] = br3.varint()
+            elif type3 == 7:
+                gift_data["total_coin"] = br3.varint()
+            elif type3 == 8:
+                gift_data["coin_type"] = br3.string()
+            elif type3 == 9:
+                gift_data["tid"] = br3.string()
+            elif type3 == 10:
+                gift_data["timestamp"] = br3.varint()
+            elif type3 == 11:
+                gift_data["super_batch_gift_num"] = br3.varint()
+            elif type3 == 12:
+                gift_data["batch_combo_id"] = br3.string()
+            elif type3 == 13:
+                gift_data["combo_resources_id"] = br3.varint()
+            elif type3 == 14:
+                gift_data["combo_total_coin"] = br3.varint()
+            elif type3 == 15:
+                gift_data["combo_stay_time"] = br3.varint()
+            elif type3 == 16:
+                gift_data["magnification"] = br3.float(LE=True)
+            elif type3 == 17:
+                gift_data["show_batch_combo_send"] = br3.bool()
+            elif type3 == 18:
+                gift_data["action"] = br3.string()
+            elif type3 == 24:
+                gift_data["rcost"] = br3.varint()
+            elif type3 == 29:
+                rui = br3.bytes_string()
+                ruir = BytesReader(stream=rui)
+                gift_data["receive_user_info"] = {}
+                while not ruir.has_end():
+                    type4 = ruir.varint() >> 3
+                    if type4 == 1:
+                        gift_data["receive_user_info"]["uname"] = ruir.string()
+                    elif type4 == 2:
+                        gift_data["receive_user_info"]["uid"] = ruir.varint()
+            elif type3 == 33:
+                gift_data["receiver_uinfo"] = parse_user_info(br3.bytes_string())
+            elif type3 == 35:
+                ge = br3.bytes_string()
+                ger = BytesReader(stream=ge)
+                gift_data["gift_info"] = {}
+                while not ger.has_end():
+                    type5 = ger.varint() >> 3
+                    if type5 == 1:
+                        gift_data["gift_info"]["img_png"] = ger.string()
+                    elif type5 == 2:
+                        gift_data["gift_info"]["img_webp"] = ger.string()
+                    elif type5 == 5:
+                        gift_data["gift_info"]["img_gif"] = ger.string()
+            elif type3 == 36:
+                gift_data["gift_tip_price"] = br3.varint()
+        return gift_data
+
+    ret = {}
+    br = BytesReader(stream=bt)
+    while not br.has_end():
+        type_ = br.varint() >> 3
+        if type_ == 1:
+            ret["uid"] = br.varint()
+        elif type_ == 2:
+            ret["uname"] = br.string()
+        elif type_ == 3:
+            ret["face"] = br.string()
+        elif type_ == 8:
+            ret["medal_info"] = parse_medal_info(br.bytes_string())
+        elif type_ == 9:
+            ret["blind_gift"] = parse_blind_gift(br.bytes_string())
+        elif type_ == 10:
+            if not ret.get("gift"):
+                ret["gift_list"] = []
+            ret["gift_list"].append(parse_gift_data(br.bytes_string()))
+        elif type_ == 11:
+            ret["switch"] = br.bool()
+        elif type_ == 13:
+            ret["wealth_info"] = {}
+            winfo = br.bytes_string()
+            wr = BytesReader(stream=winfo)
+            while not wr.has_end():
+                typew = wr.varint() >> 3
+                if typew == 1:
+                    ret["wealth_info"]["level"] = wr.varint()
+        elif type_ == 15:
+            ret["sender_uinfo"] = parse_user_info(br.bytes_string())
     return ret
 
 
@@ -1610,39 +1758,35 @@ class LiveDanmaku(AsyncEvent):
 
                 # https://github.com/Nemo2011/bilibili-api/issues/952
                 # https://github.com/SocialSisterYi/bilibili-API-collect/issues/1332
-                if callback_info["type"] == "INTERACT_WORD_V2":
+                # https://github.com/lovelyyoshino/Bilibili-Live-API/issues/47
+                # https://github.com/xfgryujk/blivedm/pull/86#issuecomment-5104705486
+                # https://github.com/katurahinagiku/Bilibili-Live-API/blob/deprecated/API.live_websocket.md
+                if callback_info["type"] in [
+                    "INTERACT_WORD_V2",
+                    "ONLINE_RANK_V3",
+                    "SEND_GIFT_V2",
+                ]:
                     pb = info["data"]["data"]["pb"]
                     pb_unbase64 = base64.b64decode(pb)
                     pb_decoded = {}
                     pb_decode_status = ""
                     try:
-                        pb_decoded = parse_interact_word_v2(pb_unbase64)
+                        if callback_info["type"] == "INTERACT_WORD_V2":
+                            pb_decoded = parse_interact_word_v2(pb_unbase64)
+                        elif callback_info["type"] == "ONLINE_RANK_V3":
+                            pb_decoded = parse_online_rank_v3(pb_unbase64)
+                        elif callback_info["type"] == "SEND_GIFT_V2":
+                            pb_decoded = parse_send_gift_v2(pb_unbase64)
                     except Exception:
                         pb_decode_status = "error"
                     else:
                         pb_decode_status = "success"
-                    info["data"]["data"] = {
-                        "dmscore": info["data"]["data"]["dmscore"],
-                        "pb": info["data"]["data"]["pb"],
-                        "pb_decoded": pb_decoded,
-                        "pb_decode_message": pb_decode_status,
-                    }
-                if callback_info["type"] == "ONLINE_RANK_V3":
-                    pb = info["data"]["data"]["pb"]
-                    pb_unbase64 = base64.b64decode(pb)
-                    pb_decoded = {}
-                    pb_decode_status = ""
-                    try:
-                        pb_decoded = parse_online_rank_v3(pb_unbase64)
-                    except Exception:
-                        pb_decode_status = "error"
-                    else:
-                        pb_decode_status = "success"
-                    info["data"]["data"] = {
-                        "pb": info["data"]["data"]["pb"],
-                        "pb_decoded": pb_decoded,
-                        "pb_decode_message": pb_decode_status,
-                    }
+                    info["data"]["data"].update(
+                        {
+                            "pb_decoded": pb_decoded,
+                            "pb_decode_message": pb_decode_status,
+                        }
+                    )
 
                 callback_info["data"] = info["data"]
                 self.dispatch(callback_info["type"], callback_info)
