@@ -19,8 +19,8 @@
   },
   "homepage": "https://github.com/nemo2011/bilibili-api#readme",
   "dependencies": {
-    "docsify": "^4.13.1",
-    "docsify-cli": "^4.4.3",
+    "docsify": "^5.0.0",
+    "docsify-cli": "^5.0.0",
     "greenlock-express": "^2.7.18",
     "koa": "^2.13.1",
     "koa-bodyparser": "^4.3.0"
