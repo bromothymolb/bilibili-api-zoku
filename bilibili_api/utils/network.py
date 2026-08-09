@@ -193,6 +193,7 @@ import base64
 import binascii
 from collections.abc import AsyncGenerator, Callable, Coroutine
 from contextlib import asynccontextmanager
+from contextvars import ContextVar
 from copy import deepcopy
 from dataclasses import dataclass, field
 from email.utils import parsedate_to_datetime
@@ -2547,12 +2548,12 @@ class _BiliAPIClientGroup:
                 await to_thread.run_sync(from_thread.run, set_sess.close, loop)
 
 
-sessions: dict[str, type["BiliAPIClient"]] = {}
-client_settings: dict[str, list] = {}
-optional_settings: dict[str, dict] = {}
-selected_client: str = ""
-client_groups: dict[str, dict[str, _BiliAPIClientGroup]] = {}
-selected_instance: str = ""
+sessions: dict[str, type["BiliAPIClient"]] = {}  # client -> BiliAPIClient class
+client_settings: dict[str, list] = {}  # client -> settings
+optional_settings: dict[str, dict] = {}  # client -> optional settings
+client_groups: dict[str, dict[str, _BiliAPIClientGroup]] = {}  # client -> instance
+selected_client: ContextVar[str] = ContextVar("bili_client", default="")
+selected_instance: ContextVar[str] = ContextVar("bili_instance", default="")
 __registered_filters = []
 
 
@@ -2572,6 +2573,8 @@ def register_client(name: str, cls: type, settings: dict | None = None) -> None:
     raise_for_statement(
         issubclass(cls, BiliAPIClient), "传入的类型需要继承 BiliAPIClient"
     )
+    if name in sessions.keys():
+        raise ArgsException(f"已注册过请求客户端 {name}")
     sessions[name] = cls
     client_groups[name] = {}
     select_client(name)
@@ -2606,8 +2609,7 @@ def select_client(name: str) -> None:
     """
     if not sessions.get(name):
         raise ArgsException(f"未注册过 {name}。")
-    global selected_client
-    selected_client = name
+    selected_client.set(name)
 
 
 def get_selected_client() -> tuple[str, type[BiliAPIClient]]:
@@ -2617,11 +2619,11 @@ def get_selected_client() -> tuple[str, type[BiliAPIClient]]:
     Returns:
         tuple[str, type[BiliAPIClient]]: 第 0 项为客户端名称，第 1 项为对应的类
     """
-    if selected_client == "":
+    if selected_client.get() == "":
         raise ArgsException(
             "尚未安装第三方请求库或未注册自定义第三方请求库。\n$ pip3 install (curl_cffi|httpx|aiohttp)"
         )
-    return selected_client, sessions[selected_client]
+    return selected_client.get(), sessions[selected_client.get()]
 
 
 def get_registered_clients() -> dict[str, type[BiliAPIClient]]:
@@ -2647,6 +2649,8 @@ def new_instance(name: str, client: str | None = None) -> None:
     """
     client = client or get_selected_client()[0]
     global client_groups
+    if client in client_groups[client].keys():
+        raise ArgsException(f"已存在 {client} 的实例 {name}")
     client_groups[client][name] = _BiliAPIClientGroup(client, name)
     select_instance(name)
 
@@ -2674,8 +2678,7 @@ def select_instance(name: str) -> None:
     Args:
         name (str): 名称
     """
-    global selected_instance
-    selected_instance = name
+    selected_instance.set(name)
 
 
 def get_selected_instance() -> str:
@@ -2685,7 +2688,7 @@ def get_selected_instance() -> str:
     Returns:
         str: 选择的请求客户端实例
     """
-    return selected_instance
+    return selected_instance.get()
 
 
 def get_instances(client: str | None = None) -> list[str]:
@@ -2726,7 +2729,7 @@ def get_available_settings(client: str | None = None) -> list[str]:
         list[str]: 支持的设置项名称
     """
     client = client or get_selected_client()[0]
-    return client_settings[selected_client]
+    return client_settings[client]
 
 
 def get_registered_available_settings() -> dict[str, list[str]]:
