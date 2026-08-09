@@ -426,14 +426,11 @@ class QrCodeLogin:
         Returns:
             Picture: 二维码
         """
-        raise_for_statement(self.__qr_link is not None, "未生成二维码。")
+        link = self.__qr_link or await self.generate_qrcode()
         if not self.__qr_picture:
 
             def get_img_bytes():
-                qr = qrcode.QRCode()
-                qr.add_data(self.__qr_link)  # type: ignore
-                img = qr.make_image()
-                img = qrcode.make(self.__qr_link)  # type: ignore
+                img = qrcode.make(link)
                 stream = io.BytesIO()
                 img.save(stream, bitmap_format="png")  # type: ignore
                 return stream.getvalue()
@@ -450,16 +447,19 @@ class QrCodeLogin:
         Returns:
             str: 二维码的终端字符串
         """
-        raise_for_statement(self.__qr_link is not None, "未生成二维码。")
+        link = self.__qr_link or await self.generate_qrcode()
         if not self.__qr_terminal:
             self.__qr_terminal = await to_thread.run_sync(
-                qrcode_terminal.qr_terminal_str, self.__qr_link
+                qrcode_terminal.qr_terminal_str, link
             )
         return self.__qr_terminal
 
-    async def generate_qrcode(self) -> None:
+    async def generate_qrcode(self) -> str:
         """
         生成二维码
+
+        Returns:
+            str: 二维码链接
         """
         if self.__platform == QrCodeLoginChannel.TV:
             api = API["qrcode"]["tv"]["get_qrcode_and_auth_code"]
@@ -478,6 +478,7 @@ class QrCodeLogin:
             self.__qr_key = data["qrcode_key"]
         self.__qr_picture = None
         self.__qr_terminal = None
+        return self.__qr_link  # type: ignore
 
     async def check_state(self) -> QrCodeLoginEvents:
         """

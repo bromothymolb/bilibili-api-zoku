@@ -111,6 +111,7 @@ from bilibili_api import ...
   - [def has\_done()](#def-has\_done)
   - [def start\_geetest\_server()](#def-start\_geetest\_server)
   - [def test\_generated()](#def-test\_generated)
+  - [async def wait\_for\_done()](#async-def-wait\_for\_done)
 - [class GeetestException()](#class-GeetestException)
 - [class GeetestMeta()](#class-GeetestMeta)
 - [class GeetestType()](#class-GeetestType)
@@ -1717,6 +1718,15 @@ ExClimbWuzhi 失败异常
 
 
 **Returns:** `bool`:  是否有创建的测试
+
+
+
+
+### async def wait_for_done()
+
+等待极验验证码完成
+
+
 
 
 

@@ -12,6 +12,8 @@ import os
 import select
 import threading
 
+import anyio
+
 from ..exceptions import GeetestException
 from .network import Api
 from .utils import get_api
@@ -93,7 +95,7 @@ class ServerThread(threading.Thread):
         self.urlhandler = urlhandler
         self.host = host
         self.port = int(port)
-        threading.Thread.__init__(self)
+        threading.Thread.__init__(self, daemon=True)
         self.serving = False
         self.error = None
 
@@ -144,6 +146,7 @@ class Geetest:
         self.thread = None
         self.done = False
         self.test_type = None
+        self.done_event = anyio.Event()
 
     def __str__(self) -> str:
         return f"Geetest(done={self.done}, gt='{self.gt}', validate='{self.validate}' seccode='{self.seccode}' challenge='{self.challenge}' key='{self.key}')"
@@ -171,6 +174,7 @@ class Geetest:
         self.validate = None
         self.seccode = None
         self.done = False
+        self.done_event = anyio.Event()
         self.test_type = type_
 
     def get_test_type(self) -> GeetestType:
@@ -242,6 +246,7 @@ class Geetest:
         self.validate = validate
         self.seccode = seccode
         self.done = True
+        self.done_event.set()
 
     def _geetest_urlhandler(self, url: str, content_type: str) -> str:
         """
@@ -257,6 +262,7 @@ class Geetest:
                 elif data[:7] == "seccode":
                     self.seccode = data[8:].replace("%7C", "|")
                 self.done = True
+                self.done_event.set()
             with open(
                 os.path.abspath(
                     os.path.join(
@@ -310,6 +316,12 @@ class Geetest:
         if not self.thread:
             raise GeetestException("未创建验证码服务。请调用 `start_geetest_server`")
         return self.thread.url  # type: ignore
+
+    async def wait_for_done(self) -> None:
+        """
+        等待极验验证码完成
+        """
+        await self.done_event.wait()
 
     def close_geetest_server(self) -> None:
         """

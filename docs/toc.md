@@ -1129,6 +1129,7 @@
     - [def has\_done()](./modules/bilibili_api#def-has\_done)
     - [def start\_geetest\_server()](./modules/bilibili_api#def-start\_geetest\_server)
     - [def test\_generated()](./modules/bilibili_api#def-test\_generated)
+    - [async def wait\_for\_done()](./modules/bilibili_api#async-def-wait\_for\_done)
   - [class GeetestException()](./modules/bilibili_api#class-GeetestException)
   - [class GeetestMeta()](./modules/bilibili_api#class-GeetestMeta)
   - [class GeetestType()](./modules/bilibili_api#class-GeetestType)

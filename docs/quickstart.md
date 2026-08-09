@@ -957,6 +957,218 @@ sync(main())
 
 登录方式大致分为两种，第一种是扫码登录，第二种是密码/验证码登录。一般推荐使用第一种，因为第一种稳定性更佳，许多第三方哔哩哔哩应用使用的都是扫码登录。第二种放一起的原因是许多情况下密码输对了也照样要来一遍验证码，某种意义上二者还是挺相像的。
 
+### 1. 扫码登录
+
+目前扫码登录支持网页端扫码登录和 TV 端扫码登录，二维码需要用手机上的哔哩哔哩 APP 去扫，整个扫码登录的生命周期由 `login_v2.QrCodeLogin` 实现。首先需要通过 `QrCodeLogin.generate_qrcode` 获取二维码链接，可以通过 `get_qrcode_picture` 获取二维码图片 `Picture` 对象，或 `get_qrcode_terminal` 在终端打印出二维码。接下来是等待二维码被扫描的轮询过程，这和 `session.Session` 类颇想，但此处轮询过程需要用户来实现，`QrCodeLogin` 提供 `check_state` 函数判断当前扫码状态，返回 `login_v2.QrCodeLoginEvents`。当扫码登录成功后，即可通过 `qr.get_credential()` 获取得到的凭据类。
+
+第一步，先实例化 `QrCodeLogin` 并生成二维码，这边先介绍一下 `get_qrcode_terminal` 函数的用法，其返回一个字符串，只需要打印这个字符串，就能在终端看到二维码了：
+
+``` python
+from bilibili_api import login_v2, sync
+
+qr = login_v2.QrCodeLogin()
+print(sync(qr.get_qrcode_terminal()))
+```
+
+这边我们使用 `get_qrcode_picture`，前文已提及过 `Picture` 类的使用方法，此处我们将目标图片保存到本地文件 `qr.png`：
+
+``` python
+qr = login_v2.QrCodeLogin()
+# 生成二维码，获取 Picture 类对象，并保存图片
+pic = await qr.get_qrcode_picture()
+await pic.download("qr.png")
+```
+
+前文提到扫码登录支持两种，网页端扫码登录和 TV 端扫码登录，默认使用网页端登录，如需要使用 TV 端登录，只需要在实例化 `QrCodeLogin` 时传入以下参数即可：
+
+``` python
+qr = login_v2.QrCodeLogin(platform=login_v2.QrCodeLoginChannel.TV)
+# 与之相对的默认情况
+qr = login_v2.QrCodeLogin(platform=login_v2.QrCodeLoginChannel.WEB)
+```
+
+第二部即为轮询，此处详细介绍轮询可能遇到的几种状态：`QrCodeLoginEvents.SCAN`，即仍未扫描二维码的状态，`QrCodeLoginEvents.DONE`，即登录成功后的状态，`QrCodeLoginEvents.CONF`，即正在确认登录的状态，此状态仅限网页端扫码登录，`QrCodeLoginEvents.TIMEOUT`，此时二维码已过期，需要重新生成一遍二维码。此处设置每 1 秒进行一次查询状态，在轮询的频率上，二维码接口相较于消息接口宽松得多，但仍然需要提醒，不要跑得太快。
+
+``` python
+while True:
+    state = await qr.check_state()
+    # 检查状态
+    match state:
+        case login_v2.QrCodeLoginEvents.SCAN:
+            print("【状态】未扫描二维码", end="\r")
+        case login_v2.QrCodeLoginEvents.CONF:
+            print("【状态】正在确认登录", end="\r")
+        case login_v2.QrCodeLoginEvents.DONE:
+            print("【状态】已完成登录：")
+            break
+        case login_v2.QrCodeLoginEvents.TIMEOUT:
+            print("【状态】二维码已过期")
+            exit(1)  # 偷个小懒
+    await anyio.sleep(1)
+```
+
+---
+
+第三步自然是获取凭据类了，使用 `get_credential` 方法即可。获得 `Credential` 后，如需导出 cookies，可以调用 `get_core_cookies` 方法，这将返回所有只有依靠登录过程才能获取的 cookies，包含 `SESSDATA` `bili_jct` `DedeUserID` `DedeUserID__ckMd5` `sid`，同时还有一个重要的辅助数值（虽然其并不属于 cookies），即 `ac_time_value`。这些 cookies 的相关信息可以在 `文档/通用/Credential 类` 中找到。
+
+此处有必要介绍 `get_core_cookies` 函数和 `get_cookies` 函数的区别。区别是前者为同步函数，后者为异步函数。为什么后者为异步函数？因为后者返回值提供了 `buvid3` `buvid4` `bili_ticket` 等风控 cookies，它们无需登录也能获取，`buvid3` `buvid4` 若未在凭据类中提供，模块将自动生成并激活一对新的 `buvid3` 和 `buvid4`。可以看出，在登录过程中，真正有需要的、价值的 cookies，只有 `get_core_cookies` 返回值中的 cookies；然而在实际请求中，仍需要补充其他 cookies，此时就需要 `get_cookies` 函数提供一份完整的 cookies。
+
+`get_core_cookies` 返回值可以保存在 `json` 文件中，随后每次需要使用凭据类时，可以先用 `json.load` 加载，再使用 `Credential.from_cookies` 通过 cookies 字段初始化凭据类。如下所示：
+
+``` python
+credential = Credential.from_cookies(json.load(open("cookie.json")))
+```
+
+cookies 可能过期，需要刷新，这可以通过 `Credential.check_refresh` 函数确认，刷新过程可以通过 `Credential.refresh` 完成，如下所示：
+
+``` python
+if await credential.check_refresh():
+    print("正在刷新")
+    await credential.refresh()
+    print(json.dumps(credential.get_core_cookies()))
+else:
+    print("无需刷新")
+```
+
+自此，即可完成一份本地 cookies 的获取、保存和维护。这份 cookies 的生命周期与浏览器中的 cookies 完全隔离，二者不会互相干扰。
+
+### 2. 密码/验证码登录
+
+接下来是密码/验证码登录，相信日常生活中大部分人都倾向使用这种方式。先问一个问题，在日常登录过程中，什么令你最为印象深刻？
+
+![](img/geetest.png)
+
+哔哩哔哩也存在人机测试验证码，也是极验的验证码。事先声明，这验证码是不得不完成的，虽然模块没有自动完成验证码的能力，但验证码的人机测试仍然可以被完成。
+
+模块提供 `bilibili_api.Geetest` 类，可以通过 `Geetest.generate_test` 函数生成一个极验验证码，然后使用 `get_info` 获取极验验证码相关信息。其返回的 `GeetestMeta` 类包含两个关键字段：`gt` `challenge`，因为只要有了 `gt` 和 `challenge` 就可以在网页端实例化极验测试了。现在可以打开 <https://kuresaru.github.io/geetest-validator/>，输入 `gt` `challenge`，就可以生成验证码并完成（显然是手动完成）。完成验证码后会得到两个字符串，`validate` 和 `seccode`，或者说，只要获得这两个字符串，极验验证就算完成了。可以通过 `Geetest.complete_test` 传入完成验证码后获得的 `validate` 和 `seccode`。
+
+``` python
+gee = Geetest()
+await gee.generate_test()
+info = gee.get_info()
+print("gt:", info.gt, "challenge:", info.challenge)
+...
+gee.complete_test("validate", "seccode")
+```
+
+为方便验证码作答，模块内嵌了 <https://kuresaru.github.io/geetest-validator/>，并允许通过 `http.server.HTTPServer` 开启本地验证码服务。具体用法是，先通过 `start_geetest_server` 开启服务器，然后使用 `get_geetest_server_url` 获取链接，接下来使用 `wait_for_done` 函数等待验证码完成，最后使用 `close_geetest_server` 关闭服务器。代码如下：
+
+``` python
+gee = Geetest()
+await gee.generate_test()
+gee.start_geetest_server()
+print("url:", gee.get_geetest_server_url())
+# url: http://127.0.0.1:49180/
+await gee.wait_for_done()
+gee.close_geetest_server()
+print(gee.get_result())
+# GeetestMeta(gt='ac597a4506fee079629df5d8b66dd4fe',
+#             challenge='f9be10572180bdca190c915bdf476a12',
+#             token='82a7bef08cc64506b54ca03aa9a9c09e',
+#             seccode='bfac3ae1d10a9b811c5cf109a94560d6|jordan',
+#             validate='bfac3ae1d10a9b811c5cf109a94560d6')
+```
+
+完成极验后，`Geetest` 类即可作为参数，传入密码/验证码登录函数。两个函数分别是 `login_with_password` 和 `send_sms` (发送验证码)。
+
+``` python
+# 密码登录
+cred = await login_v2.login_with_password(
+    username=username, password=password, geetest=gee
+)
+# 验证码登录
+## 1. 初始化 PhoneNumber
+phone = login_v2.PhoneNumber("XXXXXXXXXXX", "+86")
+## 2. 发送验证码，获得对应的 captcha_id
+captcha_id = await login_v2.send_sms(phonenumber=phone, geetest=gee)
+## 3. 完成登录
+cred = await login_v2.login_with_sms(
+    phonenumber=phone, code=code, captcha_id=captcha_id
+)
+```
+
+上面两个函数成功后直接返回 `Credential` 类。但有时登录会遇到安全验证，此时上面两个函数的返回值不再是 `Credential`，而是 `login_v2.LoginCheck`。登录验证又需要极验验证码，但有一点需要注意，此处的验证码类型，和前面生成的类型不一致，换句话说前面生成的 `Geetest` 类在此处不能使用。因此，调用 `generate_test` 的时候，需要加上参数 `type_=GeetestType.VERIFY`。
+
+``` python
+await gee.generate_test(type_=GeetestType.VERIFY)
+# 登录时为 GeetestType.LOGIN，为默认值。
+await gee.generate_test(type_=GeetestType.LOGIN)
+```
+
+然后即可完成登录验证，最终仍然可以拿到 `Credential` 类。
+
+``` python
+await check.send_sms(gee)
+cred = await check.complete_check(code)
+```
+
+最后只需要对 `Credential` 进行后续处理即可。前面扫码登录处已经展开过讨论。
+
+在模块 API 示例的 `login_v2` 部分，文档提供了一段终端登录脚本(密码/验证码)，如下：
+
+``` python
+from bilibili_api import Geetest, GeetestType, login_v2, sync
+
+
+async def main() -> None:
+    choice = input("pwd / sms:")
+
+    gee = Geetest()  # 实例化极验测试类
+    await gee.generate_test()  # 生成测试
+    gee.start_geetest_server()  # 在本地部署网页端测试服务
+    print(gee.get_geetest_server_url())  # 获取本地服务链接
+    await gee.wait_for_done()  # 等待测试完成
+    gee.close_geetest_server()  # 关闭部署的网页端测试服务
+    print("result:", gee.get_result())
+
+    # 1. 密码登录
+    if choice == "pwd":
+        username = input("username:")  # 手机号/邮箱
+        password = input("password:")  # 密码
+        cred = await login_v2.login_with_password(
+            username=username,
+            password=password,
+            geetest=gee,  # 调用接口登录
+        )
+    # 2. 验证码登录
+    elif choice == "sms":
+        phone = login_v2.PhoneNumber(input("phone:"), "+86")  # 实例化手机号类
+        captcha_id = await login_v2.send_sms(
+            phonenumber=phone, geetest=gee
+        )  # 发送验证码
+        print("captcha_id:", captcha_id)  # 顺便获得对应的 captcha_id
+        code = input("code: ")
+        cred = await login_v2.login_with_sms(
+            phonenumber=phone,
+            code=code,
+            captcha_id=captcha_id,  # 调用接口登录
+        )
+    else:
+        exit(1)
+
+    # 安全验证
+    if isinstance(cred, login_v2.LoginCheck):
+        # 如法炮制 Geetest
+        gee = Geetest()  # 实例化极验测试类
+        await gee.generate_test(
+            type_=GeetestType.VERIFY
+        )  # 生成测试 (注意 type_ 为 GeetestType.VERIFY)
+        gee.start_geetest_server()  # 在本地部署网页端测试服务
+        print(gee.get_geetest_server_url())  # 获取本地服务链接
+        await gee.wait_for_done()  # 等待测试完成
+        gee.close_geetest_server()  # 关闭部署的网页端测试服务
+        print("result:", gee.get_result())
+        await cred.send_sms(gee)  # 发送验证码
+        code = input("code:")
+        cred = await cred.complete_check(code)  # 调用接口登录
+
+    print("cookies:", cred.get_core_cookies())  # 获得 cookies
+
+
+if __name__ == "__main__":
+    sync(main())
+```
+
 ## 下载视频
 
 最后，我们将尝试下载视频，通过文档的搜索可以发现，模块提供 `Video.get_download_url` 函数。此函数接受两个参数，任选其一即可，一个是分 P 数，一个是 cid。分 P 此处不再过多解释，cid 实际上一一对应了每个视频的每一个分 P，每一个 cid 都对应了一个视频一个分 P 的视频流地址、弹幕池、字幕、播放记录，等等。cid 可以通过 `Video.get_cid` 异步通过视频和分 P 获取，当然此处传入分 P 数即可。
@@ -1161,3 +1373,87 @@ sync(main())
 运行后，在运行目录下即有下载完成视频 `video.mp4`。
 
 ## 后端请求转发接口
+
+相信通过上面的示例，读者已鉴赏过了模块不同部分的不同功能和接口类型，实际上，上文介绍的内容已经涵盖了模块约 80% 的功能，包括基本的函数使用、类的使用、`AsyncEvent`、`login_v2` 和简单的 `BiliAPIClient` 的使用。
+
+然后是最后的主题，这绝对是最特殊的一个了。`bilibili-api`，众所周知，是 Python 模块，而实际上，在前端中也可以对其进行使用。~~很简单，自行写一个 `FastAPI` 后端。绑定模块的函数即可。~~这里给到一个将模块快速部署为后端的方式：
+
+```python
+# 需要单独安装 fastapi 和 uvicorn
+
+import uvicorn
+
+from bilibili_api.tools.parser import get_fastapi
+
+if __name__ == "__main__":
+    uvicorn.run(get_fastapi(), host="0.0.0.0", port=9000)
+```
+
+下面的内容就直接引用 `bilibili_api/tools/parser/README.md` 中的内容了。
+
+### 后端转发接口的功能
+
+可以用来开启一个 `uvicorn` 后端，前端不直接访问哔哩哔哩原接口，而是通过这个后端进行请求转发，就不会跨域了。
+
+### 用法
+
+```python
+from bilibili_api import user, sync
+
+
+async def main():
+    return await user.User(uid=2).get_user_info()
+
+
+print(sync(main()))
+```
+
+上述代码现在只需要一个链接就能实现。
+
+[http://localhost:9000/user.User(2).get_user_info()](http://localhost:9000/user.User(2).get_user_info())
+
+你也可以使用指名参数。
+
+[http://localhost:9000/user.User(uid=2).get_user_info()](http://localhost:9000/user.User(uid=2).get_user_info())
+
+使用请求参数 `query` 储存值，接着在函数中使用 `type` 作为参数值。
+
+[http://localhost:9000/comment.get_comments(708326075350908930,type,1)?type=comment.CommentResourceType.DYNAMIC](http://localhost:9000/comment.get_comments(708326075350908930,type,1)?type=comment.CommentResourceType.DYNAMIC)
+
+使用 `.key` 的方式对获取的字典结果取值，获得更精细数据，节省带宽。使用 `.index` 的方式对列表结果取元素，例如：
+
+[http://localhost:9000/user.User(2).get_user_info().elec.show_info.list.0.uname](http://localhost:9000/user.User(2).get_user_info().elec.show_info.list.0.uname)
+
+使用 `?max_age=86400` 请求参数设置缓存，这里是 `86400` 秒。
+
+### FAQ
+
+> 为什么要解析函数，直接用 `eval()` 不好吗？
+
+有安全隐患，用解析函数一步一步调用比较安全。
+
+> 参数值除了可以使用数字，还支持什么呢？
+
+常规值支持整数、浮点数 `None` `True` `False` 以及 `"` 或 `'` 开头并结尾的字符串。
+
+[http://localhost:9000/video.Video(bvid="BV1ju411T7so").get_aid()](http://localhost:9000/video.Video(bvid="BV1ju411T7so").get_aid())
+
+此外，你也可以使用一个可被解析的值作为参数值，例如：
+
+[http://localhost:9000/channel_series.ChannelSeries(id_=1845727,uid=148524702,type_=channel_series.ChannelSeriesType.SEASON).get_meta()](http://localhost:9000/channel_series.ChannelSeries(id_=1845727,uid=148524702,type_=channel_series.ChannelSeriesType.SEASON).get_meta())
+
+> 最后，感谢 @Drelf2018 为 bilibili-api 带来后端请求转发接口，~~也算是弥补了模块做不了后端的问题了~~。
+
+---
+
+感谢各位读者耐心读到此处。
+
+写快速上手的本意是更多地介绍模块不同的功能，如果仅看 `README` 中的例子，用户不一定能学会使用其他接口的方法、使用 `AsyncEvent` 等模块提供的工具类的方法。虽说有 API 示例在，但许多示例已经年久失修(笔者正在考虑接下来去修)，有的功能甚至没有配备示例，如果光看 API 文档，估计多数人都无法理解如何使用各种函数和类。
+
+为此，快速上手中挑选的例子多为一些经典的功能，最能体现模块功能多样性的例子，前文也提到过，这里面涉及的内容能占到整个模块功能的 80%，这个比例不会偏高，只可能偏低。因为模块几乎所有功能，都可以归类到快速上手中的具体例子中。
+
+希望读者阅读完后可以有所收获，并可以开始熟练地使用模块。
+
+当然，因为是快速上手，所以有的部分没有深入去写，也不可能把所有内容全部赘述一遍。可以继续阅读 `通用` `子模块相关` `进阶` 部分的文档，以更近一步了解模块。
+
+以上就是快速上手部分的全部内容。

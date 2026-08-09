@@ -146,6 +146,8 @@ from bilibili_api import login_v2
 
 
 
+**Returns:** `str`:  二维码链接
+
 
 
 
