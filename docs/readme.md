@@ -22,7 +22,7 @@
 
 `bilibili-api-zoku` 是原 `bilibili-api` 的接续，项目名称来源于日语『続』（<ruby>ぞ<rp>(</rp><rt>zo</rt><rp>)</rp>く<rp>(</rp><rt>ku</rt><rp>)</rp></ruby>），即汉字“续”。
 
-如果你是首次接触模块，可以从 [快速上手](QUICKSTART.md) 开始。
+如果你是首次接触模块，可以从 [快速上手](quickstart.md) 开始。
 
 进一步了解模块，可以阅读 `通用` `子模块相关` `进阶` 中的内容。
 

@@ -483,7 +483,7 @@ def parse_docstring1(doc: str):
 import bilibili_api  # noqa: F401, I001
 
 
-with open("./docs/TOC.md", "w+") as toc:
+with open("./docs/toc.md", "w+") as toc:
     toc.write(
         "# API 文档目录\n\n此处为模块 API 文档的目录，通过网页查找可快速跳转至对应的类/函数。\n\n"
     )
@@ -505,7 +505,7 @@ for module in all_funcs:
         )
     print("GENERATING TOC")
     last_data_class = -114514
-    with open("./docs/TOC.md", "a+") as toc:
+    with open("./docs/toc.md", "a+") as toc:
         toc.write(f"- [{module[0][0]}](./modules/{module[0][0]})\n")
         for idx, func in enumerate(module[1:]):
             if idx == last_data_class + 1:
@@ -525,7 +525,7 @@ for module in all_funcs:
             )
             toc.write(
                 "  " * (func[4] - 1)
-                + f"- [{func[2]} {npy313}{['()', ''][func[2] == 'var']}](./modules/{module[0][0]}#{func[2].replace(' ', '-')}-{npy313})\n"
+                + f"- [{func[2]} {npy313}{['()', ''][func[2] == 'var']}](./modules/{module[0][0]}.md#{func[2].replace(' ', '-')}-{npy313})\n"
             )
         file.write("\n")
     last_data_class = -114514
