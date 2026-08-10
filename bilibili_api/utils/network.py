@@ -1877,17 +1877,7 @@ class BiliAPIClient(ABC):
 
 client_func_cnt = 0
 client_lock = ThreadingLock()
-loop_lock: dict[EventLoopToken, ThreadingLock] = {}
-loop_record_lock = ThreadingLock()
-
-
-def get_loop_lock(loop: EventLoopToken) -> ThreadingLock:
-    if loop_lock.get(loop):
-        return loop_lock[loop]
-    with loop_record_lock:
-        if not loop_lock.get(loop):
-            loop_lock[loop] = ThreadingLock()
-        return loop_lock[loop]
+loops: set[EventLoopToken] = set()
 
 
 class MultiEventLoopLocks:
@@ -2183,6 +2173,7 @@ class _BiliAPIClient:
             client_settings._pop_lazy()  # 所有设置已在 __init__ 中应用
         self.__settings = client_settings
         self.__event_loop = event_loop
+        loops.add(self.__event_loop)
 
     def _sync_settings(self, settings: dict) -> None:
         # this function is invocated by _BiliAPIClientGroup
@@ -2472,6 +2463,8 @@ class _BiliAPIClientGroup:
         self.__force_settings = RequestSettings()
         self.__client__ = client
         self.__instance__ = name
+        self.__ensure_locks: dict[EventLoopToken, ThreadingLock] = {}
+        self.__loop_record_lock = ThreadingLock()
 
     def _prepare_settings(self) -> RequestSettings:
         # merge global settings to base settings
@@ -2481,9 +2474,18 @@ class _BiliAPIClientGroup:
         settings.sets(request_settings.all() | self.__force_settings.all())
         return settings
 
+    def _get_loop_lock(self, loop: EventLoopToken | None = None) -> ThreadingLock:
+        loop = loop or current_token()
+        if self.__ensure_locks.get(loop):
+            return self.__ensure_locks[loop]
+        with self.__loop_record_lock:
+            if not self.__ensure_locks.get(loop):
+                self.__ensure_locks[loop] = ThreadingLock()
+        return self.__ensure_locks[loop]
+
     def ensure_client(self, loop: EventLoopToken | None = None) -> _BiliAPIClient:
         loop = loop or current_token()
-        with get_loop_lock(loop):
+        with self._get_loop_lock(loop):
             client = self.__session_pool.get(loop)
             if client is None:
                 client = _BiliAPIClient(
@@ -3060,7 +3062,7 @@ def __clean() -> None:
     """
     程序退出清理操作。
     """
-    for loop in loop_lock.keys():
+    for loop in loops:
         try:
             from_thread.run(clean_session, loop, token=loop)
         except RunFinishedError:
