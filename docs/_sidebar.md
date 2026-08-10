@@ -1,36 +1,43 @@
 + [主页](readme.md)
-+ [快速上手](quickstart.md)
 + [FAQ](faq.md)
 + [API 文档目录](toc.md)
++ 快速上手
+  + [模块安装](quickstart/installation.md)
+  + [使用 `Video`](quickstart/video.md)
+  + [使用 `rank` `hot`](quickstart/rank-hot.md)
+  + [使用 `AsyncEvent`](quickstart/async-event.md)
+  + [使用 `login_v2`](quickstart/login-v2.md)
+  + [下载视频](quickstart/download-video.md)
+  + [后端请求转发接口](quickstart/parser.md)
 + 文档
   + 通用
     + [模块的安装与依赖相关](docs/common/installation.md)
     + [同步执行异步代码](docs/common/sync-executor.md)
     + [`Credential` 类](docs/common/credential.md)
-    + [`AsyncEvent` 类](docs/common/async-event.md)
-    + [`Picture` 类](docs/common/picture.md)
+    + [`AsyncEvent` 类](docs/common/async-event.md) <!-- TODO -->
+    + [`Picture` 类](docs/common/picture.md) <!-- TODO -->
     + [请求配置](docs/common/configuration.md)
-    + [模块配置](docs/common/bili_settings.md)
+    + [模块配置](docs/common/bili-settings.md)
     + [日志](docs/common/logging.md)
-    + [根模块类与函数](docs/common/root-functions.md)
-    + [异常处理](docs/common/errors.md)
+    + [根模块类与函数](docs/common/root-functions.md) <!-- TODO -->
+    + [异常处理](docs/common/errors.md) <!-- TODO -->
   + 子模块相关
-    + [专栏](docs/sub/article.md)
-    + [番剧](docs/sub/bangumi.md)
-    + [动态](docs/sub/dynamic.md)
-    + [互动视频](docs/sub/ivifile.md)
-    + [登录与 `Geetest` 类](docs/sub/login.md)
-    + [图文](docs/sub/opus.md)
-    + [用户](docs/sub/user.md)
-    + [视频](docs/sub/video.md)
-    + [投票](docs/sub/vote.md)
+    + [专栏](docs/sub/article.md) <!-- TODO -->
+    + [番剧](docs/sub/bangumi.md) <!-- TODO -->
+    + [动态](docs/sub/dynamic.md) <!-- TODO -->
+    + [互动视频](docs/sub/ivifile.md) <!-- TODO -->
+    + [登录与 `Geetest` 类](docs/sub/login.md) <!-- TODO -->
+    + [图文](docs/sub/opus.md) <!-- TODO -->
+    + [用户](docs/sub/user.md) <!-- TODO -->
+    + [视频](docs/sub/video.md) <!-- TODO -->
+    + [投票](docs/sub/vote.md) <!-- TODO -->
   + 进阶
-    + [再谈 `Credential` 类](docs/advance/credential.md)
-    + [使用 `BiliAPIClient`](docs/advance/client.md)
-    + [`BiliAPIClient` 适配](docs/advance/request-client.md)
-    + [会话调度](docs/advance/session-management.md)
-    + [使用 `instance`](docs/advance/instance.md)
-    + [过滤器](docs/advance/filter.md)
+    + [再谈 `Credential` 类](docs/advance/credential.md) <!-- TODO -->
+    + [使用 `BiliAPIClient`](docs/advance/client.md) <!-- TODO -->
+    + [`BiliAPIClient` 适配](docs/advance/request-client.md) <!-- TODO -->
+    + [会话调度](docs/advance/session-management.md) <!-- TODO -->
+    + [使用 `instance`](docs/advance/instance.md) <!-- TODO -->
+    + [过滤器](docs/advance/filter.md) <!-- TODO -->
 + API 示例
   + [activity.py - 活动](examples/activity.md)
   + [app.py - 应用程序](examples/app.md)

@@ -26,7 +26,12 @@ from .utils.network import (
     AsyncEvent,
     Credential,
     get_client,
+    get_force_settings,
     get_instance_settings,
+    get_selected_instance,
+    new_instance,
+    remove_instance,
+    select_instance,
 )
 from .utils.picture import Picture
 from .utils.utils import get_api, get_data
@@ -86,9 +91,11 @@ async def _probe() -> dict:
     # api = _API["probe"]
     # info = await Api(**api).update_params(r="probe").result # 不实时获取线路直接用 LINES_INFO
     min_cost, fastest_line = 30, None
-    settings = get_instance_settings()
-    legacy_timeout = settings.get_timeout()
-    settings.set_timeout(30)  # 测试时设置为 30
+    legacy_instance = get_selected_instance()
+    new_instance("_VideoUploader_probe")
+    settings = get_instance_settings(instance=legacy_instance).all()
+    get_instance_settings().sets(settings)
+    get_force_settings().set_timeout(30) # 测试时设置为 30
     min_cost, fastest_line = 432432432, {}
     for line in LINES_INFO.values():
         start = time.perf_counter()
@@ -102,10 +109,12 @@ async def _probe() -> dict:
             )
             cost_time = time.perf_counter() - start
         except Exception:
-            cost_time = settings.get_timeout()
+            cost_time = 30
         if cost_time < min_cost:
             min_cost, fastest_line = cost_time, line
-    settings.set_timeout(legacy_timeout)
+    await get_client().close()
+    remove_instance("_VideoUploader_probe")
+    select_instance(legacy_instance)
     return fastest_line
 
 

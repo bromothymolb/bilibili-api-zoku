@@ -563,7 +563,7 @@ class RequestLog(AsyncEvent):
             "API_REQUEST",
             "API_RESPONSE",
             "ANTI_SPIDER",
-            "WS_CONNECT",
+            "WS_CREATE",
             "WS_RECV",
             "WS_SEND",
             "WS_CLOSE",
@@ -3592,6 +3592,9 @@ class Credential:
 
     def __str__(self):
         return f"SESSDATA: {self.sessdata}; bili_jct: {self.bili_jct}; buvid3: {self.buvid3}; buvid4: {self.buvid4}; DedeUserID: {self.dedeuserid}; ac_time_value: {self.ac_time_value}"
+
+    def __repr__(self):
+        return f"Credential({self.__str__()})"
 
 
 """
