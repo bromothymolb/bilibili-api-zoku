@@ -662,7 +662,7 @@ class RequestLog(AsyncEvent):
                 self.logger.info(f"【{desc}】{real_data['msg']}")
                 return
             elif not real_data.get("act_id"):
-                self.logger.info(f"{desc}: {real_data}")
+                self.logger.info(f"【{desc}】{real_data}")
                 return
             act_id = real_data.pop("act_id")
             client = real_data.pop("client")
@@ -671,7 +671,7 @@ class RequestLog(AsyncEvent):
             backend = {"AsyncIOBackend": "asyncio", "TrioBackend": "trio"}[
                 loop.backend_class.__name__
             ]
-            info_str = f"#{act_id} [{client}/{instance}] <{backend}@{hash(loop)}>"
+            info_str = f"#{act_id} [{client} / {instance}] <{backend} @ {hash(loop)}> "
             log_str = ""
             middle_str = " "
             if evt.startswith("WS_"):
@@ -686,7 +686,7 @@ class RequestLog(AsyncEvent):
                 priority = real_data.pop("priority")
                 filter_id = real_data.pop("filter_id")
                 log_str = (
-                    f"{desc} [{filter_id}] {action}() <- {name}  (priority: {priority})"
+                    f"{desc} [{filter_id}] {action}() <- {name} / {priority}"
                 )
             elif evt == "DO_POST_FILTER":
                 action = real_data.pop("action")
@@ -694,7 +694,7 @@ class RequestLog(AsyncEvent):
                 priority = real_data.pop("priority")
                 filter_id = real_data.pop("filter_id")
                 log_str = (
-                    f"{desc} [{filter_id}] {action}() -> {name}  (priority: {priority})"
+                    f"{desc} [{filter_id}] {action}() -> {name} / {priority}"
                 )
             log_str = log_str or f"{desc}: {real_data}"
             self.logger.info(info_str + middle_str + log_str)
