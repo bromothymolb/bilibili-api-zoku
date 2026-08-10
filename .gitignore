@@ -22,7 +22,7 @@ scratch/
 !tests/*.py
 # Virtual environments
 venv/
-venv39/
+venv*/
 .venv/
 virtualenv/
 # IDE
