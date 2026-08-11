@@ -21,16 +21,6 @@
     + [日志](docs/common/logging.md)
     + [根模块类与函数](docs/common/root-functions.md) <!-- TODO -->
     + [异常处理](docs/common/errors.md) <!-- TODO -->
-  + 子模块相关
-    + [专栏](docs/sub/article.md) <!-- TODO -->
-    + [番剧](docs/sub/bangumi.md) <!-- TODO -->
-    + [动态](docs/sub/dynamic.md) <!-- TODO -->
-    + [互动视频](docs/sub/ivifile.md) <!-- TODO -->
-    + [登录与 `Geetest` 类](docs/sub/login.md) <!-- TODO -->
-    + [图文](docs/sub/opus.md) <!-- TODO -->
-    + [用户](docs/sub/user.md) <!-- TODO -->
-    + [视频](docs/sub/video.md) <!-- TODO -->
-    + [投票](docs/sub/vote.md) <!-- TODO -->
   + 进阶
     + [再谈 `Credential` 类](docs/advance/credential.md) <!-- TODO -->
     + [使用 `BiliAPIClient`](docs/advance/client.md) <!-- TODO -->

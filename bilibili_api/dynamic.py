@@ -1259,7 +1259,7 @@ async def get_dynamic_page_info(
         params["type"] = _type.value
     elif host_mid:  # 指定 UP 主动态
         params["host_mid"] = host_mid
-    elif not _type:
+    if not _type:
         api["params"].pop("type")
     elif not host_mid:
         api["params"].pop("host_mid")

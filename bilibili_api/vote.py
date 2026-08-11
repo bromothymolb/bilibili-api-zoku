@@ -2,8 +2,6 @@
 bilibili_api.vote
 
 投票相关操作。
-
-需要 vote_id,获取 vote_id: https://bromothymolb.github.io/bilibili-api-zoku/#/vote-id
 """
 
 from enum import Enum
@@ -96,15 +94,14 @@ class Vote:
     投票类
 
     Attributes:
-        vote_id (int): vote_id, 获取：https://bromothymolb.github.io/bilibili-api-zoku/#/docs/sub/vote-id
-
+        vote_id (int): vote_id
         credential (Credential): 凭据类
     """
 
     def __init__(self, vote_id: int, credential: Credential | None = None) -> None:
         """
         Args:
-            vote_id (int): vote_id, 获取：https://bromothymolb.github.io/bilibili-api-zoku/#/docs/sub/vote-id
+            vote_id (int): vote_id
             credential (Credential | None, optional): 凭据类，非必要. Defaults to None.
         """
         self.__vote_id = vote_id
