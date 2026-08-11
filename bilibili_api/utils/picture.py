@@ -144,7 +144,7 @@ class Picture:
             BiliAPIFile: BiliAPIFile 实例
         """
         return BiliAPIFile(
-            name=f"chiya.{self.format}",
+            name=f"pic.{self.extension}",
             content=await self.content(),
             mime_type=self.mime_type,
         )

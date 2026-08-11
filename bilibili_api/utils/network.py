@@ -213,7 +213,6 @@ import io
 import json
 from json import scanner
 from json.decoder import scanstring  # type: ignore
-import logging
 import mimetypes
 import os
 import random
@@ -240,9 +239,11 @@ from anyio.abc import TaskGroup
 from anyio.lowlevel import EventLoopToken, current_token
 from bs4 import BeautifulSoup
 import chompjs
+from colorama import Fore
 from Cryptodome.Cipher import PKCS1_OAEP
 from Cryptodome.Hash import SHA256
 from Cryptodome.PublicKey import RSA
+from loguru import logger
 
 from ..exceptions import (
     ArgsException,
@@ -259,7 +260,7 @@ from ..exceptions import (
     ResponseCodeException,
     WbiRetryTimesExceedException,
 )
-from .utils import get_api, raise_for_statement
+from .utils import get_api, loguru_apply_anti_tag, raise_for_statement
 
 TRIO_AVAILABLE = "trio" in get_available_backends()
 
@@ -548,16 +549,6 @@ async def close(self) -> ...:
 class RequestLog(AsyncEvent):
     def __init__(self) -> None:
         super().__init__()
-        self.logger: logging.Logger = logging.getLogger("bilibili-api-request")
-        self.logger.setLevel(logging.INFO)
-        if not self.logger.handlers:
-            handler = logging.StreamHandler()
-            handler.setFormatter(
-                logging.Formatter(
-                    "[BILIBILI_API][%(asctime)s][%(levelname)s] %(message)s"
-                )
-            )
-            self.logger.addHandler(handler)
         self.__on = False
         self.__on_events: list[str] = [
             "API_REQUEST",
@@ -650,6 +641,27 @@ class RequestLog(AsyncEvent):
         """
         self.__on = status
 
+    def __log(self, event: str) -> None:
+        event = loguru_apply_anti_tag(event)
+        colors = {
+            Fore.GREEN: ("<green>", "</green>"),
+            Fore.MAGENTA: ("<magenta>", "</magenta>"),
+            Fore.YELLOW: ("<yellow>", "</yellow>"),
+            Fore.CYAN: ("<cyan>", "</cyan>")
+        }
+        for color, color_tags in colors.items():
+            end_tag = 0
+            while True:
+                color_str = str(color)
+                idx = event.find(color_str)
+                if idx == -1:
+                    break
+                event = (
+                    event[:idx] + color_tags[end_tag] + event[(idx + len(color_str)) :]
+                )
+                end_tag = 1 - end_tag
+        logger.opt(colors=True).debug(f"<red>bilibili-api-request</red> | {event}")
+
     def __handle_events(self, data: dict) -> None:
         evt = data["name"]
         desc, real_data = data["data"]
@@ -659,10 +671,10 @@ class RequestLog(AsyncEvent):
             and evt not in self.get_ignore_events()
         ):
             if evt == "ANTI_SPIDER":
-                self.logger.info(f"【{desc}】{real_data['msg']}")
+                self.__log(f"{Fore.GREEN}【{desc}】{Fore.GREEN} {real_data['msg']}")
                 return
             elif not real_data.get("act_id"):
-                self.logger.info(f"【{desc}】{real_data}")
+                self.__log(f"{Fore.GREEN}【{desc}】{Fore.GREEN} {real_data}")
                 return
             act_id = real_data.pop("act_id")
             client = real_data.pop("client")
@@ -671,7 +683,7 @@ class RequestLog(AsyncEvent):
             backend = {"AsyncIOBackend": "asyncio", "TrioBackend": "trio"}[
                 loop.backend_class.__name__
             ]
-            info_str = f"#{act_id} [{client} / {instance}] <{backend} @ {hash(loop)}> "
+            info_str = f"#{Fore.CYAN}{act_id}{Fore.CYAN} {Fore.MAGENTA}[{client} / {instance}]{Fore.MAGENTA} {Fore.YELLOW}<{backend} @ {hash(loop)}>{Fore.YELLOW} "
             log_str = ""
             middle_str = " "
             if evt.startswith("WS_"):
@@ -685,19 +697,15 @@ class RequestLog(AsyncEvent):
                 name = real_data.pop("name")
                 priority = real_data.pop("priority")
                 filter_id = real_data.pop("filter_id")
-                log_str = (
-                    f"{desc} [{filter_id}] {action}() <- {name} / {priority}"
-                )
+                log_str = f"{Fore.GREEN}{desc}{Fore.GREEN} [{Fore.CYAN}{filter_id}{Fore.CYAN}] {action}() <- {name} / {Fore.CYAN}{priority}{Fore.CYAN}"
             elif evt == "DO_POST_FILTER":
                 action = real_data.pop("action")
                 name = real_data.pop("name")
                 priority = real_data.pop("priority")
                 filter_id = real_data.pop("filter_id")
-                log_str = (
-                    f"{desc} [{filter_id}] {action}() -> {name} / {priority}"
-                )
-            log_str = log_str or f"{desc}: {real_data}"
-            self.logger.info(info_str + middle_str + log_str)
+                log_str = f"{Fore.GREEN}{desc}{Fore.GREEN} [{Fore.CYAN}{filter_id}{Fore.CYAN}] {action}() <- {name} / {Fore.CYAN}{priority}{Fore.CYAN}"
+            log_str = log_str or f"{Fore.GREEN}{desc}{Fore.GREEN}: {real_data}"
+            self.__log(info_str + middle_str + log_str)
 
 
 request_log = RequestLog()
@@ -1401,6 +1409,12 @@ class BiliAPIFile:
             name = os.path.basename(path)
             mime_type = mimetypes.guess_type(name)[0] or ""
             return BiliAPIFile(name=name, content=content, mime_type=mime_type)
+
+    def __str__(self) -> str:
+        return f"BiliAPIFile(name='{self.name}', mime_type='{self.mime_type}')"
+
+    def __repr__(self) -> str:
+        return f"BiliAPIFile(name='{self.name}', mime_type='{self.mime_type}')"
 
 
 class BiliAPIClient(ABC):

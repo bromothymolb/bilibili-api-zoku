@@ -5,6 +5,7 @@ brotli
 chompjs
 colorama
 frozendict
+loguru
 lxml
 pillow
 pycryptodomex

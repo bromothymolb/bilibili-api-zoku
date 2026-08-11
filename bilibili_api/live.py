@@ -7,13 +7,13 @@ bilibili_api.live
 import base64
 from enum import Enum
 import json
-import logging
 import struct
 import time
 from typing import Any
 
 import anyio
 import brotli
+from loguru import logger
 
 from .exceptions.LiveException import LiveException
 from .utils.BytesReader import BytesReader
@@ -27,7 +27,7 @@ from .utils.network import (
     get_bili_headers,
     get_client,
 )
-from .utils.utils import get_api
+from .utils.utils import get_api, loguru_apply_anti_tag
 
 API = get_api("live")
 
@@ -1525,26 +1525,31 @@ class LiveDanmaku(AsyncEvent):
         self.room = LiveRoom(
             room_display_id=self.room_display_id, credential=self.credential
         )
-
-        # logging
-        self.logger = logging.getLogger(f"LiveDanmaku_{self.room_display_id}")
-        self.logger.setLevel(logging.DEBUG if debug else logging.INFO)
-        if not self.logger.handlers:
-            handler = logging.StreamHandler()
-            handler.setFormatter(
-                logging.Formatter(
-                    "["
-                    + str(room_display_id)
-                    + "][%(asctime)s][%(levelname)s] %(message)s"
-                )
-            )
-            self.logger.addHandler(handler)
+        self.__debug = debug
 
     def __str__(self) -> str:
         return f"LiveDanmaku({self.room})"
 
     def __repr__(self) -> str:
         return f"LiveDanmaku({self.room})"
+
+    def _log_debug(self, msg: str) -> None:
+        if not self.__debug:
+            return
+        msg = loguru_apply_anti_tag(msg)
+        logger.opt(colors=True).debug(f"<red>{self}</red> | {msg}")
+
+    def _log_info(self, msg: str) -> None:
+        msg = loguru_apply_anti_tag(msg)
+        logger.opt(colors=True).info(f"<red>{self}</red> | {msg}")
+
+    def _log_warning(self, msg: str) -> None:
+        msg = loguru_apply_anti_tag(msg)
+        logger.opt(colors=True, exception=True).warning(f"<red>{self}</red> | {msg}")
+
+    def _log_error(self, msg: str) -> None:
+        msg = loguru_apply_anti_tag(msg)
+        logger.opt(colors=True, exception=True).error(f"<red>{self}</red> | {msg}")
 
     def get_live_room(self) -> LiveRoom:
         """
@@ -1587,7 +1592,7 @@ class LiveDanmaku(AsyncEvent):
             raise LiveException("尚未连接服务器")
 
         self.__status = self.STATUS_CLOSING
-        self.logger.info("连接正在关闭")
+        self._log_info("连接正在关闭")
 
         # 取消所有任务
         self.async_event_cancel()
@@ -1595,7 +1600,7 @@ class LiveDanmaku(AsyncEvent):
         self.__status = self.STATUS_CLOSED
         await self.__client.ws_close(cnt=self.__ws)  # type: ignore
 
-        self.logger.info("连接已关闭")
+        self._log_info("连接已关闭")
 
     async def __main(self) -> None:
         """
@@ -1603,19 +1608,19 @@ class LiveDanmaku(AsyncEvent):
         """
         self.__status = self.STATUS_CONNECTING
 
-        self.logger.info(f"准备连接直播间 {self.room_display_id}")
+        self._log_info(f"准备连接直播间 {self.room_display_id}")
         # 获取真实房间号
-        self.logger.debug("正在获取真实房间号")
+        self._log_debug("正在获取真实房间号")
         self.__room_real_id = await self.room.get_room_id()
-        self.logger.debug(f"获取成功，真实房间号：{self.__room_real_id}")
+        self._log_debug(f"获取成功，真实房间号：{self.__room_real_id}")
 
         # 获取直播服务器配置
-        self.logger.debug("正在获取聊天服务器配置")
+        self._log_debug("正在获取聊天服务器配置")
         conf = await self.room.get_danmu_info()
-        self.logger.debug("聊天服务器配置获取成功")
+        self._log_debug("聊天服务器配置获取成功")
 
         # 连接直播间
-        self.logger.debug("准备连接直播间")
+        self._log_debug("准备连接直播间")
         self.__client = get_client()
         available_hosts: list[dict] = conf["host_list"][::-1]
         retry = self.max_retry
@@ -1644,7 +1649,7 @@ class LiveDanmaku(AsyncEvent):
             protocol = "wss"
             uri = f"{protocol}://{host['host']}:{port}/sub"
             self.__status = self.STATUS_CONNECTING
-            self.logger.info(f"正在尝试连接主机： {uri}")
+            self._log_info(f"正在尝试连接主机： {uri}")
 
             try:
                 self.__ws = await self.__client.ws_create(
@@ -1659,7 +1664,7 @@ class LiveDanmaku(AsyncEvent):
                         self.task_group.create_task(self.__heartbeat_web())
                     )
 
-                self.logger.debug("连接主机成功, 准备发送认证信息")
+                self._log_debug("连接主机成功, 准备发送认证信息")
                 await self.__send_verify_data(conf["token"])
 
                 while True:
@@ -1667,39 +1672,39 @@ class LiveDanmaku(AsyncEvent):
                         data, flag = await self.__client.ws_recv(cnt=self.__ws)
                     except Exception:
                         self.__status = self.STATUS_ERROR
-                        self.logger.error("出现错误")
+                        self._log_error("出现错误")
                         break
                     if flag == BiliWsMsgType.BINARY:
-                        self.logger.debug(f"收到原始数据：{data}")
+                        self._log_debug(f"收到原始数据：{data}")
                         await self.__handle_data(data)
                     elif flag == BiliWsMsgType.CLOSING:
-                        self.logger.debug("连接正在关闭")
+                        self._log_debug("连接正在关闭")
                         self.__status = self.STATUS_CLOSING
                     elif flag == BiliWsMsgType.CLOSED:
-                        self.logger.info("连接已关闭")
+                        self._log_info("连接已关闭")
                         self.__status = self.STATUS_CLOSED
                         break
 
                 # 正常断开情况下跳出循环
                 if self.__status != self.STATUS_CLOSED or self.err_reason:
                     # 非用户手动调用关闭，触发重连
-                    self.logger.warning(self.err_reason or "非正常关闭连接")
+                    self._log_warning(self.err_reason or "非正常关闭连接")
                 else:
                     break
 
-            except Exception as e:
-                self.logger.warning(e)
+            except Exception:
+                self._log_error("连接服务器出现错误")
                 self.__status = self.STATUS_ERROR
 
                 if self.__ws:
                     await self.__client.ws_close(cnt=self.__ws)
 
                 if retry <= 0 or len(available_hosts) == 0:
-                    self.logger.error("无法连接服务器")
+                    self._log_error("无法连接服务器")
                     self.err_reason = "无法连接服务器"
                     break
 
-                self.logger.warning(f"将在 {self.retry_after} 秒后重新连接...")
+                self._log_warning(f"将在 {self.retry_after} 秒后重新连接...")
                 retry -= 1
                 await anyio.sleep(self.retry_after)
 
@@ -1708,7 +1713,7 @@ class LiveDanmaku(AsyncEvent):
         处理数据
         """
         data = self.__unpack(data)
-        self.logger.debug(f"收到信息：{data}")
+        self._log_debug(f"收到信息：{data}")
 
         for info in data:
             callback_info = {
@@ -1723,7 +1728,7 @@ class LiveDanmaku(AsyncEvent):
                 # 认证反馈
                 if info["data"]["code"] == 0:
                     # 认证成功反馈
-                    self.logger.info("连接服务器并认证成功")
+                    self._log_info("连接服务器并认证成功")
                     self.__status = self.STATUS_ESTABLISHED
                     callback_info["type"] = "VERIFICATION_SUCCESSFUL"
                     callback_info["data"] = None
@@ -1732,7 +1737,7 @@ class LiveDanmaku(AsyncEvent):
 
             elif info["datapack_type"] == LiveDanmaku.DATAPACK_TYPE_HEARTBEAT_RESPONSE:
                 # 心跳包反馈，返回直播间人气
-                self.logger.debug("收到心跳包反馈")
+                self._log_debug("收到心跳包反馈")
                 # 重置心跳计时器
                 self.__heartbeat_timer = 30.0
                 callback_info["type"] = "VIEW"
@@ -1793,13 +1798,13 @@ class LiveDanmaku(AsyncEvent):
                 self.dispatch("ALL", callback_info)
 
             else:
-                self.logger.warning("检测到未知的数据包类型，无法处理")
+                self._log_warning("检测到未知的数据包类型，无法处理")
 
     async def __send_verify_data(self, token: str) -> None:
         # 没传入 dedeuserid 可以试图 live.get_self_info
         if not self.credential.has_dedeuserid():
             if not self.credential.has_sessdata():
-                self.logger.warning("未提供登录凭据，使用匿名身份连接")
+                self._log_warning("未提供登录凭据，使用匿名身份连接")
                 self.credential.dedeuserid = "0"
             else:
                 for attempt in range(self.max_retry_for_credential):
@@ -1811,13 +1816,13 @@ class LiveDanmaku(AsyncEvent):
                         if self.credential.has_dedeuserid():
                             break
                     except Exception as e:
-                        self.logger.warning(
+                        self._log_warning(
                             f"获取用户信息失败，重试中... ({attempt + 1}/{self.max_retry_for_credential})\n{e}"
                         )
                         await anyio.sleep(self.retry_after)
                 if not self.credential.has_dedeuserid():
                     self.credential.dedeuserid = "0"
-                    self.logger.warning("获取用户信息失败，使用匿名身份连接")
+                    self._log_warning("获取用户信息失败，使用匿名身份连接")
 
         verifyData = {
             "uid": int(self.credential.dedeuserid),  # type: ignore
@@ -1841,7 +1846,7 @@ class LiveDanmaku(AsyncEvent):
         """
         while True:
             if self.__heartbeat_timer_web == 0:
-                self.logger.debug("发送 Web 端心跳包")
+                self._log_debug("发送 Web 端心跳包")
                 api = API["operate"]["heartbeat_web"]
                 params = {
                     "pf": "web",
@@ -1870,7 +1875,7 @@ class LiveDanmaku(AsyncEvent):
         )
         while True:
             if self.__heartbeat_timer == 0:
-                self.logger.debug("发送 WebSocket 心跳包")
+                self._log_debug("发送 WebSocket 心跳包")
                 await self.__client.ws_send(cnt=self.__ws, data=HEARTBEAT)
             elif self.__heartbeat_timer <= -30:
                 # 视为已异常断开连接，发布 TIMEOUT 事件
@@ -1889,7 +1894,7 @@ class LiveDanmaku(AsyncEvent):
         自动打包并发送数据
         """
         data = self.__pack(data, protocol_version, datapack_type)
-        self.logger.debug(f"发送原始数据：{data}")
+        self._log_debug(f"发送原始数据：{data}")
         await self.__client.ws_send(cnt=self.__ws, data=data)
 
     @staticmethod

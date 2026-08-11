@@ -8,16 +8,16 @@ from collections.abc import Callable
 from contextlib import AbstractAsyncContextManager
 from enum import Enum
 import json
-import logging
 import time
 
 import anyio
+from loguru import logger
 
 from .exceptions import ArgsException
 from .user import get_self_info
 from .utils.network import Api, AsyncEvent, Credential
 from .utils.picture import Picture
-from .utils.utils import get_api
+from .utils.utils import get_api, loguru_apply_anti_tag
 from .video import Video
 
 API = get_api("session")
@@ -450,16 +450,27 @@ class Session(AsyncEvent):
         self.events = {}
 
         # logging
-        self.logger = logging.getLogger("Session")
-        self.logger.setLevel(logging.DEBUG if debug else logging.INFO)
-        if not self.logger.handlers:
-            handler = logging.StreamHandler()
-            handler.setFormatter(
-                logging.Formatter(
-                    "[%(asctime)s][%(levelname)s]: %(message)s", "%Y-%m-%d %H:%M:%S"
-                )
-            )
-            self.logger.addHandler(handler)
+        self.__debug = debug
+
+    def __repr__(self) -> str:
+        return "Session()"
+
+    def __str__(self) -> str:
+        return "Session()"
+
+    def _log_debug(self, msg: str) -> None:
+        if not self.__debug:
+            return
+        msg = loguru_apply_anti_tag(msg)
+        logger.opt(colors=True).debug(f"<red>{self}</red> | {msg}")
+
+    def _log_info(self, msg: str) -> None:
+        msg = loguru_apply_anti_tag(msg)
+        logger.opt(colors=True).info(f"<red>{self}</red> | {msg}")
+
+    def _log_warning(self, msg: str) -> None:
+        msg = loguru_apply_anti_tag(msg)
+        logger.opt(colors=True, exception=True).warning(f"<red>{self}</red> | {msg}")
 
     def on(self, event_type: str | EventType) -> Callable:  # type: ignore
         """
@@ -516,15 +527,15 @@ class Session(AsyncEvent):
                     try:
                         await event._content()
                     except Exception as e:
-                        self.logger.warning(f"解析消息错误: {e}")
+                        self._log_warning(f"解析消息错误: {e}")
 
                     if event.msg_type == EventType.WITHDRAW.value:
-                        self.logger.info(
+                        self._log_info(
                             str(self.events.get(event.content, f"key={event.content}"))
                             + f" 被撤回({event.timestamp})"
                         )
                     else:
-                        self.logger.info(event)
+                        self._log_info(str(event))
 
                     self.events[str(event.msg_key)] = event
 
@@ -545,14 +556,14 @@ class Session(AsyncEvent):
                     )
                     self.maxSeqno[session["talker_id"]] = session["max_seqno"]
 
-            self.logger.debug(f"maxTs = {self.maxTs}")
+            self._log_debug(f"maxTs = {self.maxTs}")
 
         async def trigger_task():
             await anyio.sleep(6)
             self.__wait_event.set()
 
         self.__status = 1
-        self.logger.info("开始轮询")
+        self._log_info("开始轮询")
 
         while self.get_status() < 2:
             await query()
@@ -599,7 +610,7 @@ class Session(AsyncEvent):
         """
 
         if self.uid == event.sender_uid:
-            self.logger.error("不能给自己发送消息哦~")
+            self._log_warning("不能给自己发送消息哦~")
         else:
             msg_type = (
                 EventType.PICTURE if isinstance(content, Picture) else EventType.TEXT
@@ -612,7 +623,7 @@ class Session(AsyncEvent):
         """
         self.__status = 2
         self.__wait_event.set()
-        self.logger.info("结束轮询")
+        self._log_info("结束轮询")
         self.async_event_cancel()
 
 

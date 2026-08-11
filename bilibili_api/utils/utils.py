@@ -8,6 +8,7 @@ from datetime import datetime
 import json
 import os
 import random
+import re
 from typing import TypeVar
 from urllib.parse import quote
 
@@ -294,3 +295,24 @@ def img_auto_scheme(url: str) -> str:
     if url.startswith("//"):
         return "https://" + url
     return url
+
+
+def loguru_apply_anti_tag(event: str) -> str:
+    """
+    防止字符串中的 `<` `>` 被识别为颜色标识
+
+    Args:
+        event (str): 字符串
+
+    Returns:
+        str: 转义后的字符串
+    """
+    regex_tag = re.compile(r"(\\*)(</?(?:[fb]g\s)?[^<>\s]*>)")
+    add_slashes: dict[int, int] = {}
+    for match in list(regex_tag.finditer(event)):
+        add_slashes[match.start()] = len(match.group(1)) + 1
+    ret = ""
+    for pos, char in enumerate(list(event)):
+        ret += "\\" * add_slashes.get(pos, 0)
+        ret += char
+    return ret

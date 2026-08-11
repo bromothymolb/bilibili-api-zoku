@@ -12,12 +12,12 @@ from enum import Enum
 from functools import cmp_to_key
 from inspect import iscoroutine, isfunction
 import json
-import logging
 import re
 import struct
 from typing import Any
 
 import anyio
+from loguru import logger
 from yarl import URL
 
 from . import user
@@ -37,7 +37,7 @@ from .utils.network import (
     Credential,
     get_client,
 )
-from .utils.utils import get_api, get_data, raise_for_statement
+from .utils.utils import get_api, get_data, loguru_apply_anti_tag, raise_for_statement
 
 API = get_api("video")
 
@@ -1991,26 +1991,35 @@ class VideoOnlineMonitor(AsyncEvent):
         self.__video = Video(bvid, aid, credential=credential)
 
         # 智能选择在 log 中展示的 ID。
-        id_showed = None
+        self.id_showed = None
         if bvid is not None:
-            id_showed = bvid
+            self.id_showed = bvid
         else:
-            id_showed = aid
+            self.id_showed = aid
 
-        # logger 初始化
-        self.logger = logging.getLogger(f"VideoOnlineMonitor-{id_showed}")
-        if not self.logger.handlers:
-            handler = logging.StreamHandler()
-            handler.setFormatter(
-                logging.Formatter(
-                    "[" + str(id_showed) + "][%(asctime)s][%(levelname)s] %(message)s"
-                )
-            )
-            self.logger.addHandler(handler)
-            self.logger.setLevel(logging.INFO if not debug else logging.DEBUG)
+        self.__page_index = page_index
+        self.__tasks: list[anyio.TaskHandle] = []
+        self.__debug = debug
 
-            self.__page_index = page_index
-            self.__tasks: list[anyio.TaskHandle] = []
+    def __repr__(self) -> str:
+        return f"VideoOnlineMonitor(id={self.id_showed})"
+
+    def __str__(self) -> str:
+        return f"VideoOnlineMonitor(id={self.id_showed})"
+
+    def _log_debug(self, msg: str) -> None:
+        if not self.__debug:
+            return
+        msg = loguru_apply_anti_tag(msg)
+        logger.opt(colors=True).debug(f"<red>{self}</red> | {msg}")
+
+    def _log_info(self, msg: str) -> None:
+        msg = loguru_apply_anti_tag(msg)
+        logger.opt(colors=True).info(f"<red>{self}</red> | {msg}")
+
+    def _log_warning(self, msg: str) -> None:
+        msg = loguru_apply_anti_tag(msg)
+        logger.opt(colors=True, exception=True).warning(f"<red>{self}</red> | {msg}")
 
     async def connect(self) -> None:
         """
@@ -2022,7 +2031,7 @@ class VideoOnlineMonitor(AsyncEvent):
         """
         断开服务器
         """
-        self.logger.info("主动断开连接。")
+        self._log_info("主动断开连接。")
         self.dispatch("DISCONNECTED")
         self.__cancel_all_tasks()
         self.async_event_cancel()
@@ -2041,23 +2050,23 @@ class VideoOnlineMonitor(AsyncEvent):
         # 获取服务器信息
         bvid = self.__video.get_bvid()
         self.__bvid = await bvid if iscoroutine(bvid) else bvid  # type: ignore
-        self.logger.debug(f"准备连接：{self.__bvid}")
-        self.logger.debug("获取服务器信息中...")
+        self._log_debug(f"准备连接：{self.__bvid}")
+        self._log_debug("获取服务器信息中...")
 
         api = API["info"]["video_online_broadcast_servers"]
         resp = await Api(**api, credential=self.credential).result
 
         uri = f"wss://{resp['domain']}:{resp['wss_port']}/sub"
         self.__heartbeat_interval = resp["heartbeat"]
-        self.logger.debug(f"服务器信息获取成功，URI：{uri}")
+        self._log_debug(f"服务器信息获取成功，URI：{uri}")
 
         # 连接服务器
-        self.logger.debug("准备连接服务器...")
+        self._log_debug("准备连接服务器...")
         self.__client = get_client()
         self.__ws = await self.__client.ws_create(url=uri)
 
         # 发送认证信息
-        self.logger.debug("服务器连接成功，准备发送认证信息...")
+        self._log_debug("服务器连接成功，准备发送认证信息...")
         verify_info = {
             "room_id": f"video://{bvid2aid(self.__bvid)}/{cid}",
             "platform": "web",
@@ -2076,13 +2085,13 @@ class VideoOnlineMonitor(AsyncEvent):
             try:
                 data, flag = await self.__client.ws_recv(cnt=self.__ws)
             except Exception:
-                self.logger.warning("连接被异常断开")
+                self._log_warning("连接被异常断开")
                 self.__cancel_all_tasks()
                 self.dispatch("ERROR", "")
                 continue
             if flag == BiliWsMsgType.BINARY:
                 data = self.__unpack(data)
-                self.logger.debug(f"收到消息：{data}")
+                self._log_debug(f"收到消息：{data}")
                 await self.__handle_data(data)  # type: ignore
             elif flag == BiliWsMsgType.CLOSED:
                 break
@@ -2102,12 +2111,12 @@ class VideoOnlineMonitor(AsyncEvent):
                     heartbeat = self.task_group.create_task(self.__heartbeat_task())
                     self.__tasks.append(heartbeat)
 
-                    self.logger.info("连接服务器并验证成功")
+                    self._log_info("连接服务器并验证成功")
 
             elif d["type"] == VideoOnlineMonitor.Datapack.SERVER_HEARTBEAT.value:
                 # 心跳包反馈，同时包含在线人数。
-                self.logger.debug(f"收到服务器心跳包反馈，编号：{d['number']}")
-                self.logger.info(f"实时观看人数：{d['data']['data']['room']['online']}")
+                self._log_debug(f"收到服务器心跳包反馈，编号：{d['number']}")
+                self._log_info(f"实时观看人数：{d['data']['data']['room']['online']}")
                 self.dispatch("ONLINE", d["data"])
 
             elif d["type"] == VideoOnlineMonitor.Datapack.DANMAKU.value:
@@ -2128,12 +2137,12 @@ class VideoOnlineMonitor(AsyncEvent):
                     is_sub=is_sub,
                     text=text,
                 )
-                self.logger.info(f"收到实时弹幕：{dm.text}")
+                self._log_info(f"收到实时弹幕：{dm.text}")
                 self.dispatch("DANMAKU", dm)
 
             else:
                 # 未知类型数据包
-                self.logger.warning("收到未知的数据包类型，无法解析：" + json.dumps(d))
+                self._log_warning("收到未知的数据包类型，无法解析：" + json.dumps(d))
 
     async def __heartbeat_task(self):
         """
@@ -2141,7 +2150,7 @@ class VideoOnlineMonitor(AsyncEvent):
         """
         index = 2
         while True:
-            self.logger.debug(f"发送心跳包，编号：{index}")
+            self._log_debug(f"发送心跳包，编号：{index}")
             await self.__client.ws_send(
                 cnt=self.__ws,
                 data=self.__pack(
