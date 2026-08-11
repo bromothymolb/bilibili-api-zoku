@@ -712,7 +712,7 @@
     - [def get\_status()](./modules/session.md#def-get\_status)
     - [def on()](./modules/session.md#def-on)
     - [async def reply()](./modules/session.md#async-def-reply)
-    - [async def run()](./modules/session.md#async-def-run)
+    - [def run()](./modules/session.md#def-run)
     - [async def start()](./modules/session.md#async-def-start)
   - [async def fetch\_session\_msgs()](./modules/session.md#async-def-fetch\_session\_msgs)
   - [async def get\_at()](./modules/session.md#async-def-get\_at)

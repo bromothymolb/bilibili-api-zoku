@@ -482,7 +482,7 @@ class AsyncEvent:
             AsyncGenerator[anyio.TaskHandle[~T | None]]: 运行主程序的 TaskHandle，若中途取消则返回 None
         """
         async with create_task_group() as btg:
-            background_task = btg.create_task(self.async_event_start(start_coro))
+            background_task = btg.create_task(start_coro)
             yield background_task
 
     def async_event_cancel(self) -> None:
@@ -524,7 +524,7 @@ async def start(self, ...) -> ...:
         # 异常处理
         raise e
 
-async def run(self, ...) -> ...:
+def run(self, ...) -> ...:
     '''
     非阻塞式异步爬虫
     '''

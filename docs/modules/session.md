@@ -19,7 +19,7 @@ from bilibili_api import session
   - [def get\_status()](#def-get\_status)
   - [def on()](#def-on)
   - [async def reply()](#async-def-reply)
-  - [async def run()](#async-def-run)
+  - [def run()](#def-run)
   - [async def start()](#async-def-start)
 - [async def fetch\_session\_msgs()](#async-def-fetch\_session\_msgs)
 - [async def get\_at()](#async-def-get\_at)
@@ -152,7 +152,7 @@ from bilibili_api import session
 
 
 
-### async def run()
+### def run()
 
 非阻塞异步爬虫 定时发送请求获取消息
 

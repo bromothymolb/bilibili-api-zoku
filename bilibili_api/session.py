@@ -583,7 +583,7 @@ class Session(AsyncEvent):
         """
         return await self.async_event_start(self.__main(exclude_self=exclude_self))
 
-    async def run(
+    def run(
         self, exclude_self: bool = True
     ) -> AbstractAsyncContextManager[anyio.TaskHandle]:
         """
