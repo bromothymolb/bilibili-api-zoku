@@ -2674,7 +2674,7 @@ def new_instance(name: str, client: str | None = None) -> None:
     """
     client = client or get_selected_client()[0]
     global client_groups
-    if client in client_groups[client].keys():
+    if name in client_groups[client].keys():
         raise ArgsException(f"已存在 {client} 的实例 {name}")
     client_groups[client][name] = _BiliAPIClientGroup(client, name)
     select_instance(name)
