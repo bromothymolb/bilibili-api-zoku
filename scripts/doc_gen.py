@@ -514,7 +514,7 @@ for module in all_funcs:
             if (
                 func[3] == "@dataclasses.dataclass"
                 or func[1].count("exceptions") == 1
-                or func[0].startswith("request_")
+                or func[0].startswith("request_log")
                 or func[0].startswith("bili_settings")
             ):
                 last_data_class = idx
@@ -541,7 +541,7 @@ for module in all_funcs:
         if (
             func[3] == "@dataclasses.dataclass"
             or func[1].count("exceptions") == 1
-            or func[0].startswith("request_")
+            or func[0].startswith("request_log")
             or func[0].startswith("bili_settings")
         ):
             last_data_class = idx

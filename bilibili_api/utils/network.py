@@ -647,7 +647,7 @@ class RequestLog(AsyncEvent):
             Fore.GREEN: ("<green>", "</green>"),
             Fore.MAGENTA: ("<magenta>", "</magenta>"),
             Fore.YELLOW: ("<yellow>", "</yellow>"),
-            Fore.CYAN: ("<cyan>", "</cyan>")
+            Fore.CYAN: ("<cyan>", "</cyan>"),
         }
         for color, color_tags in colors.items():
             end_tag = 0
@@ -2568,8 +2568,10 @@ sessions: dict[str, type["BiliAPIClient"]] = {}  # client -> BiliAPIClient class
 client_settings: dict[str, list] = {}  # client -> settings
 optional_settings: dict[str, dict] = {}  # client -> optional settings
 client_groups: dict[str, dict[str, _BiliAPIClientGroup]] = {}  # client -> instance
-selected_client: ContextVar[str] = ContextVar("bili_client", default="")
-selected_instance: ContextVar[str] = ContextVar("bili_instance", default="")
+selected_client = ""
+selected_instance = ""
+selected_client_context: ContextVar[str] = ContextVar("bili_client", default="")
+selected_instance_context: ContextVar[str] = ContextVar("bili_instance", default="")
 __registered_filters = []
 
 
@@ -2616,16 +2618,21 @@ def unregister_client(name: str) -> None:
         raise ArgsException("未找到指定请求客户端。") from e
 
 
-def select_client(name: str) -> None:
+def select_client(name: str, local_context: bool = False) -> None:
     """
     选择模块使用的注册过的请求客户端，可用于用户自定义请求客户端。
 
     Args:
         name (str): 请求客户端类型名称，用户自定义命名。
+        local_context (bool): 是否通过 `ContextVar` 仅在局部上下文设置。Defaults to False.
     """
     if not sessions.get(name):
         raise ArgsException(f"未注册过 {name}。")
-    selected_client.set(name)
+    if local_context:
+        selected_client_context.set(name)
+    else:
+        global selected_client
+        selected_client = name
 
 
 def get_selected_client() -> tuple[str, type[BiliAPIClient]]:
@@ -2635,11 +2642,13 @@ def get_selected_client() -> tuple[str, type[BiliAPIClient]]:
     Returns:
         tuple[str, type[BiliAPIClient]]: 第 0 项为客户端名称，第 1 项为对应的类
     """
-    if selected_client.get() == "":
-        raise ArgsException(
-            "尚未安装第三方请求库或未注册自定义第三方请求库。\n$ pip3 install (curl_cffi|httpx|aiohttp)"
-        )
-    return selected_client.get(), sessions[selected_client.get()]
+    if selected_client_context.get() != "":
+        return selected_client_context.get(), sessions[selected_client_context.get()]
+    if selected_client != "":
+        return selected_client, sessions[selected_client]
+    raise ArgsException(
+        "尚未安装第三方请求库或未注册自定义第三方请求库。\n$ pip3 install (curl_cffi|httpx|aiohttp)"
+    )
 
 
 def get_registered_clients() -> dict[str, type[BiliAPIClient]]:
@@ -2687,14 +2696,19 @@ def remove_instance(name: str, client: str | None = None) -> None:
         raise ArgsException("未找到指定请求客户端实例。") from e
 
 
-def select_instance(name: str) -> None:
+def select_instance(name: str, local_context: bool = False) -> None:
     """
     选择请求客户端实例
 
     Args:
         name (str): 名称
+        local_context (bool): 是否通过 `ContextVar` 仅在局部上下文设置。Defaults to False.
     """
-    selected_instance.set(name)
+    if local_context:
+        selected_instance_context.set(name)
+    else:
+        global selected_instance
+        selected_instance = name
 
 
 def get_selected_instance() -> str:
@@ -2704,7 +2718,7 @@ def get_selected_instance() -> str:
     Returns:
         str: 选择的请求客户端实例
     """
-    return selected_instance.get()
+    return selected_instance_context.get() or selected_instance
 
 
 def get_instances(client: str | None = None) -> list[str]:

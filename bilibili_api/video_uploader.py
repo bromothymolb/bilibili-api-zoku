@@ -95,7 +95,7 @@ async def _probe() -> dict:
     new_instance("_VideoUploader_probe")
     settings = get_instance_settings(instance=legacy_instance).all()
     get_instance_settings().sets(settings)
-    get_force_settings().set_timeout(30) # 测试时设置为 30
+    get_force_settings().set_timeout(30)  # 测试时设置为 30
     min_cost, fastest_line = 432432432, {}
     for line in LINES_INFO.values():
         start = time.perf_counter()

@@ -14,6 +14,7 @@ from bilibili_api import ass
   - [def \_\_init\_\_()](#def-\_\_init\_\_)
   - [def get\_lan\_list()](#def-get\_lan\_list)
   - [async def request\_ass\_data\_json()](#async-def-request\_ass\_data\_json)
+  - [async def request\_ass\_data\_str()](#async-def-request\_ass\_data\_str)
   - [def to\_ass()](#def-to\_ass)
   - [def to\_lrc()](#def-to\_lrc)
   - [def to\_simple\_json()](#def-to\_simple\_json)
@@ -26,6 +27,7 @@ from bilibili_api import ass
 - [async def make\_simple\_json\_file\_subtitle()](#async-def-make\_simple\_json\_file\_subtitle)
 - [async def make\_srt\_file\_subtitle()](#async-def-make\_srt\_file\_subtitle)
 - [async def request\_subtitle()](#async-def-request\_subtitle)
+- [async def request\_subtitle\_languages()](#async-def-request\_subtitle\_languages)
 
 ---
 
@@ -73,6 +75,20 @@ from bilibili_api import ass
 | `lan_set` | `str \| None, optional` | 如果为None，则获取默认字幕语言. Defaults to None. |
 
 **Returns:** `list[dict]`:  字幕数据
+
+
+
+
+### async def request_ass_data_str()
+
+获取对应语言的字幕
+
+
+| name | type | description |
+| - | - | - |
+| `lan_set` | `str \| None` | 如果为None，则获取默认字幕语言 |
+
+**Returns:** `str`:  字幕数据
 
 
 
@@ -302,6 +318,25 @@ from bilibili_api import ass
 | `credential` | `Credential \| None, optional` | Credential 类. 必须在此处或传入的视频 obj 中传入凭据，两者均存在则优先此处. Defaults to None. |
 
 **Returns:** `ass.AssSubtitleObject`:  字幕对象
+
+
+
+
+---
+
+## async def request_subtitle_languages()
+
+获取远程字幕语言列表
+
+
+| name | type | description |
+| - | - | - |
+| `obj` | `Union[Video,Episode]` | 对象 |
+| `page_index` | `int, optional` | 分 P 索引 |
+| `cid` | `int, optional` | cid |
+| `credential` | `Credential, optional` | Credential 类. 必须在此处或传入的视频 obj 中传入凭据，两者均存在则优先此处 |
+
+**Returns:** `AssSubtitleObject`:  字幕对象
 
 
 

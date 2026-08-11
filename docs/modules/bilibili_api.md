@@ -223,6 +223,7 @@ from bilibili_api import ...
   - [def set\_on()](#def-set\_on)
   - [def set\_on\_events()](#def-set\_on\_events)
 - [var request\_settings](#var-request\_settings)
+- [def select\_client()](#def-select\_client)
 - [def select\_instance()](#def-select\_instance)
 - [def set\_session()](#def-set\_session)
 - [def sync()](#def-sync)
@@ -3294,6 +3295,21 @@ async def handle(desc: str, data: dict) -> None:
 
 ---
 
+## def select_client()
+
+选择模块使用的注册过的请求客户端，可用于用户自定义请求客户端。
+
+
+| name | type | description |
+| - | - | - |
+| `name` | `str` | 请求客户端类型名称，用户自定义命名。 |
+| `local_context` | `bool` | 是否通过 `ContextVar` 仅在局部上下文设置。Defaults to False. |
+
+
+
+
+---
+
 ## def select_instance()
 
 选择请求客户端实例
@@ -3302,6 +3318,7 @@ async def handle(desc: str, data: dict) -> None:
 | name | type | description |
 | - | - | - |
 | `name` | `str` | 名称 |
+| `local_context` | `bool` | 是否通过 `ContextVar` 仅在局部上下文设置。Defaults to False. |
 
 
 
