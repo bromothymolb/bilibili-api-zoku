@@ -253,7 +253,7 @@ class InteractiveJumpingCondition:
         Returns:
             list[interactive_video.InteractiveVariable]: 变量
         """
-        return self.__vars
+        return copy.copy(self.__vars)
 
     def get_condition(self) -> str:
         """
@@ -343,7 +343,7 @@ class InteractiveJumpingCommand:
         Returns:
             list[interactive_video.InteractiveVariable]: 变量
         """
-        return self.__vars
+        return copy.copy(self.__vars)
 
     def get_command(self) -> str:
         """
@@ -448,7 +448,7 @@ class InteractiveNode:
         Returns:
             list[interactive_video.InteractiveVariable]: 节点的所有变量
         """
-        return self.__vars
+        return copy.copy(self.__vars)
 
     async def get_children(self) -> list["InteractiveNode"]:
         """
