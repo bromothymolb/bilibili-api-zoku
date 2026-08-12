@@ -1,5 +1,5 @@
 """
-ivitools.__main__
+bilibili_api.tools.ivitools.__main__
 """
 
 __author__ = "Nemo2011 <yimoxia@outlook.com>"
@@ -27,7 +27,9 @@ ivitools download [BVID] [OUT]\n\
 ivitools extract [IVI] [DIR]\n\
 ivitools help\n\
 ivitools play [IVI] (PyQT6 require)\n\
-ivitools touch [IVI]"
+ivitools touch [IVI]\n\
+\n\
+Use `--debug` to output full error messages with traceback."
         )
     elif command == "extract":
         extract_ivi(args[0], args[1])
@@ -59,11 +61,14 @@ def main():
         print(Fore.YELLOW + "[WRN]: No arguments. " + Fore.RESET)
         print(Fore.YELLOW + "[WRN]: Use `ivitools help` for helps. " + Fore.RESET)
         return
+    args = sys.argv
     try:
-        args = sys.argv
         run_args(args[1], args[2:])
     except Exception as e:
-        print(Fore.RED + "[ERR]: " + str(e) + Fore.RESET)
+        if "--debug" in args:
+            raise e
+        else:
+            print(Fore.RED + "[ERR]: " + str(e) + Fore.RESET)
 
 
 if __name__ == "__main__":

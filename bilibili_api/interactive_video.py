@@ -9,7 +9,7 @@ import copy
 import enum
 import json
 import os
-from random import randint as rand
+from random import random
 import shutil
 import time
 from urllib import parse
@@ -18,6 +18,7 @@ import zipfile
 import anyio
 import anyio.to_thread
 
+from .exceptions import ArgsException
 from .utils.network import (
     Api,
     AsyncEvent,
@@ -87,7 +88,7 @@ class InteractiveVariable:
         self,
         name: str,
         var_id: str,
-        var_value: int,
+        var_value: int | float,
         show: bool = False,
         random: bool = False,
     ) -> None:
@@ -95,7 +96,7 @@ class InteractiveVariable:
         Args:
             name (str): 变量名
             var_id (str): 变量 id
-            var_value (int): 变量的值
+            var_value (int | float): 变量的值
             show (bool, optional): 是否显示. Defaults to False.
             random (bool, optional): 是否为随机值(1-100). Defaults to False.
         """
@@ -125,14 +126,14 @@ class InteractiveVariable:
         刷新变量数值
         """
         if self.is_random():
-            self.__var_value = int(rand(0, 100))
+            self.__var_value = int(random() * 100) + 1
 
-    def get_value(self) -> int:
+    def get_value(self) -> int | float:
         """
         获取变量对应的值
 
         Returns:
-            int: 变量对应的值
+            int | float: 变量对应的值
         """
         return self.__var_value
 
@@ -263,6 +264,32 @@ class InteractiveJumpingCondition:
         """
         return self.__command
 
+    def variables(self) -> list[InteractiveVariable]:
+        """
+        获取公式中出现的变量
+
+        Returns:
+            list[InteractiveVariable]: 公式中出现的变量
+        """
+        ret = []
+        for var in self.__vars:
+            if var.get_id() in self.__command:
+                ret.append(var)
+        return ret
+
+    def is_never(self) -> bool:
+        """
+        判断公式是否永远不会成立
+
+        Returns:
+            bool: 是否永远不会成立
+        """
+        has_random = False
+        for var in self.variables():
+            if var.is_random():
+                has_random = True
+        return (not self.get_result()) and (not has_random)
+
     def get_result(self) -> bool:
         """
         计算公式获得结果
@@ -337,7 +364,7 @@ class InteractiveJumpingCommand:
         if self.__command == "":
             return self.__vars
         for code in self.__command.split(";"):
-            var_name_ = code.split("=")[0].rstrip()
+            changed_var = code.split("=")[0].rstrip()
             var_new_value = code.split("=")[1]
             for var in self.__vars:
                 var_name = var.get_id()
@@ -345,7 +372,7 @@ class InteractiveJumpingCommand:
                 var_new_value = var_new_value.replace(var_name, str(var_value))
             var_new_value_calc = eval(var_new_value)
             for idx, var in enumerate(self.__vars):
-                if var.get_name() == var_name_:
+                if var.get_id() == changed_var:
                     self.__vars[idx] = InteractiveVariable(
                         name=var.get_name(),
                         var_id=var.get_id(),
@@ -547,6 +574,65 @@ class InteractiveNode:
         """
         return await self.__get_cached_edge_info()
 
+    async def to_json(self) -> dict:
+        """
+        将节点通过 JSON 的方式保存
+
+        - `node_id` (`int`: 节点 ID)
+        - `title` (`str`: 标题)
+        - `cid` (`int`: CID)
+        - `sub` (`list`: 子节点列表)
+            - `text` (`str`: 按钮文字)
+            - `align` (`int`: 按钮文字相对于定位的位置，有上左下右中五种，可以参考 `interactive_video.InteractiveButtonAlign`，里面有详细注释)
+            - `pos` (`list[int]`: 按钮位置信息 (如果所有按钮都照正常布局，那么此数据的值为 `[null, null]`))
+                - `0`: X 坐标
+                - `1`: Y 坐标
+            - `condition` (`str`: 节点跳转必须符合的表达式，默认为 `""`。为 `javascript` 语言。主要作用为实现随机跳转。)
+            - `jump_type` (`int`: 跳转方式，有直接跳转和选择跳转两种，可查看 `interactive_video.InteractiveJumpingType`)
+            - `is_default` (`bool`: 是否为默认节点，如果是直接跳转则会跳转至默认节点，或者是定时选择后直接跳转至默认节点(定时选择后直接跳转目前不支持))
+            - `command` (`str`: 跳转成功后需要对变量做的操作。为 `javascript` 语言。)
+        - `vars` (`list[dict]`: 初始化时的变量设置)
+            - `name` (`str`: 变量名)
+            - `id` (`str`: 变量 id，为变量在 `command` 和 `condition` 中出现时使用的变量名)
+            - `value` (`int`: 变量数值)
+            - `show` (`bool`: 变量是否展示，有的变量需要时刻展示给观看者，例如 `循环编号`, `分数` 等)
+            - `random` (`bool`: 变量是否随机值。随机变量配上跳转公式是实现随机跳转的重要部分，这里说明：随机值取值范围为 `0-100`。)
+
+        Returns:
+            dict: JSON
+        """
+
+        def var2dict(var: InteractiveVariable):
+            return {
+                "name": var.get_name(),
+                "id": var.get_id(),
+                "value": var.get_value(),
+                "show": var.is_show(),
+                "random": var.is_random(),
+            }
+
+        ret = {}
+        info = await self.get_info()
+        ret["node_id"] = self.get_node_id()
+        ret["title"] = info["title"]
+        ret["cid"] = self.get_cid()
+        ret["vars"] = [var2dict(var) for var in self.get_vars()]
+        ret["sub"] = []
+        for sub in await self.get_children():
+            ret["sub"].append(
+                {
+                    "id": sub.get_node_id(),
+                    "text": sub.get_self_button().get_text(),
+                    "align": sub.get_self_button().get_align(),
+                    "pos": sub.get_self_button().get_pos(),
+                    "condition": sub.get_jumping_condition().get_condition(),  # type: ignore
+                    "jump_type": await self.get_jumping_type(),
+                    "is_default": sub.is_default(),
+                    "command": sub.get_jumping_command().get_command(),  # type: ignore
+                }
+            )
+        return ret
+
 
 class InteractiveGraph:
     """
@@ -563,6 +649,7 @@ class InteractiveGraph:
         self.__parent = video
         self.__skin = skin
         self.__node = InteractiveNode(self.__parent, 0, root_cid, [])
+        self.__nodes = []
 
     def __str__(self) -> str:
         return f"InteractiveGraph(video={self.__parent}, root={self.__node})"
@@ -632,6 +719,81 @@ class InteractiveGraph:
             list['InteractiveNode']: 子节点
         """
         return await self.__node.get_children()
+
+    async def get_all_nodes(
+        self, retry: int = 3
+    ) -> AsyncGenerator[InteractiveNode, None]:
+        """
+        获取所有节点，返回异步生成器。
+
+        Args:
+            retry (int, optional): 重试次数. Defaults to 3.
+
+        Returns:
+            AsyncGenerator[None, InteractiveNode]: 异步生成器
+        """
+        if len(self.__nodes) > 0:
+            for node in self.__nodes:
+                yield node
+            return
+
+        queue: list[InteractiveNode] = [await self.get_root_node()]
+        node_ids: set[int] = set()
+
+        while queue:
+            # 出队
+            current_node = queue.pop()
+            if current_node.get_node_id() in node_ids:
+                # 该情况为已获取到所有信息，说明是跳转到之前已处理的顶点，不作处理
+                continue
+            yield current_node
+            # 获取顶点信息，最大重试 3 次
+            while True:
+                try:
+                    node_info = await current_node.get_info()
+                    subs = await current_node.get_children()
+                    break
+                except Exception as e:
+                    retry -= 1
+                    if retry < 0:
+                        raise e
+            # 加入集合
+            node_ids.add(current_node.get_node_id())
+            # 无可达顶点，即不能再往下走了，类似树的叶子节点
+            if "questions" not in node_info["edges"]:
+                continue
+            # 遍历所有可达顶点
+            for sub in subs:
+                queue.insert(0, sub)
+            # 缓存节点
+            self.__nodes.append(current_node)
+
+    async def to_json(self) -> dict:
+        """
+        导出情节树，导出后可使用 `InteractiveEmulator` 进行交互。
+
+        字段：
+            - `skin`: `dict` 按钮样式相关
+            - `nodes`: `dict[str, dict]` 包含所有节点的信息。键为 node_id 对应字符串。
+            - `root`: `int` 根节点的 ID
+            - `bvid`: `str` 视频 bvid
+            - `aid`: `int` 视频 aid
+
+        每个节点信息结构请查看 `InteractiveNode.to_json` 函数。
+
+        Returns:
+            dict: 情节树 JSON 数据
+        """
+        edges_info = {
+            "skin": self.get_skin(),
+            "nodes": {},
+            "root": (await self.get_root_node()).get_node_id(),
+            "bvid": self.get_video().get_bvid(),
+            "aid": self.get_video().get_aid(),
+        }
+        async for node in self.get_all_nodes():
+            edges_info["nodes"][str(node.get_node_id())] = await node.to_json()
+        return edges_info
 
 
 class InteractiveVideo(Video):
@@ -806,45 +968,174 @@ class InteractiveVideo(Video):
             self.__graph = InteractiveGraph(self, edge_info["edges"]["skin"], cid)
         return self.__graph
 
-    async def get_nodes(self, retry: int = 3) -> AsyncGenerator[InteractiveNode, None]:
-        """
-        获取所有节点，返回异步生成器。
 
+class InteractiveEmulator:
+    """
+    互动视频模拟支持
+    """
+
+    def __init__(self, graph: dict) -> None:
+        """
         Args:
-            retry (int, optional): 重试次数. Defaults to 3.
+            graph (dict): 情节树 JSON
+        """
+        self.__graph = graph
+        self.__current_node = graph["root"]
+        self.__skin = graph["skin"]
+        self.__node_info: dict[int, dict] = {}
+        for node in self.__graph["nodes"].keys():
+            self.__node_info[int(node)] = self.__graph["nodes"][node]
+        self.__variables: list[InteractiveVariable] = []
+        for var in self.__node_info[self.__current_node]["vars"]:
+            self.__variables.append(
+                InteractiveVariable(
+                    var["name"], var["id"], var["value"], var["show"], var["random"]
+                )
+            )
+        self.__logs: list[tuple[int, list[InteractiveVariable]]] = []
+        self.__current_options: list[list[tuple[int, str, str]]] = []
+
+    def get_current_node(self) -> int:
+        """
+        获取当前所在节点
 
         Returns:
-            AsyncGenerator[None, InteractiveNode]: 异步生成器
+            int: 当前所在节点
         """
-        graph = await self.get_graph()
-        queue: list[InteractiveNode] = [await graph.get_root_node()]
-        node_ids: set[int] = set()
+        return self.__current_node
 
-        while queue:
-            # 出队
-            current_node = queue.pop()
-            yield current_node
-            if current_node.get_node_id() in node_ids:
-                # 该情况为已获取到所有信息，说明是跳转到之前已处理的顶点，不作处理
+    def get_skin(self) -> dict:
+        """
+        获取按钮样式
+
+        Returns:
+            dict: 按钮样式
+        """
+        return self.__skin
+
+    def get_current_cid(self) -> int:
+        """
+        获取当前节点视频的 cid
+
+        Returns:
+            int: 当前节点视频的 cid
+        """
+        return self.__node_info[self.__current_node]["cid"]
+
+    def get_current_options(self) -> list[list[InteractiveButton]] | None:
+        """
+        获取当前视频播放完后的按钮选项。
+
+        返回列表，列表每一项为一个列表，提供若干个同一个位置的按钮选项。
+
+        同一个位置的按钮选项通常出现在概率跳转上，点击其中一种情况的按钮，另一种情况的按钮也将触发。
+
+        选择按钮后需记录对应的按钮组在列表中的索引（从 0 开始）。
+
+        部分情况视频播放完毕后直接跳转，此时返回空列表，索引亦记为 0。
+
+        Returns:
+            list[list[tuple[int, InteractiveButton]]] | None: 按钮选项，若互动视频已结束则返回 None
+        """
+        current_info = self.__node_info[self.__current_node]
+        children = current_info["sub"]
+        # 已结束播放
+        if len(children) == 0:
+            return None
+        # 自动跳转
+        if children[0]["jump_type"] == InteractiveNodeJumpingType.DEFAULT.value:
+            self.__current_options = [[]]
+            for node in children:
+                self.__current_options[0].append(
+                    (node["id"], node["condition"], node["command"])
+                )
+            return []
+        # 选择跳转
+        self.__current_options = []
+        btns: list[list[InteractiveButton]] = []
+        for idx, child in enumerate(children):
+            condition = InteractiveJumpingCondition(
+                self.__variables, child["condition"]
+            )
+            if condition.is_never():
                 continue
-            # 获取顶点信息，最大重试 3 次
-            while True:
-                try:
-                    node_info = await current_node.get_info()
-                    subs = await current_node.get_children()
-                    break
-                except Exception as e:
-                    retry -= 1
-                    if retry < 0:
-                        raise e
-            # 加入集合
-            node_ids.add(current_node.get_node_id())
-            # 无可达顶点，即不能再往下走了，类似树的叶子节点
-            if "questions" not in node_info["edges"]:
+            btn = InteractiveButton(
+                text=child["text"],
+                x=child["pos"][0] or -1,
+                y=child["pos"][1] or -1,
+                align=child["align"],
+            )
+            # 判断是否与上一个按钮同一个位置（即概率按钮）
+            same_pos = False
+            if idx != 0:
+                cur_pos = child["pos"]
+                cur_text = child["text"]
+                previous_pos = children[idx - 1]["pos"]
+                previous_text = children[idx - 1]["text"]
+                if (
+                    cur_pos[0]
+                    and (abs(cur_pos[0] - previous_pos[0]) <= 5)
+                    and (abs(cur_pos[1] - previous_pos[1]) <= 5)
+                ):  # 相同位置
+                    same_pos = True
+                elif cur_text[2:] == previous_text[2:]:  # 去除 A/B/C/D 后文字相同
+                    same_pos = True
+            if not same_pos:
+                btns.append([btn])
+                self.__current_options.append(
+                    [(child["id"], child["condition"], child["command"])]
+                )
+            else:
+                btns[-1].append(btn)
+                self.__current_options[-1].append(
+                    (child["id"], child["condition"], child["command"])
+                )
+        return btns
+
+    def select_option(self, idx: int) -> None:
+        """
+        选择按钮选项，并跳转。
+
+        Args:
+            idx (int): 索引。参考 `get_current_options`
+        """
+        try:
+            selected_btns = self.__current_options[idx]
+        except IndexError as e:
+            raise ArgsException(f"所有选项中不存在索引 {idx}") from e
+        # 刷新随机数值
+        for i in range(len(self.__variables)):
+            self.__variables[i].refresh_value()
+        for node_id, condition_str, command_str in selected_btns:
+            # 判断跳转
+            condition = InteractiveJumpingCondition(self.__variables, condition_str)
+            if not condition.get_result():
                 continue
-            # 遍历所有可达顶点
-            for sub in subs:
-                queue.insert(0, sub)
+            # 保存当前节点记录
+            self.__logs.append((self.__current_node, copy.copy(self.__variables)))
+            # 执行跳转
+            native_command = InteractiveJumpingCommand(self.__variables, command_str)
+            self.__variables = native_command.run_command()
+            self.__current_node = node_id
+            return
+        raise ArgsException("没有任何节点可以跳转。请检查情节树。")
+
+    def get_variables(self) -> list[InteractiveVariable]:
+        """
+        获取变量
+
+        Returns:
+            list[InteractiveVariable]: 变量列表
+        """
+        return [var for var in self.__variables if var.is_show()]
+
+    def back(self) -> None:
+        """
+        退回到上一个节点
+        """
+        state = self.__logs.pop()
+        self.__current_node = state[0]
+        self.__variables = state[1]
 
 
 class InteractiveVideoDownloaderEvents(enum.Enum):
@@ -967,20 +1258,8 @@ class InteractiveVideoDownloader(AsyncEvent):
         self.dispatch("DOWNLOAD_SUCCESS")
 
     async def __fetch_edges(self) -> dict:
-        edges_info = {}
-
-        def var2dict(var: InteractiveVariable):
-            return {
-                "name": var.get_name(),
-                "id": var.get_id(),
-                "value": var.get_value(),
-                "show": var.is_show(),
-                "random": var.is_random(),
-            }
-
-        async for node in self.__video.get_nodes(
-            retry=self.__fetching_nodes_retry_times
-        ):
+        graph = await self.__video.get_graph()
+        async for node in graph.get_all_nodes(retry=self.__fetching_nodes_retry_times):
             info = await node.get_info()
             self.dispatch(
                 "GET",
@@ -990,30 +1269,11 @@ class InteractiveVideoDownloader(AsyncEvent):
                     "cid": node.get_cid(),
                 },
             )
-            edges_info[node.get_node_id()] = {
-                "title": info["title"],
-                "cid": node.get_cid(),
-                "sub": [],
-                "vars": [var2dict(var) for var in node.get_vars()],
-            }
-            for sub in await node.get_children():
-                edges_info[node.get_node_id()]["sub"].append(
-                    {
-                        "id": sub.get_node_id(),
-                        "text": sub.get_self_button().get_text(),
-                        "align": sub.get_self_button().get_align(),
-                        "pos": sub.get_self_button().get_pos(),
-                        "condition": sub.get_jumping_condition().get_condition(),  # type: ignore
-                        "jump_type": await node.get_jumping_type(),
-                        "is_default": sub.is_default(),
-                        "command": sub.get_jumping_command().get_command(),  # type: ignore
-                    }
-                )
-        return edges_info
+        return await graph.to_json()
 
     async def __download_videos(self, edges_info: dict, tmp_dir: str) -> None:
         cid_set = set()
-        for _, item in edges_info.items():
+        for _, item in edges_info["nodes"].items():
             cid = item["cid"]
             if cid not in cid_set:
                 self.dispatch("PREPARE_DOWNLOAD", {"cid": item["cid"]})
@@ -1069,13 +1329,7 @@ class InteractiveVideoDownloader(AsyncEvent):
         ) as f:
             await f.write(json.dumps(edges_info, indent=2))
 
-        bvideo_info = {
-            "bvid": self.__video.get_bvid(),
-            "title": (await self.__video.get_info())["title"],
-            "root_id": (
-                await (await self.__video.get_graph()).get_root_node()
-            ).get_node_id(),
-        }
+        bvideo_info = await self.__video.get_info()
 
         async with await anyio.open_file(
             tmp_dir + "/bilivideo.json", "w+", encoding="utf-8"
@@ -1257,13 +1511,7 @@ class InteractiveVideoDownloader(AsyncEvent):
         ) as f:
             await f.write(json.dumps(edges_info, indent=2))
 
-        bvideo_info = {
-            "bvid": self.__video.get_bvid(),
-            "title": (await self.__video.get_info())["title"],
-            "root_id": (
-                await (await self.__video.get_graph()).get_root_node()
-            ).get_node_id(),
-        }
+        bvideo_info = await self.__video.get_info()
 
         async with await anyio.open_file(
             tmp_dir + "/bilivideo.json", "w+", encoding="utf-8"

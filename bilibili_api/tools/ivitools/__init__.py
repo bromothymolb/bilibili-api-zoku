@@ -1,11 +1,5 @@
 """
- IVITools - A Simple IVI file manager & toolbox.
+bilibili_api.tools.ivitools
 
-Commands: download, extract, help, play, scan, touch
-
-ivitools download [BVID] [OUT]
-ivitools extract [IVI] [DIR]
-ivitools help
-ivitools play [IVI] (PyQT6 require)
-ivitools touch [IVI]
+bilibili-api Interactive VIdeo file Tools
 """

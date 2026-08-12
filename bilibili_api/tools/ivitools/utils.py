@@ -1,5 +1,5 @@
 """
-ivitools.utils
+bilibili_api.tools.ivitools.utils
 """
 
 import json
