@@ -4,6 +4,7 @@ bilibili_api.dynamic
 动态相关
 """
 
+from copy import copy
 from datetime import datetime
 from enum import Enum
 import json
@@ -803,7 +804,7 @@ class Dynamic:
                 cache_pool.dynamic_is_opus[self.__dynamic_id] = (
                     module_dynamic["major"]["type"] == "MAJOR_TYPE_OPUS"
                 )
-        return self.__detail
+        return copy(self.__detail)
 
     async def is_article(self) -> bool:
         """

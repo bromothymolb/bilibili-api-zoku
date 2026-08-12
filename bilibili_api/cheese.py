@@ -12,6 +12,7 @@ bilibili_api.cheese
 还有，课程的 season_id 和 ep_id 不与番剧相通，井水不犯河水，请不要错用!
 """
 
+from copy import copy
 import datetime
 import json
 from typing import Any
@@ -226,7 +227,7 @@ class CheeseVideo:
         """
         if not self.__meta:
             await self.__fetch_meta()
-        return self.__meta  # type: ignore
+        return copy(self.__meta)  # type: ignore
 
     async def get_cheese(self) -> "CheeseList":
         """

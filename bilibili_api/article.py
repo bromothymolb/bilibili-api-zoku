@@ -617,7 +617,7 @@ class Article:
             cache_pool.article_is_note[self.get_cvid()] = self.__get_all_data[
                 "readInfo"
             ]["category"]["id"] in [41, 42]
-        return self.__get_all_data
+        return copy(self.__get_all_data)
 
     async def set_like(self, status: bool = True) -> dict:
         """

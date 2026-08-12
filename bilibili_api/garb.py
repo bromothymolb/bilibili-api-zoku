@@ -4,6 +4,7 @@ bilibili_api.garb
 装扮/收藏集相关
 """
 
+from copy import copy
 from enum import Enum
 
 from .utils import cache_pool
@@ -131,7 +132,7 @@ class DLC:
                 .result
             )
             self.__lottery_id = self.__basic_info["lottery_list"][0]["lottery_id"]
-        return self.__basic_info
+        return copy(self.__basic_info)
 
     async def get_lottery_id(self) -> int:
         """
@@ -239,6 +240,8 @@ async def search_garb_dlc_obj(
     res = await search_garb_dlc_raw(
         keyword=keyword, pn=pn, ps=ps, credential=credential
     )
+    if res["list"] is None:
+        return []
     ret = []
     for obj in res["list"]:
         if obj["item_id"] == 0:
@@ -269,6 +272,8 @@ async def search_garb_dlc(
     res = await search_garb_dlc_raw(
         keyword=keyword, pn=pn, ps=ps, credential=credential
     )
+    if res["list"] is None:
+        return []
     ret = []
     for obj in res["list"]:
         if obj["item_id"] == 0:

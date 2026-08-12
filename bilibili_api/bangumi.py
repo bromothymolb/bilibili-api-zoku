@@ -10,6 +10,7 @@ bilibili_api.bangumi
 
 """
 
+from copy import copy
 import datetime
 from enum import Enum
 
@@ -1094,7 +1095,7 @@ class Bangumi:
         """
         if not self.__up_info:
             await self.__fetch_raw()
-        return self.__up_info  # type: ignore
+        return copy(self.__up_info)  # type: ignore
 
     async def get_raw(self) -> tuple[dict, bool]:
         """
@@ -1105,7 +1106,7 @@ class Bangumi:
         """
         if not self.__raw:
             await self.__fetch_raw()
-        return self.__raw, self.oversea
+        return copy(self.__raw), self.oversea
 
     async def set_media_id(self, media_id: int) -> None:
         """
@@ -1474,7 +1475,7 @@ class Episode(Video):
             tuple[dict, utils.initial_state.InitialDataType]: 前半部分为数据，后半部分为数据类型（\\_\\_INITIAL_STATE\\_\\_ 或 \\_\\_NEXT_DATA\\_\\_）
         """
         if self.__ep_info_html:
-            return self.__ep_info_html
+            return copy(self.__ep_info_html)
         return await get_initial_state(
             url=f"https://www.bilibili.com/bangumi/play/ep{self.__epid}",
             credential=self.credential,
@@ -1552,7 +1553,7 @@ class Episode(Video):
                 .update_params(**params)
                 .result
             )
-        return self.__playurl
+        return copy(self.__playurl)
 
     async def get_danmaku_xml(self) -> str:  # type: ignore
         """

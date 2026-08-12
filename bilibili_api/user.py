@@ -277,19 +277,6 @@ class User:
             .result
         )
 
-    async def __get_self_info(self) -> dict:
-        """
-        获取自己的信息。如果存在缓存则使用缓存。
-
-        Returns:
-            dict: 调用接口返回的内容。
-        """
-        if self.__self_info is not None:
-            return self.__self_info
-
-        self.__self_info = await self.get_user_info()
-        return self.__self_info
-
     def get_uid(self) -> int:
         """
         获取用户 UID

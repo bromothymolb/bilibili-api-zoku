@@ -4,6 +4,7 @@ bilibili_api.opus
 图文相关
 """
 
+from copy import copy
 import html
 
 import yaml
@@ -125,7 +126,7 @@ class Opus:
                 self.__id
             )
         cache_pool.dynamic_is_opus[self.__id] = True
-        return self.__info
+        return copy(self.__info)
 
     async def markdown(self) -> str:
         """

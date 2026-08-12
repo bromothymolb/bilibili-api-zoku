@@ -364,7 +364,7 @@ class VideoPorderMeta:
             )
 
     def __dict__(self) -> dict:  # type: ignore
-        return self.__info
+        return copy(self.__info)
 
 
 class VideoMeta:
@@ -577,7 +577,7 @@ class VideoMeta:
         """
         api = _API["pre"]
         self.__pre_info = await Api(**api, credential=self.__credential).result
-        return self.__pre_info
+        return copy(self.__pre_info)
 
     def _check_tid(self) -> bool:
         """

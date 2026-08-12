@@ -4,6 +4,7 @@ bilibili_api.note
 笔记相关
 """
 
+from copy import copy
 from enum import Enum
 from html import unescape
 import json
@@ -172,7 +173,7 @@ class Note:
         """
         if self.__info is None:
             return await self.get_info()
-        return self.__info
+        return copy(self.__info)
 
     async def get_private_note_info(self) -> dict:
         """

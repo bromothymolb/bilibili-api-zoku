@@ -4,6 +4,7 @@ bilibili_api.vote
 投票相关操作。
 """
 
+from copy import copy
 from enum import Enum
 
 from .exceptions import ArgsException
@@ -139,7 +140,7 @@ class Vote:
             info = await Api(**api).update_params(**params).result
             self.__info = info
             return info
-        return self.__info
+        return copy(self.__info)
 
     async def get_title(self) -> str:
         """

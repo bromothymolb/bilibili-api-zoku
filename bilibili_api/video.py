@@ -6,6 +6,7 @@ bilibili_api.video
 注意，同时存在 page_index 和 cid 的参数，两者至少提供一个。
 """
 
+from copy import copy
 from dataclasses import dataclass
 import datetime
 from enum import Enum
@@ -404,7 +405,7 @@ class Video:
         """
         if self.__info is None:
             return await self.get_info()
-        return self.__info
+        return copy(self.__info)
 
     # get_stat 403/404 https://github.com/SocialSisterYi/bilibili-API-collect/issues/797 等恢复
     # async def get_stat(self) -> dict:
