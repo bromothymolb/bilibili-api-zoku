@@ -108,7 +108,6 @@ class LiveRoom:
 
     Attributes:
         credential      (Credential): 凭据类
-
         room_display_id (int)       : 房间展示 id
     """
 

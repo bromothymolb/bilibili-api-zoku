@@ -156,7 +156,6 @@ class CheeseVideo:
 
     Attributes:
         credential (Credential): 凭据类
-
         cheese     (CheeseList): 所属的课程
     """
 

@@ -1337,9 +1337,7 @@ class Episode(Video):
 
     Attributes:
         credential  (Credential): 凭据类
-
         video_class (Video)     : 视频类
-
         bangumi     (Bangumi)   : 所属番剧
     """
 

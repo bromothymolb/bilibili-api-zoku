@@ -696,13 +696,9 @@ class VideoUploader(AsyncEvent):
 
     Attributes:
         pages        (List[VideoUploaderPage]): 分 P 列表
-
         meta         (VideoMeta, dict)        : 视频信息
-
         credential   (Credential)             : 凭据
-
         cover_path   (str)                    : 封面路径
-
         line         (Lines, Optional)        : 线路. Defaults to None. 不选择则自动测速选择
     """
 
@@ -1367,11 +1363,8 @@ class VideoEditor(AsyncEvent):
 
     Attributes:
         bvid (str)             : 稿件 BVID
-
         meta (dict)            : 视频信息
-
         cover_path (str)       : 封面路径. Defaults to None(不更换封面).
-
         credential (Credential): 凭据类. Defaults to None.
     """
 
