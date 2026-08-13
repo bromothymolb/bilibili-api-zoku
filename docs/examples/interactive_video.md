@@ -1,38 +1,8 @@
-# 示例：下载互动视频
-
-用途：下载 `ivi` 文件，可以通过 `ivitools` 播放
-
-``` python
-from bilibili_api import interactive_video as ivideo
-import asyncio
-
-BVID = ""
-
-async def main():
-  # 实例化下载器
-  v = ivideo.InteractiveVideo(bvid = BVID)
-  downloader = ivideo.InteractiveVideoDownloader(video = v, out = "test.ivi")
-  # 监听事件
-  downloader.ignore_event("DOWNLOAD_PART") # 忽略下载部分完成信息
-  @downloader.on("__ALL__")
-  async def ev(data):
-    print(data)
-  # 开始下载
-  try:
-    await downloader.start()
-  except Exception as e:
-    downloader.abort()
-
-if __name__ == '__main__':
-  # 运行
-  asyncio.run(main())
-```
-
 # 示例：获取剧情图所有节点
 
 用途：下载所有节点视频信息、获取剧情图结构。
 
-需要一定水平才能看懂。
+本质上是图上广度优先搜索。
 
 ```python
 from typing import List
@@ -112,22 +82,127 @@ async def main():
 sync(main())
 ```
 
-# 示例：下载互动视频(`.ivi` 格式)
+模块已将上述代码进行包装，可以通过以下方式直接获取所有节点与情节树信息：
 
 ``` python
+import json
+
+from bilibili_api import interactive_video, sync
+
+
+async def main() -> None:
+    ivideo = interactive_video.InteractiveVideo(bvid="BV1Dt411N7LY")
+    graph = await ivideo.get_graph()  # 获取 InteractiveGraph 实例
+    async for node in graph.get_all_nodes():  # 遍历获取所有节点的生成器
+        print(node.get_node_id(), (await node.get_info())["title"])  # 打印节点信息
+    json.dump(await graph.to_json(), open("ivideo.json", "w"), indent=2)  # 保存情节树 JSON
+
+
+sync(main())
+```
+
+保存后的情节树 JSON 可以导入 `interactive_video.InteractiveEmulator` 进行对互动视频流程的模拟：
+
+``` python
+import json
+
 from bilibili_api import interactive_video
+
+graph = json.load(open("ivideo.json"))
+emulator = interactive_video.InteractiveEmulator(graph=graph)
+while True:
+    print("current node", emulator.get_current_node())
+    print("current cid", emulator.get_current_cid())
+    print(
+        "current vars",
+        " | ".join(
+            [
+                var.get_name() + ": " + str(var.get_value())
+                for var in emulator.get_variables()
+            ]
+        ),
+    )
+    options = emulator.get_current_options()
+    if options is None:
+        break
+    if len(options) == 0:
+        choice = input("按回车继续：")
+    else:
+        for option in options:
+            print(option[0].get_text())
+        choice = input("选择的选项索引：")
+    if choice == "back":
+        emulator.back()
+    else:
+        if choice == "":
+            choice = 0
+        else:
+            choice = int(choice)
+        emulator.select_option(choice)
+
+# current node 204868
+# current cid 109138775
+# current vars 
+# A 去公园散散步
+# B 去网吧继续玩
+# 选择的选项索引：0
+# current node 204863
+# current cid 109138806
+# current vars 
+# A 换个地方散心
+# B 去网吧找彬彬
+# 选择的选项索引：1
+# current node 204871
+# current cid 109138922
+# current vars 
+# A 赊账，继续玩！
+# B 算了，回去吧。
+# 选择的选项索引：1
+# current node 204872
+# current cid 109138984
+# current vars 
+# A 去
+# B 不去
+# 选择的选项索引：0
+# current node 204873
+# current cid 109139089
+# current vars 
+# A 选啤酒
+# B 选壮阳酒
+# 选择的选项索引：1
+# current node 204875
+# current cid 109139187
+# current vars 
+```
+
+# 示例：下载互动视频
+
+用途：下载 `ivi` 文件，其包含了互动视频情节树信息和所有节点视频，可以通过 `ivitools play ...` 进行本地互动播放
+
+``` python
+from bilibili_api import interactive_video as ivideo
 import asyncio
 
-async def main():
-    ivideo = interactive_video.InteractiveVideo("BV1UE411y7Wy")
-    downloader = interactive_video.InteractiveVideoDownloader(ivideo, "test.ivi")
-    downloader.ignore_event("DOWNLOAD_PART")
-    @downloader.on("__ALL__")
-    async def on_event(data: dict):
-        print(data)
-    await downloader.start()
+BVID = ""
 
-asyncio.run(main())
+async def main():
+  # 实例化下载器
+  v = ivideo.InteractiveVideo(bvid = BVID)
+  downloader = ivideo.InteractiveVideoDownloader(video = v, out = "test.ivi")
+  # 监听事件
+  downloader.ignore_event("DOWNLOAD_PART") # 忽略下载部分完成信息
+  @downloader.on("__ALL__")
+  async def ev(data):
+    print(data)
+  # 开始下载
+  try:
+    await downloader.start()
+  except Exception as e:
+    downloader.abort()
+
+if __name__ == '__main__':
+  # 运行
+  asyncio.run(main())
 ```
 
 # 示例：提交情节图

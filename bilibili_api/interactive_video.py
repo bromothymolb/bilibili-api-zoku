@@ -759,14 +759,14 @@ class InteractiveGraph:
                         raise e
             # 加入集合
             node_ids.add(current_node.get_node_id())
+            # 缓存节点
+            self.__nodes.append(current_node)
             # 无可达顶点，即不能再往下走了，类似树的叶子节点
             if "questions" not in node_info["edges"]:
                 continue
             # 遍历所有可达顶点
             for sub in subs:
                 queue.insert(0, sub)
-            # 缓存节点
-            self.__nodes.append(current_node)
 
     async def to_json(self) -> dict:
         """
