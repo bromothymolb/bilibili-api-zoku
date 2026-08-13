@@ -1212,6 +1212,7 @@ class InteractiveVideoDownloader(AsyncEvent):
         stream_detecting_params: dict | None = None,
         fetching_nodes_retry_times: int = 3,
         download_retry_times: int = 3,
+        download_wait_time: int = 3,
     ) -> None:
         """
         Args:
@@ -1222,6 +1223,7 @@ class InteractiveVideoDownloader(AsyncEvent):
             stream_detecting_params (dict | None, optional): `VideoDownloadURLDataDetecter` 提取最佳流时传入的参数，可控制视频及音频品质. Defaults to None.
             fetching_nodes_retry_times (int, optional): 获取节点时的最大重试次数. Defaults to 3.
             download_retry_times (int, optional): 下载时的最大重试次数. Defaults to 3.
+            download_wait_time (int, optional): 下载之间间隔时间. Defaults to 3.
 
         为保证视频能被成功下载，请在自定义下载函数请求的时候加入 `bilibili_api.get_bili_headers()` 头部。
         """
@@ -1233,6 +1235,7 @@ class InteractiveVideoDownloader(AsyncEvent):
         self.__detect_params = stream_detecting_params or {}
         self.__fetching_nodes_retry_times = fetching_nodes_retry_times
         self.__download_retry_times = download_retry_times
+        self.__download_wait_time = download_wait_time
 
     async def __download(self, url: str, out: str) -> None:
         client = get_client()
@@ -1299,6 +1302,7 @@ class InteractiveVideoDownloader(AsyncEvent):
                     retry = self.__download_retry_times
                     while True:
                         try:
+                            await anyio.sleep(self.__download_wait_time)
                             await self.__download_func(
                                 streams[0].url,
                                 tmp_dir + "/" + str(cid) + ".video.mp4",
@@ -1312,6 +1316,7 @@ class InteractiveVideoDownloader(AsyncEvent):
                     retry = self.__download_retry_times
                     while True:
                         try:
+                            await anyio.sleep(self.__download_wait_time)
                             await self.__download_func(
                                 streams[1].url,
                                 tmp_dir + "/" + str(cid) + ".audio.mp4",

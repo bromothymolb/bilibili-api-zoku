@@ -911,6 +911,7 @@ o----|xxx| (TEXT_RIGHT)
 | `stream_detecting_params` | `dict \| None, optional` | `VideoDownloadURLDataDetecter` 提取最佳流时传入的参数，可控制视频及音频品质. Defaults to None. |
 | `fetching_nodes_retry_times` | `int, optional` | 获取节点时的最大重试次数. Defaults to 3. |
 | `download_retry_times` | `int, optional` | 下载时的最大重试次数. Defaults to 3. |
+| `download_wait_time` | `int, optional` | 下载之间间隔时间. Defaults to 3. |
 
 
 ### def abort()
