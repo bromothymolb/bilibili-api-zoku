@@ -13,7 +13,7 @@ Credential 维护 buvid / bili_ticket 遵循以下规则：
 7. `ensure` 与 `obtain` 若没有传入凭据类，将创建一个新的 `blank` 作为凭据类带入。因此获取 `global` 字段直接不带参调用 `ensure`，更新 `global` 字段直接不带参调用 `obtain`。
 """
 
-from bilibili_api import Credential, ensure_buvid, request_settings, sync
+from bilibili_api import Credential, bili_settings, ensure_buvid, sync
 from bilibili_api.utils import network
 
 CNT = 0
@@ -38,7 +38,7 @@ network._active_buvid = _active_buvid
 network._gen_buvid_fp = _gen_buvid_fp
 
 
-async def main():
+async def test_credential():
     # Credential 维护 buvid / bili_ticket 遵循以下规则：
     # 1、blank 总是与 global 保持一致 (get_cookies / ensure / obtain)
     # 2、normal 第一次赋值 buvid / bili_ticket 后非必要不变更 (除 bili_ticket 刷新)
@@ -55,7 +55,7 @@ async def main():
     assert (await cred3.get_cookies())["buvid3"] == "3"
     assert (await cred4.get_cookies())["buvid3"] == "4"
     assert (await cred5.get_cookies())["buvid3"] == "3"
-    request_settings.set_enable_buvid_global_persistence(True)
+    bili_settings.set_enable_buvid_global_persistence(True)
     cred6 = Credential(sessdata="")  # normal -> global 3
     cred7 = Credential()  # blank -> global 3
     cred8 = Credential(sessdata="")  # normal -> global 3
@@ -64,7 +64,7 @@ async def main():
     assert (await cred8.get_cookies())["buvid3"] == "3"
     assert (await cred1.get_cookies())["buvid3"] == "1"
     assert (await cred2.get_cookies())["buvid3"] == "2"
-    request_settings.set_enable_buvid_global_persistence(False)
+    bili_settings.set_enable_buvid_global_persistence(False)
     cred9 = Credential()  # blank -> global 3
     cred10 = Credential(sessdata="")  # normal 5
     assert (await cred9.get_cookies())["buvid3"] == "3"
@@ -76,13 +76,13 @@ async def main():
     await network.obtain_buvid(cred10)  # obtain normal -> normal 8
     assert (await cred9.get_cookies())["buvid3"] == "7"
     assert (await cred10.get_cookies())["buvid3"] == "8"
-    request_settings.set_enable_buvid_global_persistence(True)
+    bili_settings.set_enable_buvid_global_persistence(True)
     assert (await cred10.get_cookies())["buvid3"] == "8"
     await network.obtain_buvid(cred10)  # obtain normal -> global -> global 9
     assert (await ensure_buvid())[0] == "9"
     assert (await cred10.get_cookies())["buvid3"] == "9"
     assert (await cred1.get_cookies())["buvid3"] == "1"
-    request_settings.set_enable_auto_buvid(False)
+    bili_settings.set_enable_auto_buvid(False)
     cred = Credential()  # blank -> global 9
     assert (await cred.get_cookies())["buvid3"] == "9"
     cred0 = Credential(sessdata="")  # normal -> global 9
@@ -90,9 +90,6 @@ async def main():
     assert (await cred1.get_cookies())["buvid3"] == "1"
     cred1.clear_buvid()  # normal 1 clear, upd -> global 9
     assert (await cred1.get_cookies())["buvid3"] == "9"
-    request_settings.set_enable_buvid_global_persistence(False)
+    bili_settings.set_enable_buvid_global_persistence(False)
     credn = Credential(sessdata="")  # normal without request
     assert not (await credn.get_cookies()).get("buvid3")
-
-
-sync(main())
