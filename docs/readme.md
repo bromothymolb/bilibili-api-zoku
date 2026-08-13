@@ -212,7 +212,7 @@ A: 由于该模块比较特殊，是爬虫模块，如果 b 站的接口变更�
 
 [^1]: 这里只列出一部分，请以实际 API 为准。
 [^2]: 代码来源：<https://www.zhihu.com/question/381784377/answer/1099438784> (WTFPL)
-[^3]: 部分代码来源：<https://github.com/m13253/danmaku2ass> (GPLv3) <https://github.com/ewwink/python-srt2ass>
+[^3]: 部分代码来源：<https://github.com/m13253/danmaku2ass> (GPLv3)
 [^4]: 思路来源：<https://socialsisteryi.github.io/bilibili-API-collect/docs/login/cookie_refresh.html> (CC-BY-NC 4.0)
 [^5]: 大量思路来源 <https://github.com/SocialSisterYi/bilibili-API-collect> 中相关讨论。
 
