@@ -156,7 +156,6 @@ bilibili-api 一切行为的核心即在网络请求上。自然，掌管网络�
 
 - `__builtin_log_pre` 前置 `priority=998244353`
 - `__builtin_log_post` 后置 `priority=-998244353`
-- `__builtin_global_credential` 前置 `priority=0`
 
 ## 9. Credential-AntiSpider
 

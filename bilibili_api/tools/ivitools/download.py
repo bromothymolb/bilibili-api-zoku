@@ -23,15 +23,22 @@ async def download_interactive_video(bvid: str, out: str):
 
     @downloader.on("GET")
     async def on_get(data):
-        print(f"{Fore.MAGENTA}Get node {data['title']}{Fore.RESET} (node_id: {Fore.CYAN}{data['node_id']}{Fore.RESET}). ")
+        print(
+            f"{Fore.MAGENTA}Get node {data['title']}{Fore.RESET} (node_id: {Fore.CYAN}{data['node_id']}{Fore.RESET}). "
+        )
 
     @downloader.on("PREPARE_DOWNLOAD")
     async def on_prepare_download(data):
-        print(f"Start download the video for cid {Fore.CYAN}{data['cid']}{Fore.RESET} [video/audio]")
+        print(
+            f"Start download the video for cid {Fore.CYAN}{data['cid']}{Fore.RESET} [video/audio]"
+        )
 
     @downloader.on("DOWNLOAD_PART")
     async def on_download_part(data):
-        print(f"{Fore.CYAN}{data['done']}{Fore.RESET} / {Fore.CYAN}{data['total']}{Fore.RESET}", end="\r")
+        print(
+            f"{Fore.CYAN}{data['done']}{Fore.RESET} / {Fore.CYAN}{data['total']}{Fore.RESET}",
+            end="\r",
+        )
 
     @downloader.on("DOWNLOAD_SUCCESS")
     async def on_download_success(adta):
