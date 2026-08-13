@@ -14,3 +14,6 @@ if code != 0:
   print(CONSOLE_COLORS['RED'] + "Please check above problems of your code before commit!")
   print(CONSOLE_COLORS['RESET'])
   exit(1)
+
+os.system("python scripts/format.py")
+os.system("git add .")
