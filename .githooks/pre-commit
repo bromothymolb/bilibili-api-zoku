@@ -3,17 +3,17 @@
 
 import os
 
-CONSOLE_COLORS = {
-  'RED': '\x1b[0;31m',
-  'RESET': '\x1b[0m'
-}
+CONSOLE_COLORS = {"RED": "\x1b[0;31m", "RESET": "\x1b[0m"}
+
+os.system("python scripts/format.py")
+os.system("git add .")
 
 code = os.system("python scripts/lint.py")
 
 if code != 0:
-  print(CONSOLE_COLORS['RED'] + "Please check above problems of your code before commit!")
-  print(CONSOLE_COLORS['RESET'])
-  exit(1)
-
-os.system("python scripts/format.py")
-os.system("git add .")
+    print(
+        CONSOLE_COLORS["RED"]
+        + "Please check above problems of your code before commit!"
+    )
+    print(CONSOLE_COLORS["RESET"])
+    exit(1)
