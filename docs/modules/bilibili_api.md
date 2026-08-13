@@ -66,6 +66,7 @@ from bilibili_api import ...
   - [def clear\_bili\_ticket()](#def-clear\_bili\_ticket)
   - [def clear\_buvid()](#def-clear\_buvid)
   - [def copy()](#def-copy)
+  - [def from\_cookies()](#def-from\_cookies)
   - [async def get\_cookies()](#async-def-get\_cookies)
   - [def get\_core\_cookies()](#def-get\_core\_cookies)
   - [def has\_ac\_time\_value()](#def-has\_ac\_time\_value)
@@ -1208,6 +1209,23 @@ buvid3 和 buvid4 建议配合食用，bili_ticket 和 bili_ticket_expires 亦�
 
 
 **Returns:** `Credential`:  复制后的凭据类
+
+
+
+
+### def from_cookies()
+
+> `@classmethod` 
+
+从 cookies 新建 Credential
+
+
+| name | type | description |
+| - | - | - |
+| `cookies` | `dict` | Cookies. |
+| `ac_time_value` | `str, optional` | ac_time_value. |
+
+**Returns:** `Credential`:  凭据类
 
 
 

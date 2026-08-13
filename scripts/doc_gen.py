@@ -209,6 +209,23 @@ def parse(data: dict, indent: int = 0, root: bool = False):
         )
     elif (
         data["node"][".class"] == "Decorator"
+        and "is_class" in data["node"]["func"]["flags"]
+    ):
+        funcs.append(
+            [
+                data["node"]["func"]["name"],
+                data["node"]["func"]["fullname"],
+                (
+                    "async def"
+                    if "is_coroutine" in data["node"]["func"]["flags"]
+                    else "def"
+                ),
+                "@classmethod",
+                indent,
+            ]
+        )
+    elif (
+        data["node"][".class"] == "Decorator"
         and "is_async_generator" in data["node"]["func"]["flags"]
     ):
         funcs.append(

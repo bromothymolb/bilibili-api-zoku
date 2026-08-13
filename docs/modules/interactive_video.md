@@ -38,13 +38,14 @@ from bilibili_api import interactive_video
   - [def get\_command()](#def-get\_command)
   - [def get\_vars()](#def-get\_vars)
   - [def run\_command()](#def-run\_command)
+  - [def used\_variables()](#def-used\_variables)
 - [class InteractiveJumpingCondition()](#class-InteractiveJumpingCondition)
   - [def \_\_init\_\_()](#def-\_\_init\_\_)
   - [def get\_condition()](#def-get\_condition)
   - [def get\_result()](#def-get\_result)
   - [def get\_vars()](#def-get\_vars)
   - [def is\_never()](#def-is\_never)
-  - [def variables()](#def-variables)
+  - [def used\_variables()](#def-used\_variables)
 - [class InteractiveNode()](#class-InteractiveNode)
   - [def \_\_init\_\_()](#def-\_\_init\_\_)
   - [async def get\_children()](#async-def-get\_children)
@@ -418,6 +419,17 @@ o----|xxx| (TEXT_RIGHT)
 
 
 
+### def used_variables()
+
+获取公式中出现的变量
+
+
+
+**Returns:** `list[InteractiveVariable]`:  公式中出现的变量
+
+
+
+
 ---
 
 ## class InteractiveJumpingCondition()
@@ -480,7 +492,7 @@ o----|xxx| (TEXT_RIGHT)
 
 
 
-### def variables()
+### def used_variables()
 
 获取公式中出现的变量
 

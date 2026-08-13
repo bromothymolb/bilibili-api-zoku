@@ -264,7 +264,7 @@ class InteractiveJumpingCondition:
         """
         return self.__command
 
-    def variables(self) -> list[InteractiveVariable]:
+    def used_variables(self) -> list[InteractiveVariable]:
         """
         获取公式中出现的变量
 
@@ -285,7 +285,7 @@ class InteractiveJumpingCondition:
             bool: 是否永远不会成立
         """
         has_random = False
-        for var in self.variables():
+        for var in self.used_variables():
             if var.is_random():
                 has_random = True
         return (not self.get_result()) and (not has_random)
@@ -344,6 +344,19 @@ class InteractiveJumpingCommand:
             list[interactive_video.InteractiveVariable]: 变量
         """
         return copy.copy(self.__vars)
+
+    def used_variables(self) -> list[InteractiveVariable]:
+        """
+        获取公式中出现的变量
+
+        Returns:
+            list[InteractiveVariable]: 公式中出现的变量
+        """
+        ret = []
+        for var in self.__vars:
+            if var.get_id() in self.__command:
+                ret.append(var)
+        return ret
 
     def get_command(self) -> str:
         """
