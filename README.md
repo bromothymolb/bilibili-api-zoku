@@ -8,7 +8,7 @@
 
 [![API 数量](https://img.shields.io/badge/API%20数量-400+-blue)][api.json]
 [![LICENSE](https://img.shields.io/badge/LICENSE-GPLv3+-red)][LICENSE]
-[![Python](https://img.shields.io/badge/python-3.10+-blue)](https://www.python.org)
+[![Python](https://img.shields.io/badge/python-3.11+-blue)](https://www.python.org)
 [![Stable Version](https://img.shields.io/github/v/release/bromothymolb/bilibili-api-zoku?label=stable)][pypi]
 [![Pre-release Version](https://img.shields.io/github/v/release/bromothymolb/bilibili-api-zoku?label=pre-release&include_prereleases&sort=semver)][pypi]
 [![STARS](https://img.shields.io/github/stars/bromothymolb/bilibili-api-zoku?color=yellow&label=Github%20Stars)][stargazers]
@@ -29,9 +29,9 @@
 - 全面支持 BV 号（bvid），同时也兼容 AV 号（aid）。
 - 调用简便，函数命名易懂，代码注释详细。
 - 不仅仅是官方提供的 API！还附加：AV 号与 BV 号互转[^2]、连接直播弹幕 Websocket 服务器、视频弹幕反查、下载弹幕、字幕文件[^3]、专栏内容爬取、cookies 刷新等[^4]。
-- 支持采用各种手段避免触发反爬虫风控[^5]。
 - **全部是异步操作**。
-- 默认支持 `aiohttp` / `httpx` / `curl_cffi`。
+- 默认支持 [`aiohttp`][aiohttp] / [`httpx`][httpx] / [`curl_cffi`][curl_cffi] 等异步网络请求库接入。
+- 支持采用各种手段避免触发反爬虫风控。[^4]可通过 [`curl_cffi`][curl_cffi] 和 [`fpgen`][fpgen] 进行浏览器指纹信息模拟。[^5]
 
 # 快速上手
 
@@ -50,12 +50,14 @@ $ pip3 install git+https://github.com/bromothymolb/bilibili-api-zoku.git@dev
 
 然后需要**自行安装**一个支持异步的第三方请求库，如 `aiohttp` / `httpx` / `curl_cffi`。
 
-```
+``` zsh
 # aiohttp
 $ pip3 install aiohttp
+$ pip3 install "aiohttp[speedups]" # faster
 
 # httpx
 $ pip3 install httpx
+$ pip3 install httpx[http2] # http2 support
 
 # curl_cffi
 $ pip3 install "curl_cffi"
@@ -130,35 +132,42 @@ if __name__ == '__main__':
 
 # 异步迁移
 
-由于从 v5 版本开始，基本全部改为异步，如果你不会异步，可以参考 [asyncio](https://docs.python.org/zh-cn/3/library/asyncio.html)
+由于从 v5 版本开始，基本全部改为异步。
+
+得益于 [`anyio`][anyio]，模块同时支持 `asyncio` 与 [`trio`][trio] 作为异步后端。前者为 Python 的标准库。
+
+如果你不会异步，可以参考 [`asyncio` 的文档](https://docs.python.org/zh-cn/3/library/asyncio.html)
 
 异步可以进行并发请求，性能更高，不过如果请求过快仍然会导致被屏蔽。
 
 总的来说，异步比同步更有优势，所以不会的话可以去学一下，会发现新天地（误
 
-如果你仍然想继续使用同步代码，请参考 [同步执行异步代码](https://bromothymolb.github.io/bilibili-api-zoku/#/sync-executor)
+如果你仍然想继续使用同步代码，请参考 [同步执行异步代码](https://bromothymolb.github.io/bilibili-api-zoku/#/docs/common/sync-executor)
 
 # 模块使用的请求库
 
-模块在允许的条件下，按照 `curl_cffi` `aiohttp` `httpx` 的优先级选择第三方请求库。
+模块在允许的条件下，按照 [`curl_cffi`][curl_cffi] [`aiohttp`][aiohttp] [`httpx`][httpx] 的优先级选择第三方请求库。
+
+如果硬要选择一个请求库，论功能选择 `curl_cffi`，论速度选择 `aiohttp`，论稳定性选择 `httpx`。不妨自行尝试，选择最适合项目的请求库。
 
 如果想要指定请求库，可以利用 `select_client` 进行切换。
 
 ``` python
 from bilibili_api import select_client
 
-select_client("curl_cffi") # 选择 curl_cffi，支持伪装浏览器的 TLS / JA3 / Fingerprint
+select_client("curl_cffi") # 选择 curl_cffi，支持伪装浏览器的 TLS / JA3 / Fingerprint，支持 http2
 select_client("aiohttp") # 选择 aiohttp
-select_client("httpx") # 选择 httpx，不支持 WebSocket
+select_client("httpx") # 选择 httpx，不支持 WebSocket，支持 http2
 ```
 
-curl_cffi 支持伪装浏览器的 TLS / JA3 / Fingerprint，但需要手动设置。
+curl_cffi 支持伪装浏览器的 TLS / JA3 / Fingerprint，但需要手动设置。curl_cffi 和 httpx 支持 HTTP2，也需要手动设置。
 
 ``` python
 from bilibili_api import request_settings
 
 request_settings.set("impersonate", "chrome131") # 第二参数数值参考 curl_cffi 文档
-# https://curl-cffi.readthedocs.io/en/latest/impersonate.html
+# https://curl-cffi.readthedocs.io/en/latest/impersonate/targets.html
+request_settings.set("http2", True) # 打开 HTTP2 功能
 ```
 
 # FA♂Q
@@ -212,9 +221,9 @@ A: 由于该模块比较特殊，是爬虫模块，如果 b 站的接口变更�
 
 [^1]: 这里只列出一部分，请以实际 API 为准。
 [^2]: 代码来源：<https://www.zhihu.com/question/381784377/answer/1099438784> (WTFPL)
-[^3]: 部分代码来源：<https://github.com/m13253/danmaku2ass> (GPLv3) <https://github.com/ewwink/python-srt2ass>
-[^4]: 思路来源：<https://socialsisteryi.github.io/bilibili-API-collect/docs/login/cookie_refresh.html> (CC-BY-NC 4.0)
-[^5]: 大量思路来源 <https://github.com/SocialSisterYi/bilibili-API-collect> 中相关讨论。
+[^3]: 弹幕 ASS 生成由 Danmaku2ASS <https://github.com/m13253/danmaku2ass> 支持 (GPLv3)。
+[^4]: 此部分功能实现离不开 BAC Project <https://github.com/socialsisteryi/bilibili-API-collect> 社区对相关接口的不懈探索。感谢所有参与其中的贡献者对本模块的间接支持。
+[^5]: 更多可见 https://nemo2011.github.io/bilibili-api/#/README?id=fingerprint
 
 # 使用前须知
 
@@ -228,9 +237,15 @@ A: 由于该模块比较特殊，是爬虫模块，如果 b 站的接口变更�
 
 [docs]: https://bromothymolb.github.io/bilibili-api-zoku
 [docs-github]: https://github.com/bromothymolb/bilibili-api-zoku/tree/main/docs
-[api.json]: https://github.com/bromothymolb/bilibili-api-zoku/tree/main/bilibili_api/data/api/
+[api.json]: https://github.com/bromothymolb/bilibili-api-zoku/tree/main/bilibili_api/data/api
 [license]: https://github.com/bromothymolb/bilibili-api-zoku/tree/main/LICENSE
 [stargazers]: https://github.com/bromothymolb/bilibili-api-zoku/stargazers
 [issues-new]: https://github.com/bromothymolb/bilibili-api-zoku/issues/new/choose
 [get-credential]: https://bromothymolb.github.io/bilibili-api-zoku/#/get-credential
 [pypi]: https://pypi.org/project/bilibili-api-zoku
+[aiohttp]: https://github.com/aio-libs/aiohttp
+[httpx]: https://github.com/encode/httpx
+[curl_cffi]: https://github.com/lexiforest/curl_cffi
+[fpgen]: https://github.com/scrapfly/fingerprint-generator
+[trio]: https://github.com/python-trio/trio
+[anyio]: https://github.com/agronholm/anyio

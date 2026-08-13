@@ -5,16 +5,16 @@ print("初始化开发环境中...")
 
 current_file_dir = os.path.dirname(__file__)
 
-# 安装 pylint (linting) mypy (doc_gen)
-os.system("pip3 install pylint mypy")
+# 安装 ruff (linting / formatting) mypy (doc_gen) pyright (type checking)
+os.system('pip3 install ruff "mypy<1.20.0" pyright --upgrade')
 
 # 初始化 Githooks
 print("初始化 GitHooks 中...")
 git_hooks_dir = os.path.join(current_file_dir, ".git/hooks")
 
-hooks_path = map(
-    lambda x: os.path.join(current_file_dir, ".githooks", x),
-    os.listdir(os.path.join(current_file_dir, ".githooks")),
+hooks_path = (
+    os.path.join(current_file_dir, ".githooks", x)
+    for x in os.listdir(os.path.join(current_file_dir, ".githooks"))
 )
 
 for hook in hooks_path:

@@ -5,10 +5,11 @@ bilibili_api.rank
 """
 
 from enum import Enum
-from typing import Union
 
-from .utils.utils import get_api
+from frozendict import frozendict
+
 from .utils.network import Api, Credential
+from .utils.utils import get_api
 
 API = get_api("rank")
 
@@ -68,31 +69,123 @@ class RankType(Enum):
     - Rookie: 新人
     """
 
-    All = {"api_type": "x", "rid": 0, "type": "all"}
-    Bangumi = {"api_type": "pgc", "season_type": 1}
-    GuochuangAnime = {"api_type": "pgc", "season_type": 4}
-    Guochuang = {"api_type": "x", "rid": 168, "type": "all"}
-    Documentary = {"api_type": "pgc", "season_type": 3}
-    Douga = {"api_type": "x", "rid": 1005, "type": "all"}
-    Music = {"api_type": "x", "rid": 1003, "type": "all"}
-    Dance = {"api_type": "x", "rid": 1004, "type": "all"}
-    Game = {"api_type": "x", "rid": 1008, "type": "all"}
-    Knowledge = {"api_type": "x", "rid": 1010, "type": "all"}
-    Technology = {"api_type": "x", "rid": 1012, "type": "all"}
-    Sports = {"api_type": "x", "rid": 1018, "type": "all"}
-    Car = {"api_type": "x", "rid": 1013, "type": "all"}
-    Life = {"api_type": "x", "rid": 160, "type": "all"}
-    Food = {"api_type": "x", "rid": 1020, "type": "all"}
-    Animal = {"api_type": "x", "rid": 1024, "type": "all"}
-    Kichiku = {"api_type": "x", "rid": 1007, "type": "all"}
-    Fashion = {"api_type": "x", "rid": 1014, "type": "all"}
-    Ent = {"api_type": "x", "rid": 1002, "type": "all"}
-    Cinephile = {"api_type": "x", "rid": 1001, "type": "all"}
-    Movie = {"api_type": "pgc", "season_type": 2}
-    TV = {"api_type": "pgc", "season_type": 5}
-    Variety = {"api_type": "pgc", "season_type": 7}
-    Original = {"api_type": "x", "rid": 0, "type": "origin"}
-    Rookie = {"api_type": "x", "rid": 0, "type": "rookie"}
+    All = frozendict({"api_type": "x", "rid": 0, "type": "all"})
+    Bangumi = frozendict({"api_type": "pgc", "season_type": 1})
+
+    GuochuangAnime = frozendict(
+        {
+            "api_type": "pgc",
+            "season_type": 4,
+        }
+    )
+    Guochuang = frozendict(
+        {
+            "api_type": "x",
+            "rid": 168,
+            "type": "all",
+        }
+    )
+    Documentary = frozendict({"api_type": "pgc", "season_type": 3})
+
+    Douga = frozendict(
+        {
+            "api_type": "x",
+            "rid": 1005,
+            "type": "all",
+        }
+    )
+    Music = frozendict(
+        {
+            "api_type": "x",
+            "rid": 1003,
+            "type": "all",
+        }
+    )
+    Dance = frozendict(
+        {
+            "api_type": "x",
+            "rid": 1004,
+            "type": "all",
+        }
+    )
+    Game = frozendict({"api_type": "x", "rid": 1008, "type": "all"})
+    Knowledge = frozendict(
+        {
+            "api_type": "x",
+            "rid": 1010,
+            "type": "all",
+        }
+    )
+    Technology = frozendict(
+        {
+            "api_type": "x",
+            "rid": 1012,
+            "type": "all",
+        }
+    )
+    Sports = frozendict(
+        {
+            "api_type": "x",
+            "rid": 1018,
+            "type": "all",
+        }
+    )
+    Car = frozendict({"api_type": "x", "rid": 1013, "type": "all"})
+
+    Life = frozendict({"api_type": "x", "rid": 160, "type": "all"})
+
+    Food = frozendict({"api_type": "x", "rid": 1020, "type": "all"})
+
+    Animal = frozendict(
+        {
+            "api_type": "x",
+            "rid": 1024,
+            "type": "all",
+        }
+    )
+    Kichiku = frozendict(
+        {
+            "api_type": "x",
+            "rid": 1007,
+            "type": "all",
+        }
+    )
+    Fashion = frozendict(
+        {
+            "api_type": "x",
+            "rid": 1014,
+            "type": "all",
+        }
+    )
+    Ent = frozendict({"api_type": "x", "rid": 1002, "type": "all"})
+
+    Cinephile = frozendict(
+        {
+            "api_type": "x",
+            "rid": 1001,
+            "type": "all",
+        }
+    )
+    Movie = frozendict({"api_type": "pgc", "season_type": 2})
+
+    TV = frozendict({"api_type": "pgc", "season_type": 5})
+
+    Variety = frozendict({"api_type": "pgc", "season_type": 7})
+
+    Original = frozendict(
+        {
+            "api_type": "x",
+            "rid": 0,
+            "type": "origin",
+        }
+    )
+    Rookie = frozendict(
+        {
+            "api_type": "x",
+            "rid": 0,
+            "type": "rookie",
+        }
+    )
 
 
 class VIPRankType(Enum):
@@ -178,14 +271,13 @@ async def get_rank(
     获取视频排行榜
 
     Args:
-        type_ (RankType): 排行榜类型. Defaults to RankType.All
-
-        day (RankDayType): 排行榜时间. Defaults to RankDayType.THREE_DAY. 仅对 api_type 为 RankAPIType.PGC 有效
+        type_ (RankType, optional): 排行榜类型. Defaults to RankType.All.
+        day (RankDayType, optional): 排行榜时间. PGC 有效. Defaults to RankDayType.THREE_DAY.
 
     Returns:
         dict: 调用 API 返回的结果
     """
-    params = {"web_location": "333.934"}
+    params: dict[str, str | int] = {"web_location": "333.934"}
 
     # 确定 API 接口类型
     if type_.value["api_type"] == RankAPIType.V2.value:
@@ -218,7 +310,7 @@ async def get_music_rank_weekly_detail(week: int = 1) -> dict:
     获取全站音乐榜一周的详细信息(不包括具体的音频列表)
 
     Args:
-        week(int): 第几周. Defaults to 1.
+        week (int, optional): 第几周. Defaults to 1.
 
     Returns:
         dict: 调用 API 返回的结果
@@ -233,7 +325,7 @@ async def get_music_rank_weekly_musics(week: int = 1) -> dict:
     获取全站音乐榜一周的音频列表(返回的音乐的 id 对应了 music.Music 类创建实例传入的 id)
 
     Args:
-        week(int): 第几周. Defaults to 1.
+        week (int, optional): 第几周. Defaults to 1.
 
     Returns:
         dict: 调用 API 返回的结果
@@ -248,7 +340,7 @@ async def get_vip_rank(type_: VIPRankType = VIPRankType.VIP) -> dict:
     获取大会员中心的排行榜
 
     Args:
-        type_ (VIPRankType): 排行榜类型. Defaults to VIPRankType.VIP
+        type_ (VIPRankType, optional): 排行榜类型. Defaults to VIPRankType.VIP.
 
     Returns:
         dict: 调用 API 返回的结果
@@ -259,18 +351,19 @@ async def get_vip_rank(type_: VIPRankType = VIPRankType.VIP) -> dict:
 
 
 async def get_manga_rank(
-    type_: MangeRankType = MangeRankType.NEW, credential: Credential = None
+    type_: MangeRankType = MangeRankType.NEW, credential: Credential | None = None
 ) -> dict:
     """
     获取漫画专属排行榜
 
     Args:
-        credential (Credential): 凭据类
+        type_ (MangeRankType, optional): 排行榜类型. Defaults to MangeRankType.NEW.
+        credential (Credential | None, optional): 凭据类. Defaults to None.
 
     Returns:
         dict: 调用 API 返回的结果
     """
-    credential = credential if credential else Credential()
+    credential = credential or Credential()
     credential.raise_for_no_sessdata()
 
     api = API["info"]["manga_rank"]
@@ -313,11 +406,9 @@ async def get_live_energy_user_rank(
     获取直播超能用户榜
 
     Args:
-        date (LiveEnergyRankType): 月份. Defaults to LiveEnergyRankType.MONTH
-
-        pn (int): 页码. Defaults to 1
-
-        ps (int): 每页数量. Defaults to 20
+        date (LiveEnergyRankType, optional): 月份. Defaults to LiveEnergyRankType.MONTH.
+        pn (int, optional): 页码. Defaults to 1.
+        ps (int, optional): 每页数量. Defaults to 20.
 
     Returns:
         dict: 调用 API 返回的结果
@@ -334,11 +425,9 @@ async def get_live_rank(
     获取直播通用榜单
 
     Args:
-        _type (LiveRankType): 榜单类型. Defaults to LiveRankType.VALUE
-
-        pn (int): 页码. Defaults to 1
-
-        ps (int): 每页数量. Defaults to 20
+        _type (LiveRankType, optional): 榜单类型. Defaults to LiveRankType.SAIL_BOAT_VALUE.
+        pn (int, optional): 页码. Defaults to 1.
+        ps (int, optional): 每页数量. Defaults to 20.
 
     Returns:
         dict: 调用 API 返回的结果
@@ -359,9 +448,8 @@ async def get_live_user_medal_rank(pn: int = 1, ps: int = 20) -> dict:
     获取直播用户勋章榜
 
     Args:
-        pn (int): 页码. Defaults to 1
-
-        ps (int): 每页数量. Defaults to 20
+        pn (int, optional): 页码. Defaults to 1.
+        ps (int, optional): 每页数量. Defaults to 20.
 
     Returns:
         dict: 调用 API 返回的结果
@@ -372,17 +460,19 @@ async def get_live_user_medal_rank(pn: int = 1, ps: int = 20) -> dict:
 
 
 async def subscribe_music_rank(
-    status: bool = True, credential: Union[Credential, None] = None
+    status: bool = True, credential: Credential | None = None
 ) -> dict:
     """
     设置关注全站音乐榜
 
     Args:
-        status     (bool)      : 关注状态. Defaults to True.
+        status (bool, optional): 关注状态. Defaults to True.
+        credential (Credential | None, optional): 凭据类. Defaults to None.
 
-        credential (Credential): 凭据类. Defaults to None.
+    Returns:
+        dict: 调用 API 返回的结果
     """
-    credential = credential if credential else Credential()
+    credential = credential or Credential()
     credential.raise_for_no_sessdata()
     credential.raise_for_no_bili_jct()
     api = API["operate"]["subscribe"]

@@ -4,30 +4,22 @@ bilibili_api.article
 专栏相关
 """
 
-import re
-import json
 from copy import copy
 from enum import Enum
-from html import unescape
-from datetime import datetime
+import html
+import re
+from typing import TypeVar, overload
 from urllib.parse import unquote
-from typing import List, Union, TypeVar, overload
 
+from bs4 import BeautifulSoup, element
 import yaml
 from yarl import URL
-from bs4 import BeautifulSoup, element
 
-from .utils.initial_state import get_initial_state
-from .utils.utils import get_api, raise_for_statement
-from .utils.network import Api, Credential
-from .exceptions.NetworkException import ApiException, NetworkException
-from .utils import cache_pool
-
-from . import dynamic
-from . import opus
+from .exceptions.NetworkException import ApiException
 from .note import Note, NoteType
-
-import html
+from .utils import cache_pool
+from .utils.network import Api, Credential
+from .utils.utils import get_api
 
 API = get_api("article")
 
@@ -85,12 +77,12 @@ ArticleT = TypeVar("ArticleT", bound="Article")
 
 async def get_article_rank(
     rank_type: ArticleRankingType = ArticleRankingType.YESTERDAY,
-):
+) -> dict:
     """
     获取专栏排行榜
 
     Args:
-        rank_type (ArticleRankingType): 排行榜类别. Defaults to ArticleRankingType.YESTERDAY.
+        rank_type (ArticleRankingType, optional): 排行榜类别. Defaults to ArticleRankingType.YESTERDAY.
 
     Returns:
         dict: 调用 API 返回的结果
@@ -108,15 +100,14 @@ class ArticleList:
         credential (Credential): 凭据类
     """
 
-    def __init__(self, rlid: int, credential: Union[Credential, None] = None):
+    def __init__(self, rlid: int, credential: Credential | None = None) -> None:
         """
         Args:
-            rlid       (int)                        : 文集 id
-
+            rlid (int): 文集 id
             credential (Credential | None, optional): 凭据类. Defaults to None.
         """
         self.__rlid = rlid
-        self.credential: Credential = credential
+        self.credential: Credential = credential or Credential()
 
     def get_rlid(self) -> int:
         """
@@ -149,21 +140,26 @@ class Article:
         credential (Credential): 凭据类
     """
 
-    def __init__(self, cvid: int, credential: Union[Credential, None] = None):
+    def __init__(self, cvid: int, credential: Credential | None = None) -> None:
         """
         Args:
-            cvid       (int)                        : cv 号
-
+            cvid (int): cv 号
             credential (Credential | None, optional): 凭据. Defaults to None.
         """
-        self.__children: List[Node] = []
+        self.__children: list[Node] = []
         self.credential: Credential = (
             credential if credential is not None else Credential()
         )
         self.__meta = None
         self.__cvid = cvid
         self.__has_parsed: bool = False
-        self.__get_all_data: dict = None
+        self.__get_all_data: dict | None = None
+
+    def __str__(self) -> str:
+        return f"Article(cvid={self.__cvid})"
+
+    def __repr__(self) -> str:
+        return f"Article(cvid={self.__cvid})"
 
     async def turn_to_dynamic(self) -> "dynamic.Dynamic":
         """
@@ -174,7 +170,7 @@ class Article:
         转换后可查看“赞和转发”列表。
 
         Returns:
-            Dynamic: 动态实例
+            dynamic.Dynamic: 动态实例
         """
         if cache_pool.article2dynamic.get(self.get_cvid()) is None:
             await self.get_all()
@@ -192,7 +188,7 @@ class Article:
         转换后可查看“赞和转发”列表。
 
         Returns:
-            Opus: 动态实例
+            opus.Opus: 动态实例
         """
         if cache_pool.article2dynamic.get(self.get_cvid()) is None:
             await self.get_all()
@@ -249,7 +245,7 @@ class Article:
         for node in self.__children:
             try:
                 markdown_text = node.markdown()
-            except:
+            except Exception:
                 continue
             else:
                 content += markdown_text
@@ -273,7 +269,7 @@ class Article:
         return {
             "type": "Article",
             "meta": self.__meta,
-            "children": list(map(lambda x: x.json(), self.__children)),
+            "children": [x.json() for x in self.__children],
         }
 
     async def fetch_content(self) -> None:
@@ -291,7 +287,7 @@ class Article:
             node_list = []
 
             for e in el.contents:  # type: ignore
-                if type(e) == element.NavigableString:
+                if isinstance(e, element.NavigableString):
                     # 文本节点
                     node = TextNode(e)  # type: ignore
                     node_list.append(node)
@@ -351,7 +347,9 @@ class Article:
                             node = FontSizeNode()
                             node_list.append(node)
 
-                            node.size = int(re.search(r"font-size-(\d\d)", className)[1])  # type: ignore
+                            node.size = int(
+                                re.search(r"font-size-(\d\d)", className)[1]  # type: ignore
+                            )
                             node.children = await parse(e)
 
                         elif "color" in className:
@@ -380,7 +378,7 @@ class Article:
 
                         if "img-box" in className:
                             img_el: BeautifulSoup = e.find("img")  # type: ignore
-                            if img_el == None:
+                            if img_el is None:
                                 pass
                             elif "class" in img_el.attrs:
                                 className = img_el.attrs["class"]
@@ -396,7 +394,7 @@ class Article:
 
                                     if "video-card" in className:
                                         # 视频卡片，考虑有两列视频
-                                        for a in aid.split(","):
+                                        for a in aid.split(","):  # type: ignore
                                             node = VideoCardNode()
                                             node_list.append(node)
 
@@ -407,33 +405,33 @@ class Article:
                                         node = ArticleCardNode()
                                         node_list.append(node)
 
-                                        node.cvid = int(aid)
+                                        node.cvid = int(aid)  # type: ignore
 
                                     elif "fanju-card" in className:
                                         # 番剧卡片
                                         node = BangumiCardNode()
                                         node_list.append(node)
 
-                                        node.epid = int(aid[2:])
+                                        node.epid = int(aid[2:])  # type: ignore
 
                                     elif "music-card" in className:
                                         # 音乐卡片
                                         node = MusicCardNode()
                                         node_list.append(node)
 
-                                        node.auid = int(aid[2:])
+                                        node.auid = int(aid[2:])  # type: ignore
 
                                     elif "shop-card" in className:
                                         # 会员购卡片
                                         node = ShopCardNode()
                                         node_list.append(node)
 
-                                        node.pwid = int(aid[2:])
+                                        node.pwid = int(aid[2:])  # type: ignore
 
                                     elif "caricature-card" in className:
                                         # 漫画卡片，考虑有两列
 
-                                        for i in aid.split(","):
+                                        for i in aid.split(","):  # type: ignore
                                             node = ComicCardNode()
                                             node_list.append(node)
 
@@ -444,7 +442,7 @@ class Article:
                                         node = LiveCardNode()
                                         node_list.append(node)
 
-                                        node.room_id = int(aid)
+                                        node.room_id = int(aid)  # type: ignore
 
                                 if "seamless" in className:
                                     # 图片节点
@@ -477,8 +475,8 @@ class Article:
                             node_list.append(node)
 
                             pre_el: BeautifulSoup = e.find("pre")  # type: ignore
-                            node.lang = pre_el.attrs["data-lang"].split("@")[0].lower()
-                            node.code = unquote(pre_el.attrs["codecontent"])
+                            node.lang = pre_el.attrs["data-lang"].split("@")[0].lower()  # type: ignore
+                            node.code = unquote(pre_el.attrs["codecontent"])  # type: ignore
 
                 elif e.name == "ol":
                     # 有序列表
@@ -506,7 +504,7 @@ class Article:
                     if len(e.contents) == 0:
                         from .utils.parse_link import ResourceType, parse_link
 
-                        parse_link_res = await parse_link(e.attrs["href"])
+                        parse_link_res = await parse_link(e.attrs["href"])  # type: ignore
                         if parse_link_res[1] == ResourceType.VIDEO:
                             node = VideoCardNode()
                             node.aid = parse_link_res[0].get_aid()
@@ -530,13 +528,13 @@ class Article:
                         node = AnchorNode()
                         node_list.append(node)
 
-                        node.url = e.attrs["href"]
+                        node.url = e.attrs["href"]  # type: ignore
                         node.text = e.contents[0]  # type: ignore
 
                 elif e.name == "img":
                     className = e.attrs.get("class")
 
-                    if "latex" in className:
+                    if "latex" in className:  # type: ignore
                         # 公式
                         node = LatexNode()
                         node.code = unquote(e["alt"])  # type: ignore
@@ -556,7 +554,7 @@ class Article:
         self.__meta = copy(resp["readInfo"])
         del self.__meta["content"]
 
-        self.__children = await parse(document.find("div"))
+        self.__children = await parse(document.find("div"))  # type: ignore
         self.__has_parsed = True
 
     async def get_info(self) -> dict:
@@ -619,14 +617,14 @@ class Article:
             cache_pool.article_is_note[self.get_cvid()] = self.__get_all_data[
                 "readInfo"
             ]["category"]["id"] in [41, 42]
-        return self.__get_all_data
+        return copy(self.__get_all_data)
 
     async def set_like(self, status: bool = True) -> dict:
         """
         设置专栏点赞状态
 
         Args:
-            status (bool, optional): 点赞状态. Defaults to True
+            status (bool, optional): 点赞状态. Defaults to True.
 
         Returns:
             dict: 调用 API 返回的结果
@@ -642,7 +640,7 @@ class Article:
         设置专栏收藏状态
 
         Args:
-            status (bool, optional): 收藏状态. Defaults to True
+            status (bool, optional): 收藏状态. Defaults to True.
 
         Returns:
             dict: 调用 API 返回的结果
@@ -673,6 +671,9 @@ class Article:
     # TODO: 专栏上传/编辑/删除
 
 
+from . import dynamic, opus
+
+
 class Node:
     def __init__(self):
         pass
@@ -698,7 +699,7 @@ class ParagraphNode(Node):
     def json(self):
         return {
             "type": "ParagraphNode",
-            "children": list(map(lambda x: x.json(), self.children)),
+            "children": [x.json() for x in self.children],
         }
 
 
@@ -715,7 +716,7 @@ class HeadingNode(Node):
     def json(self):
         return {
             "type": "HeadingNode",
-            "children": list(map(lambda x: x.json(), self.children)),
+            "children": [x.json() for x in self.children],
         }
 
 
@@ -733,7 +734,7 @@ class BlockquoteNode(Node):
     def json(self):
         return {
             "type": "BlockquoteNode",
-            "children": list(map(lambda x: x.json(), self.children)),
+            "children": [x.json() for x in self.children],
         }
 
 
@@ -750,7 +751,7 @@ class ItalicNode(Node):
     def json(self):
         return {
             "type": "ItalicNode",
-            "children": list(map(lambda x: x.json(), self.children)),
+            "children": [x.json() for x in self.children],
         }
 
 
@@ -767,7 +768,7 @@ class BoldNode(Node):
     def json(self):
         return {
             "type": "BoldNode",
-            "children": list(map(lambda x: x.json(), self.children)),
+            "children": [x.json() for x in self.children],
         }
 
 
@@ -784,7 +785,7 @@ class DelNode(Node):
     def json(self):
         return {
             "type": "DelNode",
-            "children": list(map(lambda x: x.json(), self.children)),
+            "children": [x.json() for x in self.children],
         }
 
 
@@ -801,7 +802,7 @@ class UnderlineNode(Node):
     def json(self):
         return {
             "type": "UnderlineNode",
-            "children": list(map(lambda x: x.json(), self.children)),
+            "children": [x.json() for x in self.children],
         }
 
 
@@ -815,7 +816,7 @@ class UlNode(Node):
     def json(self):
         return {
             "type": "UlNode",
-            "children": list(map(lambda x: x.json(), self.children)),
+            "children": [x.json() for x in self.children],
         }
 
 
@@ -832,7 +833,7 @@ class OlNode(Node):
     def json(self):
         return {
             "type": "OlNode",
-            "children": list(map(lambda x: x.json(), self.children)),
+            "children": [x.json() for x in self.children],
         }
 
 
@@ -846,7 +847,7 @@ class LiNode(Node):
     def json(self):
         return {
             "type": "LiNode",
-            "children": list(map(lambda x: x.json(), self.children)),
+            "children": [x.json() for x in self.children],
         }
 
 
@@ -862,7 +863,7 @@ class ColorNode(Node):
         return {
             "type": "ColorNode",
             "color": self.color,
-            "children": list(map(lambda x: x.json(), self.children)),
+            "children": [x.json() for x in self.children],
         }
 
 
@@ -878,7 +879,7 @@ class FontSizeNode(Node):
         return {
             "type": "FontSizeNode",
             "size": self.size,
-            "children": list(map(lambda x: x.json(), self.children)),
+            "children": [x.json() for x in self.children],
         }
 
 
@@ -943,7 +944,7 @@ class CodeNode(Node):
 
     def markdown(self):
         self.code = html.unescape(self.code)
-        return f"```{self.lang if self.lang else ''}\n{self.code}\n```\n\n"
+        return f"```{self.lang or ''}\n{self.code}\n```\n\n"
 
     def json(self):
         self.code = html.unescape(self.code)

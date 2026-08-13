@@ -5,39 +5,36 @@ bilibili_api.utils.sync
 """
 
 import asyncio
-from typing import Any, TypeVar, Coroutine, Union
-from asyncio.futures import Future as AsyncioFuture
-from concurrent.futures import Future as ConcurrentFuture, ThreadPoolExecutor
+from asyncio.futures import Future
+from collections.abc import Coroutine
+from typing import Any, TypeVar
+
+import anyio
 
 T = TypeVar("T")
 
 
-def __ensure_event_loop() -> None:
+def ensure_event_loop() -> asyncio.AbstractEventLoop:
     try:
         asyncio.get_event_loop()
-    except:
+    except RuntimeError:
         asyncio.set_event_loop(asyncio.new_event_loop())
     return asyncio.get_event_loop()
 
 
-def sync(
-    coroutine: Union[Coroutine[Any, Any, T], AsyncioFuture, ConcurrentFuture]
-) -> T:
+def sync(coroutine: Coroutine[Any, Any, T] | Future[T], backend: str = "asyncio") -> T:
     """
-    同步执行异步函数，使用可参考 [同步执行异步代码](https://bromothymolb.github.io/bilibili-api-zoku/#/sync-executor)
+    同步执行异步函数，使用可参考 [同步执行异步代码](https://bromothymolb.github.io/bilibili-api-zoku/#/docs/common/sync-executor)
 
     Args:
-        obj (Coroutine | Future): 异步函数
+        coroutine (Coroutine[Any, Any, ~T] | Future[~T]): 异步函数
+        backend (str, optional): 异步框架，可选 asyncio / trio。Defaults to "asyncio".
 
     Returns:
-        Any: 该异步函数的返回值
+        ~T: 该异步函数的返回值
     """
-    try:
-        asyncio.get_running_loop()
-    except RuntimeError:
-        return __ensure_event_loop().run_until_complete(coroutine)
-    else:
-        with ThreadPoolExecutor() as executor:
-            return executor.submit(
-                lambda x: __ensure_event_loop().run_until_complete(x), coroutine
-            ).result()
+
+    async def sync_task() -> T:
+        return await coroutine
+
+    return anyio.run(sync_task, backend=backend)

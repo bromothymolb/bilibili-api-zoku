@@ -1,12 +1,20 @@
+"""
+bilibili_api.utils.picture
+
+Picture 类
+"""
+
+from dataclasses import dataclass, field
+import inspect
+import io
 import os
-import tempfile
-from typing import Any
-from dataclasses import dataclass
 
+from anyio import TaskHandle, create_task_group, to_thread
+from PIL import Image, ImageSequence
 from yarl import URL
-from PIL import Image
 
-from .network import Credential, get_client, BiliAPIFile
+from ..exceptions import ArgsException
+from .network import BiliAPIFile, Credential, get_client
 
 
 @dataclass
@@ -16,46 +24,54 @@ class Picture:
 
     图片类，包含图片链接、尺寸以及下载操作。
 
-    Args:
-        height    (int)  : 高度
+    Attributes:
+        height    (int)            : 高度
+        width     (int)            : 宽度
+        url       (str)            : 图片链接
+        extension (str)            : 文件格式
+        format    (str)            : 图片格式
+        mime_type (str)            : MIME 类型。
+        image     (PIL.Image.Image): Image 实例
 
-        imageType (str)  : 格式，例如: png
-
-        size      (Any)  : 大小。单位 KB
-
-        url       (str)  : 图片链接
-
-        width     (int)  : 宽度
-
-        content   (bytes): 图片内容
-
-    可以不实例化，用 `load_url`, `from_content` 或 `from_file` 加载图片。
+    可以使用静态类方法 `load_url`, `from_content` 或 `from_file` 加载图片。
     """
 
-    height: int = -1
-    imageType: str = ""
-    size: Any = ""
     url: str = ""
-    width: int = -1
-    content: bytes = b""
+    extension: str = ""
+    format: str = ""
+    mime_type: str = ""
+    image: Image.Image = field(default_factory=Image.Image)
+
+    _content: bytes | None = None
+
+    @property
+    def width(self) -> int:
+        return self.image.width
+
+    @property
+    def height(self) -> int:
+        return self.image.height
 
     def __str__(self) -> str:
-        return f"Picture(height='{self.height}', width='{self.width}', imageType='{self.imageType}', size={self.size}, url='{self.url}')"
+        return f"Picture(height={self.height}, width={self.width}, format='{self.format}', url='{self.url}')"
 
     def __repr__(self) -> str:
-        # no content...
-        return f"Picture(height='{self.height}', width='{self.width}', imageType='{self.imageType}', size={self.size}, url='{self.url}')"
+        return f"Picture(height={self.height}, width={self.width}, format='{self.format}', url='{self.url}')"
 
-    def __set_picture_meta_from_bytes(self, imgtype: str) -> None:
-        tmp_dir = tempfile.gettempdir()
-        img_path = os.path.join(tmp_dir, "test." + imgtype)
-        with open(img_path, "wb+") as file:
-            file.write(self.content)
-        img = Image.open(img_path)
-        self.size = int(round(os.path.getsize(img_path) / 1024, 0))
-        self.height = img.height
-        self.width = img.width
-        self.imageType = imgtype
+    def _set_picture_meta(self, raw: bytes, extension: str) -> None:
+        content_io = io.BytesIO(raw)
+        content_io.seek(0)
+        self.image = Image.open(content_io)
+        self.extension = extension
+        self.format = self.image.format or ""
+        self.mime_type = self.image.get_format_mimetype() or ""
+        self._content = raw  # cache
+
+    def _set_picture_meta_from_file(self, img_path: str, extension: str) -> None:
+        self.image = Image.open(img_path)
+        self.extension = extension
+        self.format = self.image.format or ""
+        self.mime_type = self.image.get_format_mimetype() or ""
 
     @staticmethod
     async def load_url(url: str) -> "Picture":
@@ -80,17 +96,17 @@ class Picture:
                 "Referer": url,
             },
         )
-        obj.content = resp.raw
         obj.url = url
-        obj.__set_picture_meta_from_bytes(
-            url.split("/")[-1].split(".")[-1].split("?")[0]
+        obj._set_picture_meta(
+            resp.raw,
+            url.split("/")[-1].split(".")[-1].split("?")[0],
         )
         return obj
 
     @staticmethod
     def from_file(path: str) -> "Picture":
         """
-        加载本地图片。
+        加载本地图片
 
         Args:
             path (str): 图片地址
@@ -99,39 +115,39 @@ class Picture:
             Picture: 加载后的图片对象
         """
         obj = Picture()
-        with open(path, "rb") as file:
-            obj.content = file.read()
         obj.url = "file://" + path
-        obj.__set_picture_meta_from_bytes(os.path.basename(path).split(".")[-1])
+        obj._set_picture_meta_from_file(path, os.path.basename(path).split(".")[-1])
         return obj
 
     @staticmethod
-    def from_content(content: bytes, format: str) -> "Picture":
+    def from_content(content: bytes, extension: str) -> "Picture":
         """
         加载字节数据
 
         Args:
-            content (str): 图片内容
-
-            format  (str): 图片后缀名，如 `webp`, `jpg`, `ico`
+            content (bytes): 图片内容
+            extension (str): 图片后缀名，如 `webp`, `jpg`, `ico`
 
         Returns:
             Picture: 加载后的图片对象
         """
         obj = Picture()
-        obj.content = content
-        obj.url = "bytes://" + content.decode("utf-8", errors="ignore")
-        obj.__set_picture_meta_from_bytes(format)
+        obj.url = f"<bytes>.{extension}"
+        obj._set_picture_meta(content, extension)
         return obj
 
-    def _to_biliapifile(self) -> BiliAPIFile:
-        tmp_dir = tempfile.gettempdir()
-        img_path = os.path.join(tmp_dir, "test." + self.imageType)
-        with open(img_path, "wb") as file:
-            file.write(self.content)
-        img = Image.open(img_path)
-        mime_type = img.get_format_mimetype()
-        return BiliAPIFile(path=img_path, mime_type=mime_type)
+    async def to_biliapifile(self) -> BiliAPIFile:
+        """
+        将图片实例转换为 BiliAPIFile 实例
+
+        Returns:
+            BiliAPIFile: BiliAPIFile 实例
+        """
+        return BiliAPIFile(
+            name=f"pic.{self.extension}",
+            content=await self.content(),
+            mime_type=self.mime_type,
+        )
 
     async def upload(self, credential: Credential) -> "Picture":
         """
@@ -146,11 +162,7 @@ class Picture:
         from ..dynamic import upload_image
 
         res = await upload_image(self, credential)
-        self.height = res["image_height"]
-        self.width = res["image_width"]
         self.url = res["image_url"]
-        self.size = res["img_size"]
-        self.content = (await self.load_url(self.url)).content
         return self
 
     async def upload_by_note(self, credential: Credential) -> "Picture":
@@ -166,7 +178,7 @@ class Picture:
         from ..note import upload_image
 
         res = await upload_image(self, credential)
-        self = await self.load_url("https:" + res["location"])
+        self.url = "http:" + res["location"]
         return self
 
     async def upload_by_session(self, credential: Credential) -> "Picture":
@@ -185,80 +197,130 @@ class Picture:
         self.url = res["image_url"]
         return self
 
-    def convert_format(self, new_format: str) -> "Picture":
+    async def download(self, path: str) -> "Picture":
         """
-        将图片转换为另一种格式。
+        下载图片至本地。支持自定义文件格式。
 
         Args:
-            new_format (str): 新的格式。例：`png`, `ico`, `webp`.
+            path     (str): 下载地址。
 
         Returns:
             Picture: `self`
         """
-        tmp_dir = tempfile.gettempdir()
-        img_path = os.path.join(tmp_dir, "test." + self.imageType)
-        open(img_path, "wb").write(self.content)
-        img = Image.open(img_path)
-        new_img_path = os.path.join(tmp_dir, "test." + new_format)
-        img.save(new_img_path)
-        with open(new_img_path, "rb") as file:
-            self.content = file.read()
-        self.__set_picture_meta_from_bytes(new_format)
+
+        def download():
+            self.image.save(
+                path,
+                save_all=(True if path.split(".")[1] in ["webp", "gif"] else False),
+            )
+
+        await to_thread.run_sync(download)
         return self
 
-    def resize(self, width: int, height: int) -> "Picture":
+    async def content(self) -> bytes:
         """
-        调整大小
+        获取图片内容
+
+        Returns:
+            bytes: 图片内容
+        """
+        if not self._content:
+
+            def fetch_content():
+                io_stream = io.BytesIO()
+                self.image.save(
+                    io_stream,
+                    format=self.format,
+                    save_all=(True if self.format in ["WEBP", "GIF"] else False),
+                )
+                return io_stream.getvalue()
+
+            self._content = await to_thread.run_sync(fetch_content)
+        return self._content
+
+    def set_extension(self, extension: str) -> "Picture":
+        """
+        更改图片后缀名
 
         Args:
-            width  (int): 宽度
-            height (int): 高度
+            extension (str): 新后缀名
 
         Returns:
             Picture: `self`
         """
-        tmp_dir = tempfile.gettempdir()
-        img_path = os.path.join(tmp_dir, "test." + self.imageType)
-        open(img_path, "wb").write(self.content)
-        img = Image.open(img_path)
-        img = img.resize((width, height))
-        new_img_path = os.path.join(tmp_dir, "test." + self.imageType)
-        img.save(new_img_path)
-        with open(new_img_path, "rb") as file:
-            self.content = file.read()
-        self.__set_picture_meta_from_bytes(self.imageType)
+        self.extension = extension
+        self.url = f"<bytes>.{self.extension}"
+        self._content = None
+        # copied from PIL source code
+        extension = "." + extension
+        if not Image._import_plugin_for_extension(extension):
+            Image.preinit()
+        if extension not in Image.EXTENSION:
+            Image.init()
+        try:
+            self.format = Image.EXTENSION[extension]
+        except KeyError as e:
+            msg = f"unknown file extension: {extension}"
+            raise ValueError(msg) from e
         return self
 
-    def to_file(self, path: str) -> "Picture":
+    async def image_call(self, func: str, *args, **kwargs) -> "Picture":
         """
-        下载图片至本地。
+        调用 PIL.Image.Image 中的返回 Image 的操作函数
 
         Args:
-            path (str): 下载地址。
+            func (str): 调用的函数名。如 `resize` 调整大小，`filter` 添加滤镜。
+            args (Any): 要传递给函数的参数。 *args 传递。
+            kwargs (Any): 要传递给函数的参数。 **kwargs 传递。
 
         Returns:
             Picture: `self`
         """
-        tmp_dir = tempfile.gettempdir()
-        img_path = os.path.join(tmp_dir, "test." + self.imageType)
-        open(img_path, "wb").write(self.content)
-        img = Image.open(img_path)
-        img.save(path, save_all=(True if self.imageType in ["webp", "gif"] else False))
-        self.url = "file://" + path
+
+        def call(image) -> Image.Image:
+            callable = getattr(image, func)
+            if inspect.signature(callable).return_annotation != "Image":
+                raise ArgsException("不支持返回值不为 Image 的函数调用")
+            return callable(*args, **kwargs)
+
+        if self.format not in ["WEBP", "GIF"]:
+            self.image = await to_thread.run_sync(call, self.image)
+        else:
+            images = ImageSequence.all_frames(self.image)
+            handles: list[TaskHandle] = []
+            async with create_task_group() as tg:
+                for image in images:
+                    handles.append(tg.create_task(to_thread.run_sync(call, image)))
+            results: list[Image.Image] = [handle.return_value for handle in handles]
+
+            def fetch_result():
+                io_stream = io.BytesIO()
+                results.pop().save(
+                    io_stream,
+                    format=self.format,
+                    append_images=results,
+                    save_all=True,
+                )
+                return io_stream
+
+            self.image = Image.open(await to_thread.run_sync(fetch_result))
+
+        self.url = f"<bytes>.{self.extension}"
+        self._content = None
         return self
 
-    def to_json(self) -> dict:
+    def copy(self) -> "Picture":
         """
-        转换为 bilibili api 中的 json 格式，提供图片链接/长宽/大小
+        复制 Picture 类
 
         Returns:
-            dict: 图片链接/长宽/大小
+            Picture: 和 `self` 相同的新 Picture 类
         """
-        return [
-            {
-                "img_src": self.url,
-                "img_width": self.width,
-                "img_height": self.height,
-                "img_size": self.size,
-            }
-        ]
+        return Picture(
+            url=self.url,
+            extension=self.extension,
+            format=self.format,
+            mime_type=self.mime_type,
+            image=self.image.copy(),
+            _content=self._content,
+        )

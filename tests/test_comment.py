@@ -1,7 +1,7 @@
 # bilibili_api.comment
 
-import random
 import asyncio
+import random
 
 from bilibili_api import comment
 from bilibili_api.exceptions.ResponseCodeException import ResponseCodeException
@@ -114,5 +114,6 @@ async def test_g_delete_comment():
         credential=credential,
     )
     return await cmt.delete()
+
 
 # 举报评论不测试

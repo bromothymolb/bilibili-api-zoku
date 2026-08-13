@@ -23,7 +23,7 @@ class BytesReader:
         self.__stream = stream
         self.__offset: int = 0
 
-    def has_end(self) -> bool:  # pylint: disable=used-before-assignment
+    def has_end(self) -> bool:
         """
         是否已读到末尾
 
@@ -32,12 +32,12 @@ class BytesReader:
         """
         return self.__offset >= len(self.__stream)
 
-    def double(self, LE=False) -> float:  # pylint: disable=used-before-assignment
+    def double(self, LE=False) -> float:
         """
         读 double。
 
         Args:
-            LE (bool): 为小端。
+            LE (bool, optional): 为小端。Defaults to False.
 
         Returns:
             float。
@@ -53,7 +53,7 @@ class BytesReader:
         读 float。
 
         Args:
-            LE (bool): 为小端。
+            LE (bool, optional): 为小端。Defaults to False.
 
         Returns:
             float。
@@ -90,7 +90,7 @@ class BytesReader:
         读 string。
 
         Args:
-            encoding (str):  编码方式。
+            encoding (str, optional):  编码方式。Defaults to 'utf-8'.
 
         Returns:
             str。
@@ -128,7 +128,7 @@ class BytesReader:
         读 Fixed int16。
 
         Args:
-            LE (bool): 为小端。
+            LE (bool, optional): 为小端。Defaults to False.
 
         Returns:
             int。
@@ -144,7 +144,7 @@ class BytesReader:
         读 Fixed int32.
 
         Args:
-            LE (bool): 为小端。
+            LE (bool, optional): 为小端。Defaults to False.
 
         Returns:
             int。
@@ -160,7 +160,7 @@ class BytesReader:
         读 Fixed int64。
 
         Args:
-            LE (bool): 为小端。
+            LE (bool, optional): 为小端。Defaults to False.
 
         Returns:
             int。
@@ -176,7 +176,7 @@ class BytesReader:
         读 Unsigned fixed Int16。
 
         Args:
-            LE (bool): 为小端。
+            LE (bool, optional): 为小端。Defaults to False.
 
         Returns:
             int。
@@ -192,7 +192,7 @@ class BytesReader:
         读 Unsigned fixed Int32。
 
         Args:
-            LE (bool): 为小端。
+            LE (bool, optional): 为小端。Defaults to False.
 
         Returns:
             int。
@@ -208,7 +208,7 @@ class BytesReader:
         读 Unsigned fixed Int64。
 
         Args:
-            LE (bool): 为小端。
+            LE (bool, optional): 为小端。Defaults to False.
 
         Returns:
             int。

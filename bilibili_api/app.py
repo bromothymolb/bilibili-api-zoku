@@ -5,11 +5,9 @@ bilibili_api.app
 """
 
 import time
-from hashlib import md5
-from typing import Union
 
-from .utils.utils import get_api
 from .utils.network import Api, Credential
+from .utils.utils import get_api
 
 API = get_api("app")
 
@@ -21,24 +19,18 @@ async def get_loading_images(
     width: int = 1080,
     build: int = 999999999,
     birth: str = "",
-    credential: Union[Credential, None] = None,
-):
+    credential: Credential | None = None,
+) -> dict:
     """
     获取开屏启动画面
 
     Args:
-        build      (int, optional)              : 客户端内部版本号
-
-        mobi_app   (str, optional)              : android / iphone / ipad
-
-        platform   (str, optional)              : android / ios    / ios
-
-        height     (int, optional)              : 屏幕高度
-
-        width      (int, optional)              : 屏幕宽度
-
-        birth      (str, optional)              : 生日日期(四位数，例 0101)
-
+        mobi_app (str, optional): android / iphone / ipad. Defaults to 'android'.
+        platform (str, optional): android / ios    / ios. Defaults to 'android'.
+        height (int, optional): 屏幕高度. Defaults to 1920.
+        width (int, optional): 屏幕宽度. Defaults to 1080.
+        build (int, optional): 客户端内部版本号. Defaults to 999999999.
+        birth (str, optional): 生日日期(四位数，例 0101). Defaults to ''.
         credential (Credential | None, optional): 凭据. Defaults to None.
 
     Returns:
@@ -63,20 +55,16 @@ async def get_loading_images_special(
     platform: str = "android",
     height: int = 1920,
     width: int = 1080,
-    credential: Union[Credential, None] = None,
-):
+    credential: Credential | None = None,
+) -> dict:
     """
     获取特殊开屏启动画面
 
     Args:
-        mobi_app   (str, optional)              : android / iphone / ipad
-
-        platform   (str, optional)              : android / ios    / ios
-
-        height     (str, optional)              : 屏幕高度
-
-        width      (str, optional)              : 屏幕宽度
-
+        mobi_app (str, optional): android / iphone / ipad. Defaults to 'android'.
+        platform (str, optional): android / ios    / ios. Defaults to 'android'.
+        height (int, optional): 屏幕高度. Defaults to 1920.
+        width (int, optional): 屏幕宽度. Defaults to 1080.
         credential (Credential | None, optional): 凭据. Defaults to None.
 
     Returns:

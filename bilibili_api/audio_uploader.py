@@ -4,24 +4,25 @@ bilibili_api.audio_uploader
 音频上传
 """
 
-import asyncio
-import os
-import json
-import time
-from enum import Enum
-from typing import List, Union, Optional
 from dataclasses import dataclass, field
+from enum import Enum
+import json
+import os
+import time
 
 from . import user
+from .exceptions.ApiException import ApiException
+from .exceptions.NetworkException import NetworkException
+from .utils.network import (
+    Api,
+    AsyncEvent,
+    Credential,
+    get_bili_headers,
+    get_client,
+)
+from .utils.picture import Picture
 from .utils.upos import UposFile, UposFileUploader
 from .utils.utils import get_api, raise_for_statement
-from .utils.picture import Picture
-from .utils.AsyncEvent import AsyncEvent
-from .exceptions.ApiException import ApiException
-from .utils.network import Api, get_client, HEADERS, Credential
-from .exceptions.NetworkException import NetworkException
-
-from enum import Enum
 
 _API = get_api("audio_uploader")
 
@@ -442,31 +443,31 @@ class SongMeta:
 
     title: str
     desc: str
-    tags: Union[List[str], str]
+    tags: list[str] | str
     content_type: SongCategories.ContentType
-    song_type: Union[SongCategories.SongType, SongCategories.AudioType]
+    song_type: SongCategories.SongType | SongCategories.AudioType
     creation_type: SongCategories.CreationType
-    language: Optional[SongCategories.Language] = None
-    theme: Optional[SongCategories.Theme] = None
-    style: Optional[SongCategories.Style] = None
-    singer: Optional[List[AuthorInfo]] = field(default_factory=list)
-    player: Optional[List[AuthorInfo]] = field(default_factory=list)
-    sound_source: Optional[List[AuthorInfo]] = field(default_factory=list)
-    tuning: Optional[List[AuthorInfo]] = field(default_factory=list)
-    lyricist: Optional[List[AuthorInfo]] = field(default_factory=list)
-    arranger: Optional[List[AuthorInfo]] = field(default_factory=list)
-    composer: Optional[List[AuthorInfo]] = field(default_factory=list)
-    mixer: Optional[List[AuthorInfo]] = field(default_factory=list)
-    cover_maker: Optional[List[AuthorInfo]] = field(default_factory=list)
-    instrument: Optional[List[str]] = field(default_factory=list)
-    origin_url: Optional[str] = None
-    origin_title: Optional[str] = None
-    cover: Optional[Picture] = None
-    aid: Optional[int] = None
-    cid: Optional[int] = None
-    tid: Optional[int] = None
-    lrc: Optional[str] = None
-    compilation_id: Optional[int] = None
+    language: SongCategories.Language | None = None
+    theme: SongCategories.Theme | None = None
+    style: SongCategories.Style | None = None
+    singer: list[AuthorInfo] | None = field(default_factory=list)
+    player: list[AuthorInfo] | None = field(default_factory=list)
+    sound_source: list[AuthorInfo] | None = field(default_factory=list)
+    tuning: list[AuthorInfo] | None = field(default_factory=list)
+    lyricist: list[AuthorInfo] | None = field(default_factory=list)
+    arranger: list[AuthorInfo] | None = field(default_factory=list)
+    composer: list[AuthorInfo] | None = field(default_factory=list)
+    mixer: list[AuthorInfo] | None = field(default_factory=list)
+    cover_maker: list[AuthorInfo] | None = field(default_factory=list)
+    instrument: list[str] | None = field(default_factory=list)
+    origin_url: str | None = None
+    origin_title: str | None = None
+    cover: Picture | None = None
+    aid: int | None = None
+    cid: int | None = None
+    tid: int | None = None
+    lrc: str | None = None
+    compilation_id: int | None = None
     is_bgm: bool = True
 
 
@@ -477,7 +478,6 @@ class AudioUploader(AsyncEvent):
 
     __song_id: int
     __upos_file: UposFile
-    __task: asyncio.Task
 
     def _check_meta(self):
         raise_for_statement(self.meta.content_type is not None)
@@ -507,26 +507,24 @@ class AudioUploader(AsyncEvent):
 
         if isinstance(self.meta.tags, str):
             self.meta.tags = self.meta.tags.split(",")
-        raise_for_statement(len(self.meta.tags != 0))
+        raise_for_statement(len(self.meta.tags) != 0)
 
         raise_for_statement(self.meta.title is not None)
         raise_for_statement(self.meta.cover is not None)
         raise_for_statement(self.meta.desc is not None)
 
-    def __init__(self, path: str, meta: SongMeta, credential: Credential):
+    def __init__(self, path: str, meta: SongMeta, credential: Credential) -> None:
         """
         初始化
 
         Args:
             path (str): 文件路径
-
-            meta (AudioMeta): 元数据
-
+            meta (audio_uploader.SongMeta): 元数据
             credential (Credential): 账号信息
         """
         super().__init__()
         self.path: str = path
-        self.meta: str = meta
+        self.meta: SongMeta = meta
         self.credential: Credential = credential
         self.__upos_file = UposFile(path)
 
@@ -555,8 +553,8 @@ class AudioUploader(AsyncEvent):
                 "version": "2.6.0",
                 "build": 2060400,
             },
-            cookies=await self.credential.get_buvid_cookies(),
-            headers=HEADERS.copy(),
+            cookies=await self.credential.get_cookies(),
+            headers=get_bili_headers(),
         )
         if resp.code >= 400:
             self.dispatch(
@@ -572,8 +570,8 @@ class AudioUploader(AsyncEvent):
             )
             raise ApiException(json.dumps(preupload))
 
-        url = f'https:{preupload["endpoint"]}/{preupload["upos_uri"].removeprefix("upos://")}'
-        headers = HEADERS.copy()
+        url = f"https:{preupload['endpoint']}/{preupload['upos_uri'].removeprefix('upos://')}"
+        headers = get_bili_headers()
         headers["x-upos-auth"] = preupload["auth"]
 
         # 获取 upload_id
@@ -608,7 +606,7 @@ class AudioUploader(AsyncEvent):
         self.__song_id = preupload["biz_id"]
         return preupload
 
-    async def _upload_cover(self, cover: str) -> str:
+    async def _upload_cover(self, cover: Picture) -> str:
         return await upload_cover(cover, self.credential)
 
     async def _main(self):
@@ -620,12 +618,13 @@ class AudioUploader(AsyncEvent):
             )
         else:
             lrc_url = ""
-        self.dispatch(AudioUploaderEvents.PRE_COVER)
+        self.dispatch(AudioUploaderEvents.PRE_COVER.value)
+        cover_url = ""
         if self.meta.cover:
             try:
                 cover_url = await self._upload_cover(self.meta.cover)
             except Exception as e:
-                self.dispatch(AudioUploaderEvents.COVER_FAILED, {"err": e})
+                self.dispatch(AudioUploaderEvents.COVER_FAILED.value, {"err": e})
                 raise e
             self.dispatch(AudioUploaderEvents.AFTER_COVER.value, cover_url)
         self.dispatch(AudioUploaderEvents.PRE_SUBMIT.value)
@@ -650,14 +649,12 @@ class AudioUploader(AsyncEvent):
             "style_type_id": self.meta.style.value if self.meta.style else 0,
             "theme_type_id": self.meta.theme.value if self.meta.theme else 0,
             "language_type_id": self.meta.language.value if self.meta.language else 0,
-            "origin_title": self.meta.origin_title if self.meta.origin_title else "",
-            "origin_url": self.meta.origin_url if self.meta.origin_url else "",
-            "avid": self.meta.aid if self.meta.aid else "",
-            "tid": self.meta.tid if self.meta.tid else "",
-            "cid": self.meta.cid if self.meta.cid else "",
-            "compilation_id": (
-                self.meta.compilation_id if self.meta.compilation_id else ""
-            ),
+            "origin_title": self.meta.origin_title or "",
+            "origin_url": self.meta.origin_url or "",
+            "avid": self.meta.aid or "",
+            "tid": self.meta.tid or "",
+            "cid": self.meta.cid or "",
+            "compilation_id": self.meta.compilation_id or "",
             "title": self.meta.title,
             "intro": self.meta.desc,
             "member_with_type": [
@@ -665,76 +662,77 @@ class AudioUploader(AsyncEvent):
                     "m_type": 1,  # 歌手
                     "members": [
                         {"name": singer.name, "mid": singer.uid}
-                        for singer in self.meta.singer
+                        for singer in (self.meta.singer or [])
                     ],
                 },
                 {
                     "m_type": 2,  # 作词
                     "members": [
                         {"name": lyricist.name, "mid": lyricist.uid}
-                        for lyricist in self.meta.lyricist
+                        for lyricist in (self.meta.lyricist or [])
                     ],
                 },
                 {
                     "m_type": 3,
                     "members": [
                         {"name": composer.name, "mid": composer.uid}
-                        for composer in self.meta.composer
+                        for composer in (self.meta.composer or [])
                     ],
                 },  # 作曲
                 {
                     "m_type": 4,
                     "members": [
                         {"name": arranger.name, "mid": arranger.uid}
-                        for arranger in self.meta.arranger
+                        for arranger in (self.meta.arranger or [])
                     ],
                 },  # 编曲
                 {
                     "m_type": 5,
                     "members": [
                         {"name": mixer.name, "mid": mixer.uid}
-                        for mixer in self.meta.mixer
+                        for mixer in (self.meta.mixer or [])
                     ],
                 },  # 混音只能填一个人，你问我为什么我不知道
                 {
                     "m_type": 6,
                     "members": [
                         {"name": cover_maker.name, "mid": cover_maker.uid}
-                        for cover_maker in self.meta.cover_maker
+                        for cover_maker in (self.meta.cover_maker or [])
                     ],
                 },  # 本家作者
                 {
                     "m_type": 7,
                     "members": [
                         {"name": cover_maker.name, "mid": cover_maker.uid}
-                        for cover_maker in self.meta.cover_maker
-                    ],
+                        for cover_maker in (self.meta.cover_maker or [])
+                    ],  # FIXME: 显然不对
                 },  # 封面
                 {
                     "m_type": 8,
                     "members": [
                         {"name": sound_source.name, "mid": sound_source.uid}
-                        for sound_source in self.meta.sound_source
+                        for sound_source in (self.meta.sound_source or [])
                     ],
                 },  # 音源
                 {
                     "m_type": 9,
                     "members": [
                         {"name": tuning.name, "mid": tuning.uid}
-                        for tuning in self.meta.tuning
+                        for tuning in (self.meta.tuning or [])
                     ],
                 },  # 调音
                 {
                     "m_type": 10,
                     "members": [
                         {"name": player.name, "mid": player.uid}
-                        for player in self.meta.player
+                        for player in (self.meta.player or [])
                     ],
                 },  # 演奏
                 {
                     "m_type": 11,
                     "members": [
-                        {"name": instrument} for instrument in self.meta.instrument
+                        {"name": instrument}
+                        for instrument in (self.meta.instrument or [])
                     ],
                 },  # 乐器
                 {
@@ -743,7 +741,7 @@ class AudioUploader(AsyncEvent):
                 },  # 上传者
             ],
             "song_tags": [{"tagName": tag_name} for tag_name in self.meta.tags],
-            "create_time": "%.3f" % time.time(),
+            "create_time": f"{time.time():.3f}",
             "activity_id": 0,
             "is_bgm": 1 if self.meta.is_bgm else 0,
             "source": 0,
@@ -756,31 +754,24 @@ class AudioUploader(AsyncEvent):
             .result
         )
 
-    async def start(self) -> dict:
+    async def start(self) -> int | None:
         """
         开始上传
-        """
-        task = asyncio.create_task(self._main())
-        self.__task = task
 
+        Returns:
+            int | None: 歌曲 auid
+        """
         try:
-            result = await task
-            self.__task = None
-            return result
-        except asyncio.CancelledError:
-            # 忽略 task 取消异常
-            pass
+            return await self.async_event_start(self._main())
         except Exception as e:
             self.dispatch(AudioUploaderEvents.FAILED.value, {"err": e})
             raise e
 
-    async def abort(self):
+    def abort(self) -> None:
         """
         中断更改
         """
-        if self.__task:
-            self.__task.cancel("用户手动取消")
-
+        self.async_event_cancel()
         self.dispatch(AudioUploaderEvents.ABORTED.value, None)
 
 
@@ -790,22 +781,27 @@ async def upload_lrc(lrc: str, song_id: int, credential: Credential) -> str:
 
     Args:
         lrc (str): 歌词
-
+        song_id (int): 音频 id
         credential (Credential): 凭据
+
+    Returns:
+        str: 调用 API 获得的结果
     """
     api = _API["lrc"]
     data = {"song_id": song_id, "lrc": lrc}
     return await Api(**api, credential=credential).update_data(**data).result
 
 
-async def get_upinfo(param: Union[int, str], credential: Credential) -> List[dict]:
+async def get_upinfo(param: int | str, credential: Credential) -> list[dict]:
     """
     获取 UP 信息
 
     Args:
-        param (Union[int, str]): UP 主 ID 或者用户名
-
+        param (int | str): UP 主 ID 或者用户名
         credential (Credential): 凭据
+
+    Returns:
+        list[dict]: 调用 API 获得的结果
     """
     api = _API["upinfo"]
     data = {"param": param}
@@ -825,10 +821,10 @@ async def upload_cover(cover: Picture, credential: Credential) -> str:
     """
     api = _API["image"]
     # 小于 3MB
-    raise_for_statement(len(cover.content) < 1024 * 1024 * 3, "3MB size limit")
+    raise_for_statement(len(await cover.content()) < 1024 * 1024 * 3, "3MB size limit")
     # 宽高比 1:1
     raise_for_statement(
         cover.width == cover.height, "width == height, 600 * 600 recommended"
     )
-    files = {"file": cover._to_biliapifile()}
+    files = {"file": await cover.to_biliapifile()}
     return await Api(**api, credential=credential).update_files(**files).result

@@ -36,7 +36,7 @@ from bilibili_api import rank
 
 ## class LiveEnergyRankType()
 
-**Extend: enum.Enum**
+> Extend: `enum.Enum`
 
 直播超能用户榜类型
 
@@ -50,7 +50,7 @@ from bilibili_api import rank
 
 ## class LiveRankType()
 
-**Extend: enum.Enum**
+> Extend: `enum.Enum`
 
 直播通用榜类型
 
@@ -67,7 +67,7 @@ from bilibili_api import rank
 
 ## class MangeRankType()
 
-**Extend: enum.Enum**
+> Extend: `enum.Enum`
 
 漫画排行榜类型
 
@@ -87,7 +87,7 @@ from bilibili_api import rank
 
 ## class RankAPIType()
 
-**Extend: enum.Enum**
+> Extend: `enum.Enum`
 
 排行榜 API 接口类型
 
@@ -101,7 +101,7 @@ from bilibili_api import rank
 
 ## class RankDayType()
 
-**Extend: enum.Enum**
+> Extend: `enum.Enum`
 
 RankAPIType.PGC 排行榜时间类型
 
@@ -115,7 +115,7 @@ RankAPIType.PGC 排行榜时间类型
 
 ## class RankType()
 
-**Extend: enum.Enum**
+> Extend: `enum.Enum`
 
 排行榜类型
 
@@ -152,7 +152,7 @@ RankAPIType.PGC 排行榜时间类型
 
 ## class VIPRankType()
 
-**Extend: enum.Enum**
+> Extend: `enum.Enum`
 
 大会员中心热播榜单类型，即 rank_id
 
@@ -176,9 +176,9 @@ RankAPIType.PGC 排行榜时间类型
 
 | name | type | description |
 | - | - | - |
-| `date` | `LiveEnergyRankType` | 月份. Defaults to LiveEnergyRankType.MONTH |
-| `pn` | `int` | 页码. Defaults to 1 |
-| `ps` | `int` | 每页数量. Defaults to 20 |
+| `date` | `LiveEnergyRankType, optional` | 月份. Defaults to LiveEnergyRankType.MONTH. |
+| `pn` | `int, optional` | 页码. Defaults to 1. |
+| `ps` | `int, optional` | 每页数量. Defaults to 20. |
 
 **Returns:** `dict`:  调用 API 返回的结果
 
@@ -207,9 +207,9 @@ RankAPIType.PGC 排行榜时间类型
 
 | name | type | description |
 | - | - | - |
-| `_type` | `LiveRankType` | 榜单类型. Defaults to LiveRankType.VALUE |
-| `pn` | `int` | 页码. Defaults to 1 |
-| `ps` | `int` | 每页数量. Defaults to 20 |
+| `_type` | `LiveRankType, optional` | 榜单类型. Defaults to LiveRankType.SAIL_BOAT_VALUE. |
+| `pn` | `int, optional` | 页码. Defaults to 1. |
+| `ps` | `int, optional` | 每页数量. Defaults to 20. |
 
 **Returns:** `dict`:  调用 API 返回的结果
 
@@ -238,8 +238,8 @@ RankAPIType.PGC 排行榜时间类型
 
 | name | type | description |
 | - | - | - |
-| `pn` | `int` | 页码. Defaults to 1 |
-| `ps` | `int` | 每页数量. Defaults to 20 |
+| `pn` | `int, optional` | 页码. Defaults to 1. |
+| `ps` | `int, optional` | 每页数量. Defaults to 20. |
 
 **Returns:** `dict`:  调用 API 返回的结果
 
@@ -255,7 +255,8 @@ RankAPIType.PGC 排行榜时间类型
 
 | name | type | description |
 | - | - | - |
-| `credential` | `Credential` | 凭据类 |
+| `type_` | `MangeRankType, optional` | 排行榜类型. Defaults to MangeRankType.NEW. |
+| `credential` | `Credential \| None, optional` | 凭据类. Defaults to None. |
 
 **Returns:** `dict`:  调用 API 返回的结果
 
@@ -284,7 +285,7 @@ RankAPIType.PGC 排行榜时间类型
 
 | name | type | description |
 | - | - | - |
-| `week` | `int` | 第几周. Defaults to 1. |
+| `week` | `int, optional` | 第几周. Defaults to 1. |
 
 **Returns:** `dict`:  调用 API 返回的结果
 
@@ -300,7 +301,7 @@ RankAPIType.PGC 排行榜时间类型
 
 | name | type | description |
 | - | - | - |
-| `week` | `int` | 第几周. Defaults to 1. |
+| `week` | `int, optional` | 第几周. Defaults to 1. |
 
 **Returns:** `dict`:  调用 API 返回的结果
 
@@ -347,8 +348,8 @@ https://www.bilibili.com/v/popular/drama/
 
 | name | type | description |
 | - | - | - |
-| `type_` | `RankType` | 排行榜类型. Defaults to RankType.All |
-| `day` | `RankDayType` | 排行榜时间. Defaults to RankDayType.THREE_DAY. 仅对 api_type 为 RankAPIType.PGC 有效 |
+| `type_` | `RankType, optional` | 排行榜类型. Defaults to RankType.All. |
+| `day` | `RankDayType, optional` | 排行榜时间. PGC 有效. Defaults to RankDayType.THREE_DAY. |
 
 **Returns:** `dict`:  调用 API 返回的结果
 
@@ -364,7 +365,7 @@ https://www.bilibili.com/v/popular/drama/
 
 | name | type | description |
 | - | - | - |
-| `type_` | `VIPRankType` | 排行榜类型. Defaults to VIPRankType.VIP |
+| `type_` | `VIPRankType, optional` | 排行榜类型. Defaults to VIPRankType.VIP. |
 
 **Returns:** `dict`:  调用 API 返回的结果
 
@@ -380,8 +381,10 @@ https://www.bilibili.com/v/popular/drama/
 
 | name | type | description |
 | - | - | - |
-| `status` | `bool` | 关注状态. Defaults to True. |
-| `credential` | `Credential` | 凭据类. Defaults to None. |
+| `status` | `bool, optional` | 关注状态. Defaults to True. |
+| `credential` | `Credential \| None, optional` | 凭据类. Defaults to None. |
+
+**Returns:** `dict`:  调用 API 返回的结果
 
 
 

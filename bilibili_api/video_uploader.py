@@ -4,29 +4,38 @@ bilibili_api.video_uploader
 视频上传
 """
 
-import os
-import json
-import time
 import base64
-import re
-import asyncio
-from enum import Enum
-from typing import List, Union, Optional
 from copy import copy, deepcopy
-from asyncio.tasks import Task, create_task
-from asyncio.exceptions import CancelledError
 from datetime import datetime
+from enum import Enum
+import json
+import os
+import re
+import time
 
-from .video import Video
-from .topic import Topic
-from .utils.utils import get_api
-from .utils.picture import Picture
-from .utils.AsyncEvent import AsyncEvent
-from .utils.aid_bvid_transformer import bvid2aid
+import anyio
+from frozendict import frozendict
+
 from .exceptions.ApiException import ApiException
-from .utils.network import Api, get_client, Credential, request_settings
 from .exceptions.NetworkException import NetworkException
 from .exceptions.ResponseCodeException import ResponseCodeException
+from .topic import Topic
+from .utils.aid_bvid_transformer import bvid2aid
+from .utils.network import (
+    Api,
+    AsyncEvent,
+    Credential,
+    get_client,
+    get_force_settings,
+    get_instance_settings,
+    get_selected_instance,
+    new_instance,
+    remove_instance,
+    select_instance,
+)
+from .utils.picture import Picture
+from .utils.utils import get_api, get_data
+from .video import Video
 
 _API = get_api("video_uploader")
 
@@ -35,15 +44,19 @@ async def upload_cover(cover: Picture, credential: Credential) -> str:
     """
     上传封面
 
+    Args:
+        cover (Picture): 图片类。
+        credential (Credential): 凭据类。
+
     Returns:
         str: 封面 URL
     """
     credential.raise_for_no_bili_jct()
     api = _API["cover_up"]
     pic = cover if isinstance(cover, Picture) else Picture().from_file(cover)
-    cover = pic.convert_format("png")
+    cover = pic.set_extension("png")
     data = {
-        "cover": f'data:image/png;base64,{base64.b64encode(pic.content).decode("utf-8")}'
+        "cover": f"data:image/png;base64,{base64.b64encode(await pic.content()).decode('utf-8')}"
     }
     return (await Api(**api, credential=credential).update_data(**data).result)["url"]
 
@@ -66,11 +79,7 @@ class Lines(Enum):
     BLDSA = "bldsa"
 
 
-with open(
-    os.path.join(os.path.dirname(__file__), "data/video_uploader_lines.json"),
-    encoding="utf8",
-) as f:
-    LINES_INFO = json.loads(f.read())
+LINES_INFO: dict[str, dict] = get_data("video_uploader_lines.json")  # type: ignore
 
 
 async def _probe() -> dict:
@@ -82,8 +91,12 @@ async def _probe() -> dict:
     # api = _API["probe"]
     # info = await Api(**api).update_params(r="probe").result # 不实时获取线路直接用 LINES_INFO
     min_cost, fastest_line = 30, None
-    legacy_timeout = request_settings.get_timeout()
-    request_settings.set_timeout(30) # 测试时设置为 30
+    legacy_instance = get_selected_instance()
+    new_instance("_VideoUploader_probe")
+    settings = get_instance_settings(instance=legacy_instance).all()
+    get_instance_settings().sets(settings)
+    get_force_settings().set_timeout(30)  # 测试时设置为 30
+    min_cost, fastest_line = 432432432, {}
     for line in LINES_INFO.values():
         start = time.perf_counter()
         data = bytes(int(1024 * 0.1 * 1024))  # post 0.1MB
@@ -91,19 +104,21 @@ async def _probe() -> dict:
         try:
             await client.request(
                 method="POST",
-                url=f'https:{line["probe_url"]}',
+                url=f"https:{line['probe_url']}",
                 data=data,
             )
             cost_time = time.perf_counter() - start
         except Exception:
-            cost_time = request_settings.get_timeout()
+            cost_time = 30
         if cost_time < min_cost:
             min_cost, fastest_line = cost_time, line
-    request_settings.set_timeout(legacy_timeout)
+    await get_client().close()
+    remove_instance("_VideoUploader_probe")
+    select_instance(legacy_instance)
     return fastest_line
 
 
-async def _choose_line(line: Lines) -> dict:
+async def _choose_line(line: Lines | None) -> dict:
     """
     选择线路，不存在则直接测速自动选择
     """
@@ -119,20 +134,20 @@ class VideoUploaderPage:
     分 P 对象
     """
 
-    def __init__(self, path: str, title: str, description: str = ""):
+    def __init__(self, path: str, title: str, description: str = "") -> None:
         """
         Args:
             path (str): 视频文件路径
-            title        (str)           : 视频标题
-            description  (str, optional) : 视频简介. Defaults to "".
+            title (str): 视频标题
+            description (str, optional): 视频简介. Defaults to ''.
         """
         self.path = path
         self.title: str = title
         self.description: str = description
 
-        self.cached_size: Union[int, None] = None
+        self.cached_size: int | None = None
 
-    def get_size(self) -> int:
+    async def get_size(self) -> int:
         """
         获取文件大小
 
@@ -143,16 +158,16 @@ class VideoUploaderPage:
             return self.cached_size
 
         size: int = 0
-        stream = open(self.path, "rb")
+        stream = await anyio.open_file(self.path, "rb")
         while True:
-            s: bytes = stream.read(1024)
+            s: bytes = await stream.read(1024)
 
             if not s:
                 break
 
             size += len(s)
 
-        stream.close()
+        await stream.aclose()
 
         self.cached_size = size
         return size
@@ -211,9 +226,16 @@ class VideoUploaderEvents(Enum):
     FAILED = "FAILED"
 
 
-async def get_available_topics(tid: int, credential: Credential) -> List[dict]:
+async def get_available_topics(tid: int, credential: Credential) -> list[dict]:
     """
     获取可用 topic 列表
+
+    Args:
+        tid (int): 分区 id.
+        credential (Credential): 凭据类。
+
+    Returns:
+        list[dict]: 调用 API 返回的结果。
     """
     credential.raise_for_no_sessdata()
     api = _API["available_topics"]
@@ -223,7 +245,7 @@ async def get_available_topics(tid: int, credential: Credential) -> List[dict]:
     ]
 
 
-class VideoPorderType:
+class VideoPorderType(Enum):
     """
     视频商业类型
 
@@ -231,14 +253,16 @@ class VideoPorderType:
     + OTHER: 其他
     """
 
-    FIREWORK = {"flow_id": 1}
-    OTHER = {
-        "flow_id": 1,
-        "industry_id": None,
-        "official": None,
-        "brand_name": None,
-        "show_type": [],
-    }
+    FIREWORK = frozendict({"flow_id": 1})
+    OTHER = frozendict(
+        {
+            "flow_id": 1,
+            "industry_id": None,
+            "official": None,
+            "brand_name": None,
+            "show_type": [],
+        }
+    )
 
 
 class VideoPorderIndustry(Enum):
@@ -312,32 +336,35 @@ class VideoPorderMeta:
     视频商业相关参数
     """
 
-    flow_id: int
-    industry_id: Optional[int] = None
-    official: Optional[int] = None
-    brand_name: Optional[str] = None
-    show_types: List[VideoPorderShowType] = []
-
-    __info: dict = None
-
     def __init__(
         self,
-        porden_type: VideoPorderType = VideoPorderType.FIREWORK,
-        industry_type: Optional[VideoPorderIndustry] = None,
-        brand_name: Optional[str] = None,
-        show_types: List[VideoPorderShowType] = [],
-    ):
-        self.flow_id = 1
-        self.__info = porden_type.value
-        if porden_type == VideoPorderType.OTHER:
+        porder_type: VideoPorderType = VideoPorderType.FIREWORK,
+        industry_type: VideoPorderIndustry | None = None,
+        brand_name: str | None = None,
+        show_types: list[VideoPorderShowType] | None = None,
+    ) -> None:
+        """
+        Args:
+            porder_type (VideoPorderType, optional): 商业平台类型. Defaults to VideoPorderType.FIREWORK.
+            industry_type (video_uploader.VideoPorderIndustry | None, optional): 商单行业，非花火填写. Defaults to None.
+            brand_name (str | None, optional): 品牌名，非花火填写. Defaults to None.
+            show_types (list[video_uploader.VideoPorderShowType] | None, optional): 商单形式，非花火填写. Defaults to None.
+        """
+        self.__info: dict = dict(porder_type.value)
+        if porder_type == VideoPorderType.OTHER:
+            if not industry_type:
+                raise ApiException("未提供商单行业")
+            if not brand_name:
+                raise ApiException("未提供品牌名")
             self.__info["industry"] = industry_type.value
             self.__info["brand_name"] = brand_name
+            show_types = show_types or []
             self.__info["show_types"] = ",".join(
-                [show_type.value for show_type in show_types]
+                [str(show_type.value) for show_type in show_types]
             )
 
-    def __dict__(self) -> dict:
-        return self.__info
+    def __dict__(self) -> dict:  # type: ignore
+        return copy(self.__info)
 
 
 class VideoMeta:
@@ -348,26 +375,26 @@ class VideoMeta:
     tid: int  # 分区 ID。可以使用 channel 模块进行查询。
     title: str  # 视频标题
     desc: str  # 视频简介。
-    cover: Picture  # 封面 URL
-    tags: Union[List[str], str]  # 视频标签。使用英文半角逗号分隔的标签组。
-    topic_id: Optional[int] = None  # 可选，话题 ID。
-    mission_id: Optional[int] = None  # 可选，任务 ID。
+    cover: Picture | str  # 封面 URL
+    tags: list[str] | str  # 视频标签。使用英文半角逗号分隔的标签组。
+    topic_id: int | None = None  # 可选，话题 ID。
+    mission_id: int | None = None  # 可选，任务 ID。
     original: bool = True  # 可选，是否为原创视频。
-    source: Optional[str] = None  # 可选，视频来源。
-    recreate: Optional[bool] = False  # 可选，是否允许重新上传。
-    no_reprint: Optional[bool] = False  # 可选，是否禁止转载。
-    open_elec: Optional[bool] = False  # 可选，是否展示充电信息。
-    up_selection_reply: Optional[bool] = False  # 可选，是否开启评论精选。
-    up_close_danmu: Optional[bool] = False  # 可选，是否关闭弹幕。
-    up_close_reply: Optional[bool] = False  # 可选，是否关闭评论。
-    lossless_music: Optional[bool] = False  # 可选，是否启用无损音乐。
-    dolby: Optional[bool] = False  # 可选，是否启用杜比音效。
-    subtitle: Optional[dict] = None  # 可选，字幕设置。
-    dynamic: Optional[str] = None  # 可选，动态信息。
-    neutral_mark: Optional[str] = None  # 可选，创作者声明。
-    delay_time: Optional[Union[int, datetime]] = None  # 可选，定时发布时间戳（秒）。
-    porder: Optional[VideoPorderMeta] = None  # 可选，商业相关参数。
-    watermark: Optional[bool] = False  # 可选，水印
+    source: str | None = None  # 可选，视频来源。
+    recreate: bool | None = False  # 可选，是否允许重新上传。
+    no_reprint: bool | None = False  # 可选，是否禁止转载。
+    open_elec: bool | None = False  # 可选，是否展示充电信息。
+    up_selection_reply: bool | None = False  # 可选，是否开启评论精选。
+    up_close_danmu: bool | None = False  # 可选，是否关闭弹幕。
+    up_close_reply: bool | None = False  # 可选，是否关闭评论。
+    lossless_music: bool | None = False  # 可选，是否启用无损音乐。
+    dolby: bool | None = False  # 可选，是否启用杜比音效。
+    subtitle: dict | None = None  # 可选，字幕设置。
+    dynamic: str | None = None  # 可选，动态信息。
+    neutral_mark: str | None = None  # 可选，创作者声明。
+    delay_time: int | datetime | None = None  # 可选，定时发布时间戳（秒）。
+    porder: VideoPorderMeta | None = None  # 可选，商业相关参数。
+    watermark: bool | None = False  # 可选，水印
 
     __credential: Credential
     __pre_info = dict
@@ -377,28 +404,26 @@ class VideoMeta:
         tid: int,  # 分区 ID。可以使用 channel 模块进行查询。
         title: str,  # 视频标题
         desc: str,  # 视频简介。
-        cover: Union[Picture, str],  # 封面 URL
-        tags: Union[List[str], str],  # 视频标签。使用英文半角逗号分隔的标签组。
-        topic: Optional[Union[int, Topic]] = None,  # 可选，话题 ID。
-        mission_id: Optional[int] = None,  # 可选，任务 ID。
+        cover: Picture | str,  # 封面 URL
+        tags: list[str] | str,  # 视频标签。使用英文半角逗号分隔的标签组。
+        topic: int | Topic | None = None,  # 可选，话题 ID。
+        mission_id: int | None = None,  # 可选，任务 ID。
         original: bool = True,  # 可选，是否为原创视频。
-        source: Optional[str] = None,  # 可选，视频来源。
-        recreate: Optional[bool] = False,  # 可选，是否允许重新上传。
-        no_reprint: Optional[bool] = False,  # 可选，是否禁止转载。
-        open_elec: Optional[bool] = False,  # 可选，是否展示充电信息。
-        up_selection_reply: Optional[bool] = False,  # 可选，是否开启评论精选。
-        up_close_danmu: Optional[bool] = False,  # 可选，是否关闭弹幕。
-        up_close_reply: Optional[bool] = False,  # 可选，是否关闭评论。
-        lossless_music: Optional[bool] = False,  # 可选，是否启用无损音乐。
-        dolby: Optional[bool] = False,  # 可选，是否启用杜比音效。
-        subtitle: Optional[dict] = None,  # 可选，字幕设置。
-        dynamic: Optional[str] = None,  # 可选，动态信息。
-        neutral_mark: Optional[str] = None,  # 可选，中性化标签。
-        delay_time: Optional[
-            Union[int, datetime]
-        ] = None,  # 可选，定时发布时间戳（秒）。
-        porder: Optional[VideoPorderMeta] = None,  # 可选，商业相关参数。
-        watermark: Optional[bool] = False, # 可选，水印
+        source: str | None = None,  # 可选，视频来源。
+        recreate: bool | None = False,  # 可选，是否允许重新上传。
+        no_reprint: bool | None = False,  # 可选，是否禁止转载。
+        open_elec: bool | None = False,  # 可选，是否展示充电信息。
+        up_selection_reply: bool | None = False,  # 可选，是否开启评论精选。
+        up_close_danmu: bool | None = False,  # 可选，是否关闭弹幕。
+        up_close_reply: bool | None = False,  # 可选，是否关闭评论。
+        lossless_music: bool | None = False,  # 可选，是否启用无损音乐。
+        dolby: bool | None = False,  # 可选，是否启用杜比音效。
+        subtitle: dict | None = None,  # 可选，字幕设置。
+        dynamic: str | None = None,  # 可选，动态信息。
+        neutral_mark: str | None = None,  # 可选，中性化标签。
+        delay_time: int | datetime | None = None,  # 可选，定时发布时间戳（秒）。
+        porder: VideoPorderMeta | None = None,  # 可选，商业相关参数。
+        watermark: bool | None = False,  # 可选，水印
     ) -> None:
         """
         基本视频上传参数
@@ -407,50 +432,28 @@ class VideoMeta:
 
         Args:
             tid (int): 分区 id
-
             title (str): 视频标题，最多 80 字
-
             desc (str): 视频简介，最多 2000 字
-
-            cover (Union[Picture, str]): 封面，可以传入路径
-
-            tags (List[str], str): 标签列表，传入 List 或者传入 str 以 "," 为分隔符，至少 1 个 Tag，最多 10 个
-
-            topic (Optional[Union[int, Topic]]): 活动主题，应该从 video_uploader.get_available_topics(tid) 获取，可选
-
-            mission_id (Optional[int]): 任务 id，与 topic 一同获取传入
-
-            original (bool): 是否原创，默认原创
-
-            source (Optional[str]): 转载来源，非原创应该提供
-
-            recreate (Optional[bool]): 是否允许转载. 可选，默认为不允许二创
-
-            no_reprint (Optional[bool]): 未经允许是否禁止转载. 可选，默认为允许转载
-
-            open_elec (Optional[bool]): 是否开启充电. 可选，默认为关闭充电
-
-            up_selection_reply (Optional[bool]): 是否开启评论精选. 可选，默认为关闭评论精选
-
-            up_close_danmu (Optional[bool]): 是否关闭弹幕. 可选，默认为开启弹幕
-
-            up_close_reply (Optional[bool]): 是否关闭评论. 可选，默认为开启评论
-
-            lossless_music (Optional[bool]): 是否开启无损音乐. 可选，默认为关闭无损音乐
-
-            dolby (Optional[bool]): 是否开启杜比音效. 可选，默认为关闭杜比音效
-
-            subtitle (Optional[dict]): 字幕信息，可选
-
-            dynamic (Optional[str]): 粉丝动态，可选，最多 233 字
-
-            neutral_mark (Optional[str]): 创作者声明，可选
-
-            delay_time (Optional[Union[int, datetime]]): 定时发布时间，可选
-
-            porder (Optional[VideoPorderMeta]): 商业相关参数，可选
-
-            watermark (Optional[bool]): 是否添加水印，可选，默认为没有水印
+            cover (Picture | str): 封面，可以传入路径
+            tags (list[str] | str): 标签列表，传入 List 或者传入 str 以 "," 为分隔符，至少 1 个 Tag，最多 10 个
+            topic (int | topic.Topic | None, optional): 活动主题，应该从 video_uploader.get_available_topics(tid) 获取，可选. Defaults to None.
+            mission_id (int | None, optional): 任务 id，与 topic 一同获取传入. Defaults to None.
+            original (bool, optional): 是否原创，默认原创. Defaults to True.
+            source (str | None, optional): 转载来源，非原创应该提供. Defaults to None.
+            recreate (bool | None, optional): 是否允许转载. 可选，默认为不允许二创. Defaults to False.
+            no_reprint (bool | None, optional): 未经允许是否禁止转载. 可选，默认为允许转载. Defaults to False.
+            open_elec (bool | None, optional): 是否开启充电. 可选，默认为关闭充电. Defaults to False.
+            up_selection_reply (bool | None, optional): 是否开启评论精选. 可选，默认为关闭评论精选. Defaults to False.
+            up_close_danmu (bool | None, optional): 是否关闭弹幕. 可选，默认为开启弹幕. Defaults to False.
+            up_close_reply (bool | None, optional): 是否关闭评论. 可选，默认为开启评论. Defaults to False.
+            lossless_music (bool | None, optional): 是否开启无损音乐. 可选，默认为关闭无损音乐. Defaults to False.
+            dolby (bool | None, optional): 是否开启杜比音效. 可选，默认为关闭杜比音效. Defaults to False.
+            subtitle (dict | None, optional): 字幕信息，可选. Defaults to None.
+            dynamic (str | None, optional): 粉丝动态，可选，最多 233 字. Defaults to None.
+            neutral_mark (str | None, optional): 创作者声明，可选. Defaults to None.
+            delay_time (int | datetime.datetime | None, optional): 定时发布时间，可选. Defaults to None.
+            porder (video_uploader.VideoPorderMeta | None, optional): 商业相关参数，可选. Defaults to None.
+            watermark (bool | None, optional): 是否添加水印，可选，默认为没有水印. Defaults to False.
         """
         if isinstance(tid, int):
             self.tid = tid
@@ -471,10 +474,7 @@ class VideoMeta:
         else:
             raise ValueError("tags 不合法或者多于 10 个")
 
-        if isinstance(cover, str):
-            self.cover = Picture().from_file(cover)
-        elif isinstance(cover, Picture):
-            self.cover = cover
+        self.cover = cover
         if topic is not None:
             self.mission_id = mission_id
             if isinstance(topic, int):
@@ -523,7 +523,7 @@ class VideoMeta:
         self.porder = porder if isinstance(porder, dict) else None
         self.watermark = watermark
 
-    def __dict__(self) -> dict:
+    def __dict__(self) -> dict:  # type: ignore
         meta = {
             "title": self.title,
             "copyright": 1 if self.original else 2,
@@ -577,20 +577,14 @@ class VideoMeta:
         """
         api = _API["pre"]
         self.__pre_info = await Api(**api, credential=self.__credential).result
-        return self.__pre_info
+        return copy(self.__pre_info)
 
     def _check_tid(self) -> bool:
         """
         检查 tid 是否合法
         """
-        with open(
-            os.path.join(
-                os.path.dirname(__file__), "data/video_uploader_meta_pre.json"
-            ),
-            encoding="utf8",
-        ) as f:
-            self.__pre_info = json.load(f)
-        type_list = self.__pre_info["tid_list"]
+        self.__pre_info = get_data("video_uploader_meta_pre.json")
+        type_list = self.__pre_info["tid_list"]  # type: ignore
         for parent_type in type_list:
             for child_type in parent_type["children"]:
                 if child_type["id"] == self.tid:
@@ -602,6 +596,8 @@ class VideoMeta:
         检查封面是否合法
         """
         try:
+            if isinstance(self.cover, str):
+                self.cover = Picture.from_file(self.cover)
             await upload_cover(self.cover, self.__credential)
             return True
         except Exception:
@@ -621,7 +617,7 @@ class VideoMeta:
             .result
         )["code"] == 0
 
-    async def _check_tags(self) -> List[str]:
+    async def _check_tags(self) -> list[str]:
         """
         检查所有 tag 是否合法
         """
@@ -631,7 +627,7 @@ class VideoMeta:
             if await self._check_tag_name(tag, self.__credential)
         ]
 
-    async def _check_topic_to_mission(self) -> Union[int, bool]:
+    async def _check_topic_to_mission(self) -> int | bool:
         """
         检查 topic -> mission 是否存在
         """
@@ -652,6 +648,12 @@ class VideoMeta:
         检测 tags、delay_time、topic -> mission、cover 和 tid
 
         验证失败会抛出异常
+
+        Args:
+            credential (Credential): 凭据类。
+
+        Returns:
+            bool: 是否可以使用 (False 则抛出异常)
         """
         credential.raise_for_no_sessdata()
         self.__credential = credential
@@ -659,7 +661,7 @@ class VideoMeta:
         # await self._pre() # 缓存于 bilibili_api\data\video_uploader_meta_pre.json
         error_tags = await self._check_tags()
         if len(error_tags) != 0:
-            raise ValueError(f'以下 tags 不合法: {",".join(error_tags)}')
+            raise ValueError(f"以下 tags 不合法: {','.join(error_tags)}")
 
         if not self._check_tid():
             raise ValueError(f"tid {self.tid} 不合法")
@@ -676,9 +678,14 @@ class VideoMeta:
             raise ValueError(f"封面不合法 {self.cover.__repr__()}")
 
         if self.delay_time is not None:
-            if self.delay_time < int(time.time()) + 7200:
+            delay_time = (
+                self.delay_time
+                if isinstance(self.delay_time, int)
+                else self.delay_time.timestamp()
+            )
+            if delay_time < int(time.time()) + 7200:
                 raise ValueError("delay_time 不能小于两小时")
-            if self.delay_time > int(time.time()) + 3600 * 24 * 15:
+            if delay_time > int(time.time()) + 3600 * 24 * 15:
                 raise ValueError("delay_time 不能大于十五天")
         return True
 
@@ -689,37 +696,27 @@ class VideoUploader(AsyncEvent):
 
     Attributes:
         pages        (List[VideoUploaderPage]): 分 P 列表
-
         meta         (VideoMeta, dict)        : 视频信息
-
         credential   (Credential)             : 凭据
-
         cover_path   (str)                    : 封面路径
-
         line         (Lines, Optional)        : 线路. Defaults to None. 不选择则自动测速选择
     """
 
     def __init__(
         self,
-        pages: List[VideoUploaderPage],
-        meta: Union[VideoMeta, dict],
+        pages: list[VideoUploaderPage],
+        meta: VideoMeta | dict,
         credential: Credential,
-        cover: Optional[Union[str, Picture]] = "",
-        line: Optional[Lines] = None,
-    ):
+        cover: str | Picture | None = "",
+        line: Lines | None = None,
+    ) -> None:
         """
         Args:
-            pages        (List[VideoUploaderPage]): 分 P 列表
-
-            meta         (VideoMeta, dict)        : 视频信息
-
-            credential   (Credential)             : 凭据
-
-            cover        (Union[str, Picture])    : 封面路径或者封面对象. Defaults to ""，传入 meta 类型为 VideoMeta 时可不传
-
-            line         (Lines, Optional)        : 线路. Defaults to None. 不选择则自动测速选择
-
-        建议传入 VideoMeta 对象，避免参数有误
+            pages (list[video_uploader.VideoUploaderPage]): 分 P 列表
+            meta (video_uploader.VideoMeta | dict): 视频信息
+            credential (Credential): 凭据
+            cover (str | Picture | None, optional): 封面路径或者封面对象. Defaults to ''.
+            line (video_uploader.Lines | None, optional): 线路.  不选择则自动测速选择. Defaults to None.
 
         meta 参数示例：
 
@@ -753,13 +750,9 @@ class VideoUploader(AsyncEvent):
         self.meta = meta
         self.pages = pages
         self.credential: Credential = credential
-        self.cover = (
-            self.meta.cover
-            if isinstance(self.meta, VideoMeta)
-            else cover if isinstance(cover, Picture) else Picture().from_file(cover)
-        )
-        self.line = line
-        self.__task: Union[Task, None] = None
+        self.cover = self.meta.cover if isinstance(self.meta, VideoMeta) else cover
+        self.line_choice = line
+        self.line: dict = {}
 
     async def _preupload(self, page: VideoUploaderPage) -> dict:
         """
@@ -780,7 +773,7 @@ class VideoUploader(AsyncEvent):
             params={
                 "profile": "ugcfx/bup",
                 "name": os.path.basename(page.path),
-                "size": page.get_size(),
+                "size": await page.get_size(),
                 "r": self.line["os"],
                 "ssl": "0",
                 "version": "2.14.0",
@@ -788,7 +781,7 @@ class VideoUploader(AsyncEvent):
                 "upcdn": self.line["upcdn"],
                 "probe_version": self.line["probe_version"],
             },
-            cookies=await self.credential.get_buvid_cookies(),
+            cookies=await self.credential.get_cookies(),
             headers={
                 "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36 Edg/131.0.0.0",
                 "Referer": "https://www.bilibili.com",
@@ -820,7 +813,7 @@ class VideoUploader(AsyncEvent):
                 "uploads": "",
                 "output": "json",
                 "profile": "ugcfx/bup",
-                "filesize": page.get_size(),
+                "filesize": await page.get_size(),
                 "partsize": preupload["chunk_size"],
                 "biz_id": preupload["biz_id"],
             },
@@ -978,25 +971,17 @@ class VideoUploader(AsyncEvent):
         self.dispatch(VideoUploaderEvents.COMPLETED.value, result)
         return result
 
-    async def start(self) -> dict:  # type: ignore
+    async def start(self) -> dict | None:
         """
         开始上传
 
         Returns:
-            dict: 返回带有 bvid 和 aid 的字典。
+            dict | None: 返回带有 bvid 和 aid 的字典。若取消或失败返回 None。
         """
-
-        self.line = await _choose_line(self.line)
-        task = create_task(self._main())
-        self.__task = task
+        self.line = await _choose_line(self.line_choice)
 
         try:
-            result = await task
-            self.__task = None
-            return result
-        except CancelledError:
-            # 忽略 task 取消异常
-            pass
+            return await self.async_event_start(self._main())
         except Exception as e:
             self.dispatch(VideoUploaderEvents.FAILED.value, {"err": e})
             raise e
@@ -1010,7 +995,9 @@ class VideoUploader(AsyncEvent):
         """
         self.dispatch(VideoUploaderEvents.PRE_COVER.value, None)
         try:
-            cover_url = await upload_cover(cover=self.cover, credential=self.credential)
+            if isinstance(self.cover, str):
+                self.cover = Picture.from_file(self.cover)
+            cover_url = await upload_cover(cover=self.cover, credential=self.credential)  # type: ignore
             self.dispatch(VideoUploaderEvents.AFTER_COVER.value, {"url": cover_url})
             return cover_url
         except Exception as e:
@@ -1030,7 +1017,7 @@ class VideoUploader(AsyncEvent):
         preupload = await self._preupload(page)
         self.dispatch(VideoUploaderEvents.PRE_PAGE.value, {"page": page})
 
-        page_size = page.get_size()
+        page_size = await page.get_size()
         # 所有分块起始位置
         chunk_offset_list = list(range(0, page_size, preupload["chunk_size"]))
         # 分块总数
@@ -1051,12 +1038,13 @@ class VideoUploader(AsyncEvent):
             chunk_number += 1
 
         while chunks_pending:
-            tasks = []
-
-            while len(tasks) < preupload["threads"] and len(chunks_pending) > 0:
-                tasks.append(create_task(chunks_pending.pop()))
-
-            result = await asyncio.gather(*tasks)
+            tasks: list[anyio.TaskHandle] = []
+            async with anyio.create_task_group() as tg:
+                while len(tasks) < preupload["threads"] and len(chunks_pending) > 0:
+                    tasks.append(tg.create_task(chunks_pending.pop()))
+            result = []
+            for task in tasks:
+                result.append(task.return_value)
 
             for r in result:
                 if not r["ok"]:
@@ -1078,20 +1066,20 @@ class VideoUploader(AsyncEvent):
         return data
 
     @staticmethod
-    def _switch_upload_endpoint(preupload: dict, line: dict = None) -> dict:
+    def _switch_upload_endpoint(preupload: dict, line: dict | None = None) -> dict:
         # 替换线路 endpoint
         if line is not None and re.match(
             r"//upos-(sz|cs)-upcdn(bda2|ws|qn)\.bilivideo\.com", preupload["endpoint"]
         ):
             preupload["endpoint"] = re.sub(
-                r"upcdn(bda2|qn|ws)", f'upcdn{line["upcdn"]}', preupload["endpoint"]
+                r"upcdn(bda2|qn|ws)", f"upcdn{line['upcdn']}", preupload["endpoint"]
             )
         return preupload  # tbh not needed since it is ref type
 
     @staticmethod
     def _get_upload_url(preupload: dict) -> str:
         # 上传目标 URL
-        return f'https:{preupload["endpoint"]}/{preupload["upos_uri"].removeprefix("upos://")}'
+        return f"https:{preupload['endpoint']}/{preupload['upos_uri'].removeprefix('upos://')}"
 
     async def _upload_chunk(
         self,
@@ -1123,10 +1111,9 @@ class VideoUploader(AsyncEvent):
         self.dispatch(VideoUploaderEvents.PRE_CHUNK.value, chunk_event_callback_data)
         session = get_client()
 
-        stream = open(page.path, "rb")
-        stream.seek(offset)
-        chunk = stream.read(preupload["chunk_size"])
-        stream.close()
+        async with await anyio.open_file(page.path, "rb") as stream:
+            await stream.seek(offset)
+            chunk = await stream.read(preupload["chunk_size"])
 
         # 上传目标 URL
         preupload = self._switch_upload_endpoint(preupload, self.line)
@@ -1149,7 +1136,7 @@ class VideoUploader(AsyncEvent):
             "size": str(real_chunk_size),
             "start": str(offset),
             "end": str(offset + real_chunk_size),
-            "total": page.get_size(),
+            "total": await page.get_size(),
         }
 
         ok_return = {
@@ -1216,9 +1203,7 @@ class VideoUploader(AsyncEvent):
         self.dispatch(VideoUploaderEvents.PRE_PAGE_SUBMIT.value, {"page": page})
 
         data = {
-            "parts": list(
-                map(lambda x: {"partNumber": x, "eTag": "etag"}, range(1, chunks + 1))
-            )
+            "parts": [{"partNumber": x, "eTag": "etag"} for x in range(1, chunks + 1)]
         }
 
         params = {
@@ -1255,7 +1240,7 @@ class VideoUploader(AsyncEvent):
         data = resp.json()
 
         if data["OK"] != 1:
-            err = ResponseCodeException(-1, f'提交分 P 失败，原因: {data["message"]}')
+            err = ResponseCodeException(-1, f"提交分 P 失败，原因: {data['message']}")
             self.dispatch(
                 VideoUploaderEvents.PAGE_SUBMIT_FAILED.value,
                 {"page": page, "err": err},
@@ -1312,34 +1297,28 @@ class VideoUploader(AsyncEvent):
             self.dispatch(VideoUploaderEvents.SUBMIT_FAILED.value, {"err": err})
             raise err
 
-    async def abort(self):
+    def abort(self) -> None:
         """
         中断上传
         """
-        if self.__task:
-            self.__task.cancel("用户手动取消")
-
+        self.async_event_cancel()
         self.dispatch(VideoUploaderEvents.ABORTED.value, None)
 
 
-async def get_missions(
-    tid: int = 0, credential: Union[Credential, None] = None
-) -> dict:
+async def get_missions(tid: int = 0, credential: Credential | None = None) -> dict:
     """
     获取活动信息
 
     Args:
-        tid        (int, optional)       : 分区 ID. Defaults to 0.
-
-        credential (Credential, optional): 凭据. Defaults to None.
+        tid (int, optional): 分区 ID. Defaults to 0.
+        credential (Credential | None, optional): 凭据. Defaults to None.
 
     Returns:
         dict: API 调用返回结果
     """
+    credential = credential or Credential()
     api = _API["missions"]
-
     params = {"tid": tid}
-
     return await Api(**api, credential=credential).update_params(**params).result
 
 
@@ -1384,11 +1363,8 @@ class VideoEditor(AsyncEvent):
 
     Attributes:
         bvid (str)             : 稿件 BVID
-
         meta (dict)            : 视频信息
-
         cover_path (str)       : 封面路径. Defaults to None(不更换封面).
-
         credential (Credential): 凭据类. Defaults to None.
     """
 
@@ -1396,9 +1372,9 @@ class VideoEditor(AsyncEvent):
         self,
         bvid: str,
         meta: dict,
-        cover: Union[str, Picture] = "",
-        credential: Union[Credential, None] = None,
-    ):
+        cover: str | Picture = "",
+        credential: Credential | None = None,
+    ) -> None:
         """
         meta 参数示例: (保留 video, cover, tid, aid 字段)
 
@@ -1425,22 +1401,18 @@ class VideoEditor(AsyncEvent):
         ```
 
         Args:
-            bvid (str)                    : 稿件 BVID
-
-            meta (dict)                   : 视频信息
-
-            cover (str | Picture)         : 封面地址. Defaults to None(不更改封面).
-
-            credential (Credential | None): 凭据类. Defaults to None.
+            bvid (str): 稿件 BVID
+            meta (dict): 视频信息
+            cover (str | Picture, optional): 封面地址. Defaults to ''.
+            credential (Credential | None, optional): 凭据类. Defaults to None.
         """
         super().__init__()
         self.bvid = bvid
         self.meta = meta
-        self.credential: Credential = credential if credential else Credential()
+        self.credential: Credential = credential or Credential()
         self.cover_path = cover
         self.__old_configs = {}
         self.meta["aid"] = bvid2aid(bvid)
-        self.__task: Union[Task, None] = None
 
     async def _fetch_configs(self):
         """
@@ -1479,9 +1451,9 @@ class VideoEditor(AsyncEvent):
                 else Picture().from_file(self.cover_path)
             )
             resp = await upload_cover(pic, self.credential)
-            self.dispatch(VideoEditorEvents.AFTER_COVER.value, {"url": resp["url"]})
+            self.dispatch(VideoEditorEvents.AFTER_COVER.value, {"url": resp})
             # not sure if this key changed to "url" as well
-            self.meta["cover"] = resp["image_url"]
+            self.meta["cover"] = resp
         except Exception as e:
             self.dispatch(VideoEditorEvents.COVER_FAILED.value, {"err": e})
             raise e
@@ -1529,33 +1501,22 @@ class VideoEditor(AsyncEvent):
         self.dispatch(VideoEditorEvents.COMPLETED.value)
         return {"bvid": self.bvid}
 
-    async def start(self) -> dict:  # type: ignore
+    async def start(self) -> dict | None:
         """
         开始更改
 
         Returns:
-            dict: 返回带有 bvid 和 aid 的字典。
+            dict | None: 返回带有 bvid 和 aid 的字典。若取消或失败返回 None。
         """
-
-        task = create_task(self._main())
-        self.__task = task
-
         try:
-            result = await task
-            self.__task = None
-            return result
-        except CancelledError:
-            # 忽略 task 取消异常
-            pass
+            return await self.async_event_start(self._main())
         except Exception as e:
             self.dispatch(VideoEditorEvents.FAILED.value, {"err": e})
             raise e
 
-    async def abort(self):
+    def abort(self) -> None:
         """
         中断更改
         """
-        if self.__task:
-            self.__task.cancel("用户手动取消")
-
+        self.async_event_cancel()
         self.dispatch(VideoEditorEvents.ABORTED.value, None)

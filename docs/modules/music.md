@@ -5,7 +5,9 @@ bilibili_api.music
 
 音乐相关 API
 
-注意: 目前 B 站的音频并不和 B 站的音乐相关信息互通。这里的 Music 类的数据来源于视频下面的 bgm 标签和全站音乐榜中的每一个 bgm/音乐。get_homepage_recommend 和 get_music_index_info 来源于 https://www.bilibili.com/v/musicplus/
+注意: 目前 B 站的音频并不和 B 站的音乐相关信息互通。
+这里的 Music 类的数据来源于视频下面的 bgm 标签和全站音乐榜中的每一个 bgm/音乐。
+get_homepage_recommend 和 get_music_index_info 来源于 https://www.bilibili.com/v/musicplus/
 
 
 ``` python
@@ -92,7 +94,7 @@ from bilibili_api import music
 
 ### class Genre()
 
-**Extend: enum.Enum**
+> Extend: `enum.Enum`
 
 - ALL: 全部
 - POPULAR: 流行
@@ -123,7 +125,7 @@ from bilibili_api import music
 
 ### class Lang()
 
-**Extend: enum.Enum**
+> Extend: `enum.Enum`
 
 - ALL: 全部
 - CHINESE: 华语
@@ -139,7 +141,7 @@ from bilibili_api import music
 
 ## class MusicOrder()
 
-**Extend: enum.Enum**
+> Extend: `enum.Enum`
 
 音乐排序类型
 
@@ -158,7 +160,7 @@ from bilibili_api import music
 
 | name | type | description |
 | - | - | - |
-| `credential` | `Credential \| None` | 凭据类. Defaults to None. |
+| `credential` | `Credential \| None, optional` | 凭据类. Defaults to None. |
 
 **Returns:** `dict`:  调用 API 返回的结果
 
@@ -174,12 +176,14 @@ from bilibili_api import music
 
 | name | type | description |
 | - | - | - |
-| `keyword` | `str` | 关键词. Defaults to None. |
-| `lang` | `MusicIndexTags.Lang` | 语言. Defaults to MusicIndexTags.Lang.ALL |
-| `genre` | `MusicIndexTags.Genre` | 类型. Defaults to MusicIndexTags.Genre.ALL |
-| `order` | `MusicOrder` | 排序方式. Defaults to OrderAudio.NEW |
-| `page_num` | `int` | 页码. Defaults to 1. |
-| `page_size` | `int` | 每页的数据大小. Defaults to 10. |
+| `keyword` | `str, optional` | 关键词. Defaults to ''. |
+| `lang` | `Lang, optional` | 语言. Defaults to Lang.ALL. |
+| `genre` | `Genre, optional` | 类型. Defaults to Genre.ALL. |
+| `order` | `MusicOrder, optional` | 排序方式. Defaults to MusicOrder.NEW. |
+| `page_num` | `int, optional` | 页码. Defaults to 1. |
+| `page_size` | `int, optional` | 每页的数据大小. Defaults to 10. |
+
+**Returns:** `dict`:  调用 API 返回的结果
 
 
 

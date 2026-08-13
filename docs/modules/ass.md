@@ -14,6 +14,7 @@ from bilibili_api import ass
   - [def \_\_init\_\_()](#def-\_\_init\_\_)
   - [def get\_lan\_list()](#def-get\_lan\_list)
   - [async def request\_ass\_data\_json()](#async-def-request\_ass\_data\_json)
+  - [async def request\_ass\_data\_str()](#async-def-request\_ass\_data\_str)
   - [def to\_ass()](#def-to\_ass)
   - [def to\_lrc()](#def-to\_lrc)
   - [def to\_simple\_json()](#def-to\_simple\_json)
@@ -26,11 +27,17 @@ from bilibili_api import ass
 - [async def make\_simple\_json\_file\_subtitle()](#async-def-make\_simple\_json\_file\_subtitle)
 - [async def make\_srt\_file\_subtitle()](#async-def-make\_srt\_file\_subtitle)
 - [async def request\_subtitle()](#async-def-request\_subtitle)
+- [async def request\_subtitle\_languages()](#async-def-request\_subtitle\_languages)
 
 ---
 
 ## class AssSubtitleObject()
 
+字幕对象。
+
+若为 `request_subtitle` 返回，可直接调用 `to_xxx()` 进行转换。
+
+若为 `request_subtitle_languages` 返回，需先调用 `request_ass_data_xxx`
 
 
 
@@ -42,9 +49,9 @@ from bilibili_api import ass
 
 | name | type | description |
 | - | - | - |
-| `json_lan_list` | `List[Dict]` | 字幕可选语言 |
-| `obj` | `Video \| Episode` | 对象 |
-| `lan_set` | `str \| None` | 设置默认字幕语言,如果为None,则自动获取可获取语言 |
+| `json_lan_list` | `list[dict]` | 字幕可选语言 |
+| `obj` | `video.Video \| bangumi.Episode` | 对象 |
+| `lan_set` | `str \| None, optional` | 设置默认字幕语言,如果为None,则自动获取可获取语言. Defaults to None. |
 
 
 ### def get_lan_list()
@@ -65,9 +72,23 @@ from bilibili_api import ass
 
 | name | type | description |
 | - | - | - |
+| `lan_set` | `str \| None, optional` | 如果为None，则获取默认字幕语言. Defaults to None. |
+
+**Returns:** `list[dict]`:  字幕数据
+
+
+
+
+### async def request_ass_data_str()
+
+获取对应语言的字幕
+
+
+| name | type | description |
+| - | - | - |
 | `lan_set` | `str \| None` | 如果为None，则获取默认字幕语言 |
 
-**Returns:** `json`:  字幕数据
+**Returns:** `str`:  字幕数据
 
 
 
@@ -79,8 +100,11 @@ from bilibili_api import ass
 
 | name | type | description |
 | - | - | - |
-| `font` | `str` | 字体. Defaults to Simsun. |
-| `font_size` | `float` | 字体大小. Defaults to 25.0 |
+| `font` | `str, optional` | 字体. Defaults to 'Simsun'. |
+| `font_size` | `float, optional` | 字体大小. Defaults to 65.0. |
+| `text_colour` | `str, optional` | 文字颜色. Defaults to 'FFFFFF'. |
+| `outline_colour` | `str, optional` | 文字边框颜色. Defaults to '000000'. |
+| `alpha` | `float, optional` | 透明度. Defaults to 0. |
 
 **Returns:** `str`:  ass字幕
 
@@ -104,7 +128,7 @@ from bilibili_api import ass
 
 
 
-**Returns:** `List[dict]`:  字幕数据
+**Returns:** `list[dict]`:  字幕数据
 
 
 
@@ -144,12 +168,12 @@ from bilibili_api import ass
 
 | name | type | description |
 | - | - | - |
-| `obj` | `Union[Video,Episode,CheeseVideo]` | 对象 |
+| `obj` | `video.Video \| bangumi.Episode \| cheese.CheeseVideo` | 对象 |
 | `page` | `int, optional` | 分 P 号. Defaults to 0. |
-| `out` | `str, optional` | 输出文件. Defaults to "test.ass" |
+| `out` | `str, optional` | 输出文件. ass". Defaults to 'test.ass'. |
 | `cid` | `int \| None, optional` | cid. Defaults to None. |
-| `date` | `datetime.date, optional` | 获取时间. Defaults to None. |
-| `font_name` | `str, optional` | 字体. Defaults to "Simsun". |
+| `date` | `datetime.date \| None, optional` | 获取时间. Defaults to None. |
+| `font_name` | `str, optional` | 字体. Defaults to 'Simsun'. |
 | `font_size` | `float, optional` | 字体大小. Defaults to 25.0. |
 | `alpha` | `float, optional` | 透明度(0-1). Defaults to 1. |
 | `fly_time` | `float, optional` | 滚动弹幕持续时间. Defaults to 7. |
@@ -171,11 +195,11 @@ from bilibili_api import ass
 
 | name | type | description |
 | - | - | - |
-| `obj` | `Union[Video,Episode,Cheese]` | 对象 |
+| `obj` | `video.Video \| bangumi.Episode \| cheese.CheeseVideo` | 对象 |
 | `page` | `int, optional` | 分 P 号. Defaults to 0. |
-| `out` | `str, optional` | 输出文件. Defaults to "test.ass". |
+| `out` | `str, optional` | 输出文件. Defaults to 'test.ass'. |
 | `cid` | `int \| None, optional` | cid. Defaults to None. |
-| `font_name` | `str, optional` | 字体. Defaults to "Simsun". |
+| `font_name` | `str, optional` | 字体. Defaults to 'Simsun'. |
 | `font_size` | `float, optional` | 字体大小. Defaults to 25.0. |
 | `alpha` | `float, optional` | 透明度(0-1). Defaults to 1. |
 | `fly_time` | `float, optional` | 滚动弹幕持续时间. Defaults to 7. |
@@ -195,15 +219,18 @@ from bilibili_api import ass
 
 | name | type | description |
 | - | - | - |
-| `obj` | `Union[Video,Episode]` | 对象 |
-| `page_index` | `int, optional` | 分 P 索引 |
-| `cid` | `int, optional` | cid |
-| `out` | `str, optional` | 输出位置. Defaults to "test.ass". |
-| `lan_name` | `str, optional` | 字幕名，如”中文（自动生成）“,是简介的 subtitle 项的'list'项中的弹幕的'lan_doc'属性。Defaults to "中文（自动生成）". |
-| `lan_code` | `str, optional` | 字幕语言代码，如 ”中文（自动翻译）” 和 ”中文（自动生成）“ 为 "ai-zh" |
-| `font` | `str, optional` | 字体. Defaults to Simsun. |
-| `font_size` | `float, optional` | 字体大小. Defaults to 65. |
-| `credential` | `Credential, optional` | Credential 类. 必须在此处或传入的视频 obj 中传入凭据，两者均存在则优先此处 |
+| `obj` | `video.Video \| bangumi.Episode` | 对象 |
+| `page_index` | `int \| None, optional` | 分 P 索引. Defaults to 0. |
+| `cid` | `int \| None, optional` | cid. Defaults to None. |
+| `out` | `str, optional` | 输出位置. Defaults to 'test.ass'. |
+| `lan_name` | `str, optional` | 字幕名，如”中文（自动生成）“,是简介的 subtitle 项的'list'项中的弹幕的'lan_doc'属性. Defaults to '中文（自动生成）'. |
+| `lan_code` | `str, optional` | 字幕语言代码，如 ”中文（自动翻译）” 和 ”中文（自动生成）“ 为 "ai-zh". Defaults to 'ai-zh'. |
+| `font` | `str, optional` | 字体. Defaults to 'Simsun'. |
+| `font_size` | `float, optional` | 字体大小. Defaults to 65.0. |
+| `text_colour` | `str, optional` | 文字颜色. Defaults to 'FFFFFF'. |
+| `outline_colour` | `str, optional` | 文字边框颜色. Defaults to '000000'. |
+| `alpha` | `float, optional` | 透明度. Defaults to 0. |
+| `credential` | `Credential \| None, optional` | Credential 类. 必须在此处或传入的视频 obj 中传入凭据，两者均存在则优先此处. Defaults to None. |
 
 
 
@@ -219,13 +246,13 @@ from bilibili_api import ass
 
 | name | type | description |
 | - | - | - |
-| `obj` | `Union[Video,Episode]` | 对象 |
-| `page_index` | `int, optional` | 分 P 索引 |
-| `cid` | `int, optional` | cid |
-| `out` | `str, optional` | 输出位置. Defaults to "test.lrc". |
-| `lan_name` | `str, optional` | 字幕名，如”中文（自动生成）“,是简介的 subtitle 项的'list'项中的弹幕的'lan_doc'属性。Defaults to "中文（自动生成）". |
-| `lan_code` | `str, optional` | 字幕语言代码，如 ”中文（自动翻译）” 和 ”中文（自动生成）“ 为 "ai-zh" |
-| `credential` | `Credential, optional` | Credential 类. 必须在此处或传入的视频 obj 中传入凭据，两者均存在则优先此处 |
+| `obj` | `video.Video \| bangumi.Episode` | 对象 |
+| `page_index` | `int \| None, optional` | 分 P 索引. Defaults to 0. |
+| `cid` | `int \| None, optional` | cid. Defaults to None. |
+| `out` | `str, optional` | 输出位置. Defaults to 'test.lrc'. |
+| `lan_name` | `str, optional` | 字幕名，如”中文（自动生成）“,是简介的 subtitle 项的'list'项中的弹幕的'lan_doc'属性. Defaults to '中文（自动生成）'. |
+| `lan_code` | `str, optional` | 字幕语言代码，如 ”中文（自动翻译）” 和 ”中文（自动生成）“ 为 "ai-zh". Defaults to 'ai-zh'. |
+| `credential` | `Credential \| None, optional` | Credential 类. 必须在此处或传入的视频 obj 中传入凭据，两者均存在则优先此处. Defaults to None. |
 
 
 
@@ -241,13 +268,13 @@ from bilibili_api import ass
 
 | name | type | description |
 | - | - | - |
-| `obj` | `Union[Video,Episode]` | 对象 |
-| `page_index` | `int, optional` | 分 P 索引 |
-| `cid` | `int, optional` | cid |
-| `out` | `str, optional` | 输出位置. Defaults to "test.json". |
-| `lan_name` | `str, optional` | 字幕名，如”中文（自动生成）“,是简介的 subtitle 项的'list'项中的弹幕的'lan_doc'属性。Defaults to "中文（自动生成）". |
-| `lan_code` | `str, optional` | 字幕语言代码，如 ”中文（自动翻译）” 和 ”中文（自动生成）“ 为 "ai-zh" |
-| `credential` | `Credential, optional` | Credential 类. 必须在此处或传入的视频 obj 中传入凭据，两者均存在则优先此处 |
+| `obj` | `video.Video \| bangumi.Episode` | 对象 |
+| `page_index` | `int \| None, optional` | 分 P 索引. Defaults to 0. |
+| `cid` | `int \| None, optional` | cid. Defaults to None. |
+| `out` | `str, optional` | 输出位置. Defaults to 'test.json'. |
+| `lan_name` | `str, optional` | 字幕名，如”中文（自动生成）“,是简介的 subtitle 项的'list'项中的弹幕的'lan_doc'属性. Defaults to '中文（自动生成）'. |
+| `lan_code` | `str, optional` | 字幕语言代码，如 ”中文（自动翻译）” 和 ”中文（自动生成）“ 为 "ai-zh". Defaults to 'ai-zh'. |
+| `credential` | `Credential \| None, optional` | Credential 类. 必须在此处或传入的视频 obj 中传入凭据，两者均存在则优先此处. Defaults to None. |
 
 
 
@@ -263,13 +290,13 @@ from bilibili_api import ass
 
 | name | type | description |
 | - | - | - |
-| `obj` | `Union[Video,Episode]` | 对象 |
-| `page_index` | `int, optional` | 分 P 索引 |
-| `cid` | `int, optional` | cid |
-| `out` | `str, optional` | 输出位置. Defaults to "test.srt". |
-| `lan_name` | `str, optional` | 字幕名，如”中文（自动生成）“,是简介的 subtitle 项的'list'项中的弹幕的'lan_doc'属性。Defaults to "中文（自动生成）". |
-| `lan_code` | `str, optional` | 字幕语言代码，如 ”中文（自动翻译）” 和 ”中文（自动生成）“ 为 "ai-zh" |
-| `credential` | `Credential, optional` | Credential 类. 必须在此处或传入的视频 obj 中传入凭据，两者均存在则优先此处 |
+| `obj` | `video.Video \| bangumi.Episode` | 对象 |
+| `page_index` | `int \| None, optional` | 分 P 索引. Defaults to 0. |
+| `cid` | `int \| None, optional` | cid. Defaults to None. |
+| `out` | `str, optional` | 输出位置. Defaults to 'test.srt'. |
+| `lan_name` | `str, optional` | 字幕名，如”中文（自动生成）“,是简介的 subtitle 项的'list'项中的弹幕的'lan_doc'属性. Defaults to '中文（自动生成）'. |
+| `lan_code` | `str, optional` | 字幕语言代码，如 ”中文（自动翻译）” 和 ”中文（自动生成）“ 为 "ai-zh". Defaults to 'ai-zh'. |
+| `credential` | `Credential \| None, optional` | Credential 类. 必须在此处或传入的视频 obj 中传入凭据，两者均存在则优先此处. Defaults to None. |
 
 
 
@@ -283,11 +310,30 @@ from bilibili_api import ass
 
 | name | type | description |
 | - | - | - |
+| `obj` | `video.Video \| bangumi.Episode` | 对象 |
+| `page_index` | `int \| None, optional` | 分 P 索引. Defaults to 0. |
+| `cid` | `int \| None, optional` | cid. Defaults to None. |
+| `lan_name` | `str \| None, optional` | 字幕名，如”中文（自动生成）“,是简介的 subtitle 项的'list'项中的弹幕的'lan_doc'属性. Defaults to None. |
+| `lan_code` | `str \| None, optional` | 字幕语言代码，如 ”中文（自动翻译）” 和 ”中文（自动生成）“ 为 "ai-zh" 默认None 则自动获取可用歌词. Defaults to None. |
+| `credential` | `Credential \| None, optional` | Credential 类. 必须在此处或传入的视频 obj 中传入凭据，两者均存在则优先此处. Defaults to None. |
+
+**Returns:** `ass.AssSubtitleObject`:  字幕对象
+
+
+
+
+---
+
+## async def request_subtitle_languages()
+
+获取远程字幕语言列表
+
+
+| name | type | description |
+| - | - | - |
 | `obj` | `Union[Video,Episode]` | 对象 |
 | `page_index` | `int, optional` | 分 P 索引 |
 | `cid` | `int, optional` | cid |
-| `lan_name` | `str, optional` | 字幕名，如”中文（自动生成）“,是简介的 subtitle 项的'list'项中的弹幕的'lan_doc'属性。Defaults to "中文（自动生成）" 默认None 则自动获取可用歌词. |
-| `lan_code` | `str, optional` | 字幕语言代码，如 ”中文（自动翻译）” 和 ”中文（自动生成）“ 为 "ai-zh" 默认None 则自动获取可用歌词 |
 | `credential` | `Credential, optional` | Credential 类. 必须在此处或传入的视频 obj 中传入凭据，两者均存在则优先此处 |
 
 **Returns:** `AssSubtitleObject`:  字幕对象

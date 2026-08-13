@@ -4,27 +4,24 @@ bilibili_api.login_v2
 登录
 """
 
-import json
-import tempfile
-import time
 import base64
 import enum
+import io
+import time
+from typing import Union
 
-import os
+from anyio import to_thread
+from Cryptodome.Cipher import PKCS1_v1_5
+from Cryptodome.PublicKey import RSA
 import qrcode
 import qrcode_terminal
 import yarl
-from typing import Union, List, Dict
 
-from .utils.utils import get_api, raise_for_statement, to_form_urlencoded
-from .exceptions import LoginError, GeetestException
-from .utils.network import Api, Credential, get_client, get_buvid
+from .exceptions import GeetestException, LoginError
 from .utils.geetest import Geetest, GeetestType
+from .utils.network import Api, Credential, ensure_buvid, get_client
 from .utils.picture import Picture
-
-from Cryptodome.PublicKey import RSA
-from Cryptodome.Cipher import PKCS1_v1_5
-
+from .utils.utils import get_api, get_data, raise_for_statement, to_form_urlencoded
 
 API = get_api("login")
 
@@ -36,6 +33,11 @@ def encrypt(_hash, key, password) -> str:
     )
 
 
+async def gain_buvid() -> dict:
+    buvid3, buvid4, buvid_fp = await ensure_buvid()
+    return {"buvid3": buvid3, "buvid4": buvid4, "buvid_fp": buvid_fp}
+
+
 async def login_with_password(
     username: str, password: str, geetest: Geetest
 ) -> Union[Credential, "LoginCheck"]:
@@ -44,13 +46,11 @@ async def login_with_password(
 
     Args:
         username (str): 用户手机号、邮箱
-
         password (str): 密码
-
-        geetest  (Geetest): 极验验证码实例，须完成。验证码类型应为 `GeetestType.LOGIN`
+        geetest (Geetest): 极验验证码实例，须完成。验证码类型应为 `GeetestType.LOGIN`
 
     Returns:
-        Union[Credential, LoginCheck]: 如果需要验证，会返回 `LoginCheck` 类，否则返回 `Credential` 类。
+        Union[Credential, ForwardRef('LoginCheck')]: 如果需要验证，会返回 `LoginCheck` 类，否则返回 `Credential` 类。
     """
     if geetest.get_test_type() != GeetestType.LOGIN:
         raise GeetestException("验证码类型错误。请使用 GeetestType.LOGIN")
@@ -82,7 +82,7 @@ async def login_with_password(
         url=login_api["url"],
         data=data,
         headers=headers,
-        cookies={"buvid3": (await get_buvid())[0]},
+        cookies=await gain_buvid(),
     )
     login_data = resp.json()
     if login_data["code"] == 0:
@@ -94,6 +94,8 @@ async def login_with_password(
             sessdata=str(resp.cookies["SESSDATA"]),
             bili_jct=str(resp.cookies["bili_jct"]),
             dedeuserid=str(resp.cookies["DedeUserID"]),
+            dedeuserid_ckmd5=str(resp.cookies["DedeUserID__ckMd5"]),
+            sid=str(resp.cookies["sid"]),
             ac_time_value=login_data["data"]["refresh_token"],
         )
     else:
@@ -103,18 +105,14 @@ async def login_with_password(
 captcha_id = None
 
 
-def get_countries_list() -> List[Dict]:
+def get_countries_list() -> list[dict]:
     """
     获取国际地区代码列表
 
     Returns:
-        List[dict]: 地区列表
+        list[dict]: 地区列表
     """
-    with open(
-        os.path.join(os.path.dirname(__file__), "data/countries_codes.json"),
-        encoding="utf8",
-    ) as f:
-        codes_list = json.loads(f.read())
+    codes_list = get_data("countries_codes.json")
     countries = []
     for country in codes_list:
         name = country["cname"]
@@ -124,7 +122,7 @@ def get_countries_list() -> List[Dict]:
     return countries
 
 
-def search_countries(keyword: str) -> List[Dict]:
+def search_countries(keyword: str) -> list[dict]:
     """
     搜索一个地区及其国际地区代码
 
@@ -132,7 +130,7 @@ def search_countries(keyword: str) -> List[Dict]:
         keyword (str): 关键词
 
     Returns:
-        List[dict]: 地区列表
+        list[dict]: 地区列表
     """
     list_ = get_countries_list()
     countries = []
@@ -159,12 +157,12 @@ def have_country(keyword: str) -> bool:
     return False
 
 
-def have_code(code: Union[str, int]) -> bool:
+def have_code(code: str | int) -> bool:
     """
     是否存在地区代码
 
     Args:
-        code(Union[str, int]): 代码
+        code (str | int): 代码
 
     Returns:
         bool: 是否存在
@@ -175,7 +173,7 @@ def have_code(code: Union[str, int]) -> bool:
         try:
             int_code = int(code)
         except ValueError:
-            raise ValueError("地区代码参数错误")
+            raise ValueError("地区代码参数错误") from None
     elif isinstance(code, int):
         int_code = code
     else:
@@ -191,7 +189,7 @@ def get_code_by_country(country: str) -> int:
     获取地区对应代码
 
     Args:
-        country(str): 地区名
+        country (str): 地区名
 
     Returns:
         int: 对应的代码，没有返回 -1
@@ -208,7 +206,7 @@ def get_id_by_code(code: int) -> int:
     获取地区码对应的地区 id
 
     Args:
-        code(int): 地区吗
+        code (int): 地区吗
 
     Returns:
         int: 对应的代码，没有返回 -1
@@ -225,12 +223,11 @@ class PhoneNumber:
     手机号类
     """
 
-    def __init__(self, number: str, country: Union[str, int] = "+86"):
+    def __init__(self, number: str, country: str | int = "+86") -> None:
         """
         Args:
-            number(str): 手机号
-
-            country(str): 地区/地区码，如 +86
+            number (str): 手机号
+            country (str | int, optional): 地区/地区码，如 +86. Defaults to '+86'.
         """
         number = number.replace("-", "")
         if not have_country(country):  # type: ignore
@@ -253,8 +250,8 @@ async def send_sms(phonenumber: PhoneNumber, geetest: Geetest) -> str:
     发送验证码
 
     Args:
-        phonenumber (PhoneNumber): 手机号类
-        geetest     (Geetest)    : 极验验证码实例，须完成。验证码类型应为 `GeetestType.LOGIN`
+        phonenumber (login_v2.PhoneNumber): 手机号类
+        geetest (Geetest): 极验验证码实例，须完成。验证码类型应为 `GeetestType.LOGIN`
 
     Returns:
         str: captcha_id，需传入 `login_with_sms`
@@ -286,7 +283,7 @@ async def send_sms(phonenumber: PhoneNumber, geetest: Geetest) -> str:
         url=api["url"],
         data=data,
         headers=headers,
-        cookies={"buvid3": (await get_buvid())[0]},
+        cookies=await gain_buvid(),
     )
     return_data = res.json()
     if return_data["code"] == 0:
@@ -302,12 +299,12 @@ async def login_with_sms(
     验证码登录
 
     Args:
-        phonenumber (str): 手机号类
-        code        (str): 验证码
-        captcha_id  (str): captcha_id，为 `send_sms` 调用返回结果
+        phonenumber (login_v2.PhoneNumber): 手机号类
+        code (str): 验证码
+        captcha_id (str): captcha_id，为 `send_sms` 调用返回结果
 
     Returns:
-        Union[Credential, LoginCheck]: 如果需要验证，会返回 `LoginCheck` 类，否则返回 `Credential` 类。
+        Union[Credential, ForwardRef('LoginCheck')]: 如果需要验证，会返回 `LoginCheck` 类，否则返回 `Credential` 类。
     """
     api = API["sms"]["login"]
     data = {
@@ -329,29 +326,18 @@ async def login_with_sms(
         url=api["url"],
         data=data,
         headers=headers,
-        cookies={"buvid3": (await get_buvid())[0]},
+        cookies=await gain_buvid(),
     )
     return_data = res.json()
     if return_data["code"] == 0 and return_data["data"]["status"] != 5:
-        url = return_data["data"]["url"]
-        cookies_list = url.split("?")[1].split("&")
-        sessdata = ""
-        bili_jct = ""
-        dede = ""
-        for cookie in cookies_list:
-            if cookie[:8] == "SESSDATA":
-                sessdata = cookie[9:]
-            if cookie[:8] == "bili_jct":
-                bili_jct = cookie[9:]
-            if cookie[:11].upper() == "DEDEUSERID=":
-                dede = cookie[11:]
-        c = Credential(
-            sessdata=sessdata,
-            bili_jct=bili_jct,
-            dedeuserid=dede,
+        return Credential(
+            sessdata=str(res.cookies["SESSDATA"]),
+            bili_jct=str(res.cookies["bili_jct"]),
+            dedeuserid=str(res.cookies["DedeUserID"]),
+            dedeuserid_ckmd5=str(res.cookies["DedeUserID__ckMd5"]),
+            sid=str(res.cookies["sid"]),
             ac_time_value=return_data["data"]["refresh_token"],
         )
-        return c
     elif return_data["code"] == 0 and return_data["data"]["status"] == 5:
         return LoginCheck(return_data["data"]["url"])
     else:
@@ -396,14 +382,14 @@ class QrCodeLogin:
     def __init__(self, platform: QrCodeLoginChannel = QrCodeLoginChannel.WEB) -> None:
         """
         Args:
-            platform (QrCodeLoginChannel, optional): 平台. (web/tv) Defaults to QrCodeLoginChannel.WEB.
+            platform (QrCodeLoginChannel, optional): 平台. (web/tv). Defaults to QrCodeLoginChannel.WEB.
         """
-        self.__platform: str = platform
-        self.__qr_link: str = ""
-        self.__qr_terminal: str = ""
-        self.__qr_picture: Picture = None
-        self.__qr_key: str = ""
-        self.__credential: Credential = None
+        self.__platform: QrCodeLoginChannel = platform
+        self.__qr_link: str | None = None
+        self.__qr_terminal: str | None = None
+        self.__qr_picture: Picture | None = None
+        self.__qr_key: str | None = None
+        self.__credential: Credential | None = None
 
     def has_qrcode(self) -> bool:
         """
@@ -431,29 +417,49 @@ class QrCodeLogin:
             Credential: 凭据
         """
         raise_for_statement(self.has_done())
-        return self.__credential
+        return self.__credential  # type: ignore
 
-    def get_qrcode_picture(self) -> Picture:
+    async def get_qrcode_picture(self) -> Picture:
         """
         获取二维码的 Picture 类
 
         Returns:
             Picture: 二维码
         """
-        return self.__qr_picture
+        link = self.__qr_link or await self.generate_qrcode()
+        if not self.__qr_picture:
 
-    def get_qrcode_terminal(self) -> str:
+            def get_img_bytes():
+                img = qrcode.make(link)
+                stream = io.BytesIO()
+                img.save(stream, bitmap_format="png")  # type: ignore
+                return stream.getvalue()
+
+            self.__qr_picture = Picture.from_content(
+                await to_thread.run_sync(get_img_bytes), "png"
+            )
+        return self.__qr_picture  # type: ignore
+
+    async def get_qrcode_terminal(self) -> str:
         """
         获取二维码的终端字符串
 
         Returns:
             str: 二维码的终端字符串
         """
+        link = self.__qr_link or await self.generate_qrcode()
+        if not self.__qr_terminal:
+            self.__qr_terminal = await to_thread.run_sync(
+                qrcode_terminal.qr_terminal_str, link
+            )
         return self.__qr_terminal
 
-    async def generate_qrcode(self) -> None:
+    async def generate_qrcode(self) -> str:
         """
         生成二维码
+
+        Returns:
+            str: 二维码链接
         """
         if self.__platform == QrCodeLoginChannel.TV:
             api = API["qrcode"]["tv"]["get_qrcode_and_auth_code"]
@@ -470,13 +476,9 @@ class QrCodeLogin:
             data = await Api(credential=Credential(), **api).result
             self.__qr_link = data["url"]
             self.__qr_key = data["qrcode_key"]
-        qr = qrcode.QRCode()
-        qr.add_data(self.__qr_link)
-        img = qr.make_image()
-        img_dir = os.path.join(tempfile.gettempdir(), "qrcode.png")
-        img.save(img_dir)
-        self.__qr_picture = Picture.from_file(img_dir)
-        self.__qr_terminal = qrcode_terminal.qr_terminal_str(self.__qr_link)
+        self.__qr_picture = None
+        self.__qr_terminal = None
+        return self.__qr_link  # type: ignore
 
     async def check_state(self) -> QrCodeLoginEvents:
         """
@@ -489,9 +491,11 @@ class QrCodeLogin:
             api = API["qrcode"]["web"]["get_events"]
             params = {"qrcode_key": self.__qr_key}
             events = (
-                await Api(credential=Credential(), **api).update_params(**params).result
+                await Api(credential=Credential(), **api)
+                .update_params(**params)
+                .request(bili_res=True)
             )
-            code = events["code"]
+            code = events.json()["data"]["code"]
             if code == 86101:
                 return QrCodeLoginEvents.SCAN
             elif code == 86090:
@@ -499,24 +503,13 @@ class QrCodeLogin:
             elif code == 86038:
                 return QrCodeLoginEvents.TIMEOUT
             else:
-                cred_url = events["url"]
-                ac_time_value = events["refresh_token"]
-                cookies_list = cred_url.split("?")[1].split("&")
-                sessdata = ""
-                bili_jct = ""
-                dedeuserid = ""
-                for cookie in cookies_list:
-                    if cookie[:8] == "SESSDATA":
-                        sessdata = cookie[9:]
-                    if cookie[:8] == "bili_jct":
-                        bili_jct = cookie[9:]
-                    if cookie[:11].upper() == "DEDEUSERID=":
-                        dedeuserid = cookie[11:]
                 self.__credential = Credential(
-                    sessdata=sessdata,
-                    bili_jct=bili_jct,
-                    dedeuserid=dedeuserid,
-                    ac_time_value=ac_time_value,
+                    sessdata=str(events.cookies["SESSDATA"]),
+                    bili_jct=str(events.cookies["bili_jct"]),
+                    dedeuserid=str(events.cookies["DedeUserID"]),
+                    dedeuserid_ckmd5=str(events.cookies["DedeUserID__ckMd5"]),
+                    sid=str(events.cookies["sid"]),
+                    ac_time_value=events.json()["data"]["refresh_token"],
                 )
                 return QrCodeLoginEvents.DONE
         else:
@@ -525,16 +518,16 @@ class QrCodeLogin:
             events = (
                 await Api(credential=Credential(), no_csrf=True, **api)
                 .update_data(**data)
-                .request(raw=True)
+                .request(bili_res=True)
             )
-            code = events["code"]
+            code = events.json()["code"]
             if code == 86039:
                 return QrCodeLoginEvents.SCAN
             elif code == 86038:
                 return QrCodeLoginEvents.TIMEOUT
             else:
-                kwargs = {"ac_time_value": events["data"]["refresh_token"]}
-                for cookie in events["data"]["cookie_info"]["cookies"]:
+                kwargs = {"ac_time_value": events.json()["data"]["refresh_token"]}
+                for cookie in events.json()["data"]["cookie_info"]["cookies"]:
                     kwargs[cookie["name"].lower().replace("__", "_")] = cookie["value"]
                 self.__credential = Credential(**kwargs)
                 return QrCodeLoginEvents.DONE
@@ -545,7 +538,7 @@ class LoginCheck:
     验证类，如果密码登录需要验证会返回此类
     """
 
-    def __init__(self, check_url: str):
+    def __init__(self, check_url: str) -> None:
         """
         Args:
             check_url (str): 验证链接
@@ -572,7 +565,7 @@ class LoginCheck:
         发送验证码
 
         Args:
-            geetest  (Geetest): 极验验证码实例，须完成。验证码类型应为 `GeetestType.VERIFY`
+            geetest (Geetest): 极验验证码实例，须完成。验证码类型应为 `GeetestType.VERIFY`
         """
         if geetest.get_test_type() != GeetestType.VERIFY:
             raise GeetestException("验证码类型错误。请使用 GeetestType.LOGIN")
@@ -640,10 +633,11 @@ class LoginCheck:
             headers=headers,
         )
         credential = Credential(
-            sessdata=resp.cookies["SESSDATA"],
-            bili_jct=resp.cookies["bili_jct"],
-            buvid3=None,
-            dedeuserid=resp.cookies["DedeUserID"],
+            sessdata=str(resp.cookies["SESSDATA"]),
+            bili_jct=str(resp.cookies["bili_jct"]),
+            dedeuserid=str(resp.cookies["DedeUserID"]),
+            dedeuserid_ckmd5=str(resp.cookies["DedeUserID__ckMd5"]),
+            sid=str(resp.cookies["sid"]),
             ac_time_value=(resp.json())["data"]["refresh_token"],
         )
         return credential

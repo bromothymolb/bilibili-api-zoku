@@ -5,12 +5,10 @@ bilibili_api.topic
 """
 
 from enum import Enum
-from typing import Union, Optional
 
-from . import dynamic
 from .user import get_self_info
-from .utils.utils import get_api
 from .utils.network import Api, Credential
+from .utils.utils import get_api
 
 API = get_api("topic")
 
@@ -34,7 +32,7 @@ async def get_hot_topics(numbers: int = 33) -> dict:
     获取动态页的火热话题
 
     Args:
-        numbers (int): 话题数量. Defaults to 33.
+        numbers (int, optional): 话题数量. Defaults to 33.
 
     Returns:
         dict: 调用 API 返回的结果
@@ -52,10 +50,8 @@ async def search_topic(keyword: str, ps: int = 20, pn: int = 1) -> dict:
 
     Args:
         keyword (str): 搜索关键词
-
-        ps      (int): 每页数量. Defaults to 20.
-
-        pn      (int): 页数. Defaults to 1.
+        ps (int, optional): 每页数量. Defaults to 20.
+        pn (int, optional): 页数. Defaults to 1.
 
     Returns:
         dict: 调用 API 返回的结果
@@ -73,15 +69,20 @@ class Topic:
         credential (Credential): 凭据类
     """
 
-    def __init__(self, topic_id: int, credential: Union[Credential, None] = None):
+    def __init__(self, topic_id: int, credential: Credential | None = None) -> None:
         """
         Args:
-            topic_id   (int)       : 话题 id
-
-            credential (Credential): 凭据类
+            topic_id (int): 话题 id
+            credential (Credential | None, optional): 凭据类. Defaults to None.
         """
         self.__topic_id = topic_id
-        self.credential: Credential = credential if credential else Credential()
+        self.credential: Credential = credential or Credential()
+
+    def __str__(self) -> str:
+        return f"Topic(topic_id={self.__topic_id})"
+
+    def __repr__(self) -> str:
+        return f"Topic(topic_id={self.__topic_id})"
 
     def get_topic_id(self) -> int:
         """
@@ -108,7 +109,7 @@ class Topic:
     async def get_cards(
         self,
         ps: int = 100,
-        offset: Optional[str] = None,
+        offset: str | None = None,
         sort_by: TopicCardsSortBy = TopicCardsSortBy.HOT,
     ) -> dict:
         """
@@ -117,11 +118,9 @@ class Topic:
         未登录无法使用热门排序字段即 TopicCardsSortBy.RECOMMEND
 
         Args:
-            ps (int): 数据数量. Defaults to 100.
-
-            offset (Optional, str): 偏移量. 生成格式为 f'{页码}_{页码*数据量]}' 如'2_40' Defaults to None.
-
-            sort_by (TopicCardsSortBy): 排序方式. Defaults to TopicCardsSortBy.HOT.
+            ps (int, optional): 数据数量. Defaults to 100.
+            offset (str | None, optional): 偏移量. 生成格式为 f'{页码}_{页码*数据量]}' 如'2_40'. Defaults to None.
+            sort_by (TopicCardsSortBy, optional): 排序方式. Defaults to TopicCardsSortBy.HOT.
 
         Returns:
             dict: 调用 API 返回的结果
@@ -144,7 +143,7 @@ class Topic:
         设置点赞话题
 
         Args:
-            status (bool): 是否设置点赞. Defaults to True.
+            status (bool, optional): 是否设置点赞. Defaults to True.
 
         Returns:
             dict: 调用 API 返回的结果
@@ -163,7 +162,7 @@ class Topic:
         设置收藏话题
 
         Args:
-            status (bool): 是否设置收藏. Defaults to True.
+            status (bool, optional): 是否设置收藏. Defaults to True.
 
         Returns:
             dict: 调用 API 返回的结果

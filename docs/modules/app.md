@@ -22,12 +22,12 @@ from bilibili_api import app
 
 | name | type | description |
 | - | - | - |
-| `build` | `int, optional` | 客户端内部版本号 |
-| `mobi_app` | `str, optional` | android / iphone / ipad |
-| `platform` | `str, optional` | android / ios/ ios |
-| `height` | `int, optional` | 屏幕高度 |
-| `width` | `int, optional` | 屏幕宽度 |
-| `birth` | `str, optional` | 生日日期(四位数，例 0101) |
+| `mobi_app` | `str, optional` | android / iphone / ipad. Defaults to 'android'. |
+| `platform` | `str, optional` | android / ios/ ios. Defaults to 'android'. |
+| `height` | `int, optional` | 屏幕高度. Defaults to 1920. |
+| `width` | `int, optional` | 屏幕宽度. Defaults to 1080. |
+| `build` | `int, optional` | 客户端内部版本号. Defaults to 999999999. |
+| `birth` | `str, optional` | 生日日期(四位数，例 0101). Defaults to ''. |
 | `credential` | `Credential \| None, optional` | 凭据. Defaults to None. |
 
 **Returns:** `dict`:  调用 API 返回的结果
@@ -44,10 +44,10 @@ from bilibili_api import app
 
 | name | type | description |
 | - | - | - |
-| `mobi_app` | `str, optional` | android / iphone / ipad |
-| `platform` | `str, optional` | android / ios/ ios |
-| `height` | `str, optional` | 屏幕高度 |
-| `width` | `str, optional` | 屏幕宽度 |
+| `mobi_app` | `str, optional` | android / iphone / ipad. Defaults to 'android'. |
+| `platform` | `str, optional` | android / ios/ ios. Defaults to 'android'. |
+| `height` | `int, optional` | 屏幕高度. Defaults to 1920. |
+| `width` | `int, optional` | 屏幕宽度. Defaults to 1080. |
 | `credential` | `Credential \| None, optional` | 凭据. Defaults to None. |
 
 **Returns:** `dict`:  调用 API 返回的结果

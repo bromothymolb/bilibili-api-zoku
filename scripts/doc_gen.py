@@ -1,8 +1,8 @@
 # Recommend cpython 3.13
 
+import json
 import os
 import sys
-import json
 
 sys.path.append(os.path.join(os.path.abspath(os.path.dirname(__file__)), ".."))
 
@@ -66,16 +66,25 @@ ignored_funcs = [
     "BAD_FOR_YOUNGS",
     "CANNOT_CHARGE",
     "CLICKBAIT",
+    "COOPERATE_INFRINGEMENT",
     "COVID_RUMORS",
+    "DANGEROUS",
+    "DISCOMFORT",
     "GAMBLED_SCAMS",
     "ILLEGAL",
+    "ILLEGAL_OTHER",
+    "ILLEGAL_POPULARIZE",
+    "ILLEGAL_URL",
+    "INFRINGEMENT",
     "LEAD_WAR",
     "OTHER",
+    "OTHER_NEW",
     "PERSONAL_ATTACK",
     "POLITICAL_RUMORS",
     "PRON",
     "SOCIAL_RUMORS",
     "UNREAL_EVENT",
+    "VIDEO_INFRINGEMENT",
     "VIOLENT",
     "VULGAR",
     "set_aid_e",
@@ -86,6 +95,8 @@ ignored_funcs = [
     "parse_online_rank_v3",
     "parse_interact_word_v2",
     "parse_user_info",
+    "gain_buvid",
+    "parse_send_gift_v2",
 ]
 
 ignored_vars = [
@@ -152,7 +163,10 @@ def parse(data: dict, indent: int = 0, root: bool = False):
     if data["node"][".class"] == "TypeInfo":
         if data["node"]["defn"]["name"] in ignored_classes:
             return
-        if not data["node"]["defn"]["name"].startswith("Request"):
+        if (
+            not data["node"]["defn"]["name"].startswith("RequestLog")
+            and not data["node"]["defn"]["name"] == "BiliSettings"
+        ):
             funcs.append(
                 [
                     data["node"]["defn"]["name"],
@@ -194,8 +208,42 @@ def parse(data: dict, indent: int = 0, root: bool = False):
             ]
         )
     elif (
+        data["node"][".class"] == "Decorator"
+        and "is_class" in data["node"]["func"]["flags"]
+    ):
+        funcs.append(
+            [
+                data["node"]["func"]["name"],
+                data["node"]["func"]["fullname"],
+                (
+                    "async def"
+                    if "is_coroutine" in data["node"]["func"]["flags"]
+                    else "def"
+                ),
+                "@classmethod",
+                indent,
+            ]
+        )
+    elif (
+        data["node"][".class"] == "Decorator"
+        and "is_async_generator" in data["node"]["func"]["flags"]
+    ):
+        funcs.append(
+            [
+                data["node"]["func"]["name"],
+                data["node"]["func"]["fullname"],
+                (
+                    "async def"
+                    if "is_coroutine" in data["node"]["func"]["flags"]
+                    else "def"
+                ),
+                "@asynccontextmanager",
+                indent,
+            ]
+        )
+    elif (
         data["node"][".class"] == "Var"
-        and not "is_suppressed_import" in data["node"]["flags"]
+        and "is_suppressed_import" not in data["node"]["flags"]
     ):
         if data["node"]["name"] in ignored_vars:
             return
@@ -212,7 +260,7 @@ def parse(data: dict, indent: int = 0, root: bool = False):
         )
     else:
         return
-    if not "names" in data["node"]:
+    if "names" not in data["node"]:
         return
     if data["node"]["bases"][0] == "enum.Enum":
         return
@@ -270,25 +318,75 @@ for key in data["names"].keys():
         ):
             continue
         if key == "request_log":
-            funcs.append(("request_log", "bilibili_api.request_log", "var", "AsyncEvent", 2))
-            parse(json.load(open(os.path.join(
-                ".mypy_cache",
-                f"{sys.version_info.major}.{sys.version_info.minor}",
-                "bilibili_api",
-                "utils",
-                "network.data.json"
-            )))["names"]["RequestLog"], 2)
+            funcs.append(
+                ("request_log", "bilibili_api.request_log", "var", "AsyncEvent", 2)
+            )
+            parse(
+                json.load(
+                    open(
+                        os.path.join(
+                            ".mypy_cache",
+                            f"{sys.version_info.major}.{sys.version_info.minor}",
+                            "bilibili_api",
+                            "utils",
+                            "network.data.json",
+                        )
+                    )
+                )["names"]["RequestLog"],
+                2,
+            )
         elif key == "request_settings":
-            funcs.append(("request_settings", "bilibili_api.request_settings", "var", "builtins.object", 2))
-            parse(json.load(open(os.path.join(
-                ".mypy_cache",
-                f"{sys.version_info.major}.{sys.version_info.minor}",
-                "bilibili_api",
-                "utils",
-                "network.data.json"
-            )))["names"]["RequestSettings"], 2)
+            funcs.append(
+                (
+                    "request_settings",
+                    "bilibili_api.request_settings",
+                    "var",
+                    "builtins.object",
+                    2,
+                )
+            )
+            # parse(
+            #     json.load(
+            #         open(
+            #             os.path.join(
+            #                 ".mypy_cache",
+            #                 f"{sys.version_info.major}.{sys.version_info.minor}",
+            #                 "bilibili_api",
+            #                 "utils",
+            #                 "network.data.json",
+            #             )
+            #         )
+            #     )["names"]["RequestSettings"],
+            #     2,
+            # )
+        elif key == "bili_settings":
+            funcs.append(
+                (
+                    "bili_settings",
+                    "bilibili_api.bili_settings",
+                    "var",
+                    "builtins.object",
+                    2,
+                )
+            )
+            parse(
+                json.load(
+                    open(
+                        os.path.join(
+                            ".mypy_cache",
+                            f"{sys.version_info.major}.{sys.version_info.minor}",
+                            "bilibili_api",
+                            "utils",
+                            "network.data.json",
+                        )
+                    )
+                )["names"]["BiliSettings"],
+                2,
+            )
         elif key == "HEADERS":
-            funcs.append(("HEADERS", "bilibili_api.HEADERS", "var", "builtins.object", 2))
+            funcs.append(
+                ("HEADERS", "bilibili_api.HEADERS", "var", "builtins.object", 2)
+            )
         else:
             parse(data["names"][key], 2, root=True)
 all_funcs.append(funcs)
@@ -315,18 +413,18 @@ def parse_docstring(doc: str):
             elif state == 1:
                 if line == "":
                     continue
-                arginfo = line.split(":")[1].lstrip()
+                arginfo = ":".join(line.split(":")[1:]).lstrip()
                 argname = line.split("(")[0].rstrip()
                 argtype = line[len(argname) : len(line.split(":")[0])]
                 argtype = argtype.lstrip(" ").rstrip(" ")[1:-1]
                 argtype = (
                     argtype.replace("(", "[")
                     .replace(")", "]")
-                    .replace("tuple", "Tuple")
-                    .replace("list", "List")
-                    .replace("dict", "Dict")
-                    .replace("union", "Union")
-                    .replace("|", "\|")
+                    # .replace("tuple", "Tuple")
+                    # .replace("list", "List")
+                    # .replace("dict", "Dict")
+                    # .replace("union", "Union")
+                    .replace("|", r"\|")
                 )
                 # print(line)
                 # assert argtype != ""
@@ -360,8 +458,6 @@ def parse_docstring1(doc: str):
     doc = doc.lstrip("\n")
     info = ""
     table = []
-    ret = ""
-    note = ""
     state = 0
     for line in doc.split("\n"):
         if line.startswith("Attribute") or line.startswith("Args"):
@@ -376,18 +472,18 @@ def parse_docstring1(doc: str):
                     state = 0
                     info += line + "\n"
                     continue
-                arginfo = line.split(":")[1].lstrip()
+                arginfo = ":".join(line.split(":")[1:]).lstrip()
                 argname = line.split("(")[0].rstrip()
                 argtype = line[len(argname) : len(line.split(":")[0])]
                 argtype = argtype.lstrip(" ").rstrip(" ")[1:-1]
                 argtype = (
                     argtype.replace("(", "[")
                     .replace(")", "]")
-                    .replace("tuple", "Tuple")
-                    .replace("list", "List")
-                    .replace("dict", "Dict")
-                    .replace("union", "Union")
-                    .replace("|", "\|")
+                    # .replace("tuple", "Tuple")
+                    # .replace("list", "List")
+                    # .replace("dict", "Dict")
+                    # .replace("union", "Union")
+                    .replace("|", r"\|")
                 )
                 # print(line)
                 # assert argtype != ""
@@ -397,11 +493,18 @@ def parse_docstring1(doc: str):
         mdstring += "| name | type | description |\n| - | - | - |\n"
         for arg in table:
             mdstring += f"| `{arg[0]}` | `{arg[1]}` | {arg[2]} |\n"
-    mdstring += f"\n\n"
+    mdstring += "\n\n"
     return mdstring
 
 
-import bilibili_api
+import bilibili_api  # noqa: F401, I001
+
+
+with open("./docs/toc.md", "w+") as toc:
+    toc.write(
+        "# API 文档目录\n\n此处为模块 API 文档的目录，通过网页查找可快速跳转至对应的类/函数。\n\n"
+    )
+
 
 for module in all_funcs:
     if module[0][0] in ["_pyinstaller", "tools", "exceptions", "clients"]:
@@ -414,20 +517,34 @@ for module in all_funcs:
             f"# Module {module[0][0]}.py\n\n{eval(f'{module[0][1]}.__doc__')}\n\n``` python\nfrom bilibili_api import {module[0][0]}\n```\n\n"
         )
     else:
-        file.write(f"# Module bilibili_api\n\n{eval(f'{module[0][1]}.__doc__')}\n\n``` python\nfrom bilibili_api import ...\n```\n\n")
+        file.write(
+            f"# Module bilibili_api\n\n{eval(f'{module[0][1]}.__doc__')}\n\n``` python\nfrom bilibili_api import ...\n```\n\n"
+        )
     print("GENERATING TOC")
     last_data_class = -114514
-    for idx, func in enumerate(module[1:]):
-        if idx == last_data_class + 1:
-            # don't show __init__ of dataclass and ApiException
-            continue
-        if func[3] == "@dataclasses.dataclass" or func[1].count("exceptions") == 1 or func[0].startswith("request_"):
-            last_data_class = idx
-        file.write(
-            "  " * (func[4] - 2)
-            + f"- [{func[2]} {func[0].replace("_", "\\_")}{["()", ""][func[2] == "var"]}](#{func[2].replace(' ', '-')}-{func[0].replace("_", "\\_")})\n"
-        )
-    file.write("\n")
+    with open("./docs/toc.md", "a+") as toc:
+        toc.write(f"- [{module[0][0]}](./modules/{module[0][0]})\n")
+        for idx, func in enumerate(module[1:]):
+            if idx == last_data_class + 1:
+                # don't show __init__ of dataclass and ApiException
+                continue
+            if (
+                func[3] == "@dataclasses.dataclass"
+                or func[1].count("exceptions") == 1
+                or func[0].startswith("request_log")
+                or func[0].startswith("bili_settings")
+            ):
+                last_data_class = idx
+            npy313 = func[0].replace("_", "\\_")
+            file.write(
+                "  " * (func[4] - 2)
+                + f"- [{func[2]} {npy313}{['()', ''][func[2] == 'var']}](#{func[2].replace(' ', '-')}-{npy313})\n"
+            )
+            toc.write(
+                "  " * (func[4] - 1)
+                + f"- [{func[2]} {npy313}{['()', ''][func[2] == 'var']}](./modules/{module[0][0]}.md#{func[2].replace(' ', '-')}-{npy313})\n"
+            )
+        file.write("\n")
     last_data_class = -114514
     for idx, func in enumerate(module[1:]):
         if idx == last_data_class + 1:
@@ -438,29 +555,40 @@ for module in all_funcs:
         print("PROCESS", func[1])
         if func[4] == 2:
             file.write("---\n\n")
-        if func[3].startswith("@"):
-            file.write(f"**{func[3]}** \n\n")
-        if func[3] == "@dataclasses.dataclass" or func[1].count("exceptions") == 1 or func[0].startswith("request_"):
+        if (
+            func[3] == "@dataclasses.dataclass"
+            or func[1].count("exceptions") == 1
+            or func[0].startswith("request_log")
+            or func[0].startswith("bili_settings")
+        ):
             last_data_class = idx
         if func[0] == "__init__":
             func[0] = "\\_\\_init\\_\\_"
-        file.write("#" * func[4] + f" {func[2]} {func[0]}{["()", ""][func[2] == "var"]}\n\n")
+        file.write(
+            "#" * func[4] + f" {func[2]} {func[0]}{['()', ''][func[2] == 'var']}\n\n"
+        )
+        if func[3].startswith("@"):
+            file.write(f"> `{func[3]}` \n\n")
         if func[0] == "HEADERS":
             continue
+        doc = eval(f"{func[1]}.__doc__")
+        if doc == " ":
+            doc = ""
         if func[2] == "class" or func[2] == "var":
             if not func[3].startswith("@") and func[3] != "builtins.object":
-                file.write(f"**Extend: {func[3]}**\n\n")
+                file.write(f"> Extend: `{func[3]}`\n\n")
             if func[0] in ["request_log", "BiliAPIClient"]:
-                doc = eval(f"{func[1]}.__doc__")
                 for line in doc.split("\n"):
+                    if doc.startswith("\n    "):
+                        line = line[4:]
                     file.write(line + "\n")
                 file.write("\n\n")
             else:
-                file.write(parse_docstring1(eval(f"{func[1]}.__doc__")))
+                file.write(parse_docstring1(doc))
         else:
             if func[0] == "\\_\\_init\\_\\_":
-                file.write(parse_docstring1(eval(f"{func[1]}.__doc__")))
+                file.write(parse_docstring1(doc))
             else:
-                file.write(parse_docstring(eval(f"{func[1]}.__doc__")))
+                file.write(parse_docstring(doc))
     file.close()
     print("DONE", docs_dir)

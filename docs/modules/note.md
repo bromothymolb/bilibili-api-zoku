@@ -45,11 +45,11 @@ from bilibili_api import note
 
 | name | type | description |
 | - | - | - |
-| `cvid` | `int` | 公开笔记 ID (对应专栏的 cvid) (公开笔记必要) |
-| `aid` | `int` | 稿件 ID（oid_type 为 0 时是 avid） (私有笔记必要) |
-| `note_id` | `int` | 私有笔记 ID (私有笔记必要) |
-| `note_type` | `str` | 笔记类型 (private, public) |
-| `credential` | `Credential, optional` | Credential. Defaults to None. |
+| `cvid` | `int \| None, optional` | 公开笔记 ID (对应专栏的 cvid) (公开笔记必要). Defaults to None. |
+| `aid` | `int \| None, optional` | 稿件 ID（oid_type 为 0 时是 avid） (私有笔记必要). Defaults to None. |
+| `note_id` | `int \| None, optional` | 私有笔记 ID (私有笔记必要). Defaults to None. |
+| `note_type` | `NoteType, optional` | 笔记类型 (private, public). Defaults to NoteType.PUBLIC. |
+| `credential` | `Credential \| None, optional` | Credential. Defaults to None. |
 
 
 ### async def add_coins()
@@ -117,7 +117,7 @@ from bilibili_api import note
 
 
 
-**Returns:** `list`:  图片信息
+**Returns:** `list['Picture']`:  图片信息
 
 
 
@@ -128,7 +128,7 @@ from bilibili_api import note
 
 
 
-**Returns:** `list`:  图片信息
+**Returns:** `list['dict']`:  图片信息
 
 
 
@@ -212,7 +212,7 @@ from bilibili_api import note
 
 | name | type | description |
 | - | - | - |
-| `status` | `bool, optional` | 收藏状态. Defaults to True |
+| `status` | `bool, optional` | 收藏状态. Defaults to True. |
 
 **Returns:** `dict`:  调用 API 返回的结果
 
@@ -228,7 +228,7 @@ from bilibili_api import note
 
 | name | type | description |
 | - | - | - |
-| `status` | `bool, optional` | 点赞状态. Defaults to True |
+| `status` | `bool, optional` | 点赞状态. Defaults to True. |
 
 **Returns:** `dict`:  调用 API 返回的结果
 
@@ -241,7 +241,7 @@ from bilibili_api import note
 
 
 
-**Returns:** `Note`:  专栏类
+**Returns:** `article.Article`:  专栏类
 
 
 
@@ -250,7 +250,7 @@ from bilibili_api import note
 
 ## class NoteType()
 
-**Extend: enum.Enum**
+> Extend: `enum.Enum`
 
 笔记类型
 

@@ -12,22 +12,21 @@ bilibili_api.cheese
 还有，课程的 season_id 和 ep_id 不与番剧相通，井水不犯河水，请不要错用!
 """
 
-import json
+from copy import copy
 import datetime
-from typing import Any, List, Union
+import json
+from typing import Any
 
-from .utils.utils import get_api
-from .utils.danmaku import Danmaku
-from .utils.BytesReader import BytesReader
+from .exceptions import DanmakuClosedException, NetworkException, ResponseException
 from .exceptions.ArgsException import ArgsException
+from .utils import cache_pool
+from .utils.BytesReader import BytesReader
+from .utils.danmaku import Danmaku
 from .utils.network import Api, Credential
-from .exceptions import NetworkException, ResponseException, DanmakuClosedException
+from .utils.utils import get_api
 
 API = get_api("cheese")
 API_video = get_api("video")
-
-
-cheese_video_meta_cache = {}
 
 
 class CheeseList:
@@ -42,24 +41,27 @@ class CheeseList:
         self,
         season_id: int = -1,
         ep_id: int = -1,
-        credential: Union[Credential, None] = None,
-    ):
+        credential: Credential | None = None,
+    ) -> None:
         """
         Args:
-            season_id  (int)       : ssid
+            season_id (int, optional): ssid. Defaults to -1.
+            ep_id (int, optional): 单集 ep_id. Defaults to -1.
+            credential (Credential | None, optional): 凭据类. Defaults to None.
 
-            ep_id      (int)       : 单集 ep_id
-
-            credential (Credential): 凭据类
-
-        注意：season_id 和 ep_id 任选一个即可，两个都选的话
         以 season_id 为主
         """
         if (season_id == -1) and (ep_id == -1):
             raise ValueError("season id 和 ep id 必须选一个")
         self.__season_id = season_id
         self.__ep_id = ep_id
-        self.credential: Credential = credential if credential else Credential()
+        self.credential: Credential = credential or Credential()
+
+    def __str__(self) -> str:
+        return f"CheeseList(season_id={self.__season_id if self.__season_id != -1 else '[UNKNOWN]'})"
+
+    def __repr__(self) -> str:
+        return f"CheeseList(season_id={self.__season_id if self.__season_id != -1 else '[UNKNOWN]'})"
 
     async def __fetch_season_id(self) -> None:
         # self.season_id = str(sync(self.get_meta())["season_id"])
@@ -113,7 +115,7 @@ class CheeseList:
             await Api(**api, credential=self.credential).update_params(**params).result
         )
 
-    async def get_list_raw(self):
+    async def get_list_raw(self) -> dict:
         """
         获取教程所有视频 (返回原始数据)
 
@@ -126,14 +128,13 @@ class CheeseList:
             await Api(**api, credential=self.credential).update_params(**params).result
         )
 
-    async def get_list(self) -> List["CheeseVideo"]:
+    async def get_list(self) -> list["CheeseVideo"]:
         """
         获取教程所有视频
 
         Returns:
-            List[CheeseVideo]: 课程视频列表
+            list['CheeseVideo']: 课程视频列表
         """
-        global cheese_video_meta_cache
         api = API["info"]["list"]
         params = {"season_id": await self.get_season_id(), "pn": 1, "ps": 1000}
         lists = (
@@ -142,7 +143,7 @@ class CheeseList:
         cheese_videos = []
         for c in lists["items"]:
             c["ssid"] = await self.get_season_id()
-            cheese_video_meta_cache[c["id"]] = c
+            cache_pool.cheese_video_meta_cache[c["id"]] = c
             cheese_videos.append(CheeseVideo(c["id"], self.credential))
         return cheese_videos
 
@@ -150,36 +151,40 @@ class CheeseList:
 class CheeseVideo:
     """
     教程视频类
+
     因为不和其他视频相通，所以这里是一个新的类，无继承
 
     Attributes:
         credential (Credential): 凭据类
-
         cheese     (CheeseList): 所属的课程
     """
 
-    def __init__(self, epid, credential: Union[Credential, None] = None):
+    def __init__(self, epid: int, credential: Credential | None = None) -> None:
         """
         Args:
-            epid      (int)       : 单集 ep_id
-
-            credential (Credential): 凭据类
+            epid (int): 单集 ep_id
+            credential (Credential | None, optional): 凭据类. Defaults to None.
         """
-        global cheese_video_meta_cache
         self.__epid = epid
         self.cheese = None
         self.__aid = None
         self.__cid = None
         self.__meta = None
-        meta = cheese_video_meta_cache.get(epid)
+        meta = cache_pool.cheese_video_meta_cache.get(epid)
         if meta:
             self.cheese = CheeseList(season_id=meta["ssid"])
             self.__meta = meta
             self.__aid = meta["aid"]
             self.__cid = meta["cid"]
-        self.credential: Credential = credential if credential else Credential()
+        self.credential: Credential = credential or Credential()
 
-    async def __fetch_meta(self) -> int:
+    def __str__(self) -> str:
+        return f"CheeseVideo(epid={self.__epid})"
+
+    def __repr__(self) -> str:
+        return f"CheeseVideo(epid={self.__epid})"
+
+    async def __fetch_meta(self) -> None:
         api = API["info"]["meta"]
         params = {"ep_id": self.__epid}
         metadata = await Api(**api).update_params(**params).result
@@ -199,7 +204,7 @@ class CheeseVideo:
         """
         if not self.__aid:
             await self.__fetch_meta()
-        return self.__aid
+        return self.__aid  # type: ignore
 
     async def get_cid(self) -> int:
         """
@@ -210,7 +215,7 @@ class CheeseVideo:
         """
         if not self.__cid:
             await self.__fetch_meta()
-        return self.__cid
+        return self.__cid  # type: ignore
 
     async def get_meta(self) -> dict:
         """
@@ -221,7 +226,7 @@ class CheeseVideo:
         """
         if not self.__meta:
             await self.__fetch_meta()
-        return self.__meta
+        return copy(self.__meta)  # type: ignore
 
     async def get_cheese(self) -> "CheeseList":
         """
@@ -232,7 +237,7 @@ class CheeseVideo:
         """
         if not self.cheese:
             await self.__fetch_meta()
-        return self.cheese
+        return self.cheese  # type: ignore
 
     async def set_epid(self, epid: int) -> None:
         """
@@ -317,7 +322,7 @@ class CheeseVideo:
                 .request(byte=True)
             )
         except Exception as e:
-            raise NetworkException(-1, str(e))
+            raise NetworkException(-1, str(e)) from e
 
         json_data = {}
         reader = BytesReader(resp_data)
@@ -498,22 +503,20 @@ class CheeseVideo:
 
     async def get_danmakus(
         self,
-        date: Union[datetime.date, None] = None,
-        from_seg: Union[int, None] = None,
-        to_seg: Union[int, None] = None,
-    ) -> List[Danmaku]:
+        date: datetime.date | None = None,
+        from_seg: int | None = None,
+        to_seg: int | None = None,
+    ) -> list[Danmaku]:
         """
         获取弹幕。
 
         Args:
-            date       (datetime.Date | None, optional): 指定日期后为获取历史弹幕，精确到年月日。Defaults to None.
-
-            from_seg (int, optional): 从第几段开始(0 开始编号，None 为从第一段开始，一段 6 分钟). Defaults to None.
-
-            to_seg (int, optional): 到第几段结束(0 开始编号，None 为到最后一段，包含编号的段，一段 6 分钟). Defaults to None.
+            date (datetime.date | None, optional): 指定日期后为获取历史弹幕，精确到年月日. Defaults to None.
+            from_seg (int | None, optional): 从第几段开始(0 开始编号，None 为从第一段开始，一段 6 分钟). Defaults to None.
+            to_seg (int | None, optional): 到第几段结束(0 开始编号，None 为到最后一段，包含编号的段，一段 6 分钟). Defaults to None.
 
         Returns:
-            List[Danmaku]: Danmaku 类的列表。
+            list[Danmaku]: Danmaku 类的列表。
 
         注意：
             - 1. 段数可以通过视频时长计算。6分钟为一段。
@@ -534,14 +537,14 @@ class CheeseVideo:
             from_seg = to_seg = 0
         else:
             api = API_video["danmaku"]["get_danmaku"]
-            if from_seg == None:
+            if from_seg is None:
                 from_seg = 0
-            if to_seg == None:
-                to_seg = self.get_meta()["duration"] // 360 + 1
+            if to_seg is None:
+                to_seg = (await self.get_meta())["duration"] // 360 + 1
 
         danmakus = []
 
-        for seg in range(from_seg, to_seg + 1):
+        for seg in range(from_seg, to_seg + 1):  # type: ignore
             if date is None:
                 # 仅当获取当前弹幕时需要该参数
                 params["segment_index"] = seg + 1
@@ -552,7 +555,7 @@ class CheeseVideo:
                     .request(byte=True)
                 )
             except Exception as e:
-                raise NetworkException(-1, str(e))
+                raise NetworkException(-1, str(e)) from e
 
             if data == b"\x10\x01":
                 # 视频弹幕被关闭
@@ -650,18 +653,18 @@ class CheeseVideo:
             .request(raw=True)
         )
 
-    async def send_danmaku(self, danmaku: Union[Danmaku, None] = None):
+    async def send_danmaku(self, danmaku: Danmaku | None = None) -> dict:
         """
         发送弹幕。
 
         Args:
-            danmaku (Danmaku | None): Danmaku 类。Defaults to None.
+            danmaku (Danmaku | None, optional): Danmaku 类. Defaults to None.
 
         Returns:
             dict: 调用 API 返回的结果。
         """
 
-        danmaku = danmaku if danmaku else Danmaku("")
+        danmaku = danmaku or Danmaku("")
 
         self.credential.raise_for_no_sessdata()
         self.credential.raise_for_no_bili_jct()
@@ -686,7 +689,7 @@ class CheeseVideo:
         }
         return await Api(**api, credential=self.credential).update_data(**data).result
 
-    async def has_liked(self):
+    async def has_liked(self) -> bool:
         """
         视频是否点赞过。
 
@@ -702,7 +705,7 @@ class CheeseVideo:
             == 1
         )
 
-    async def get_pay_coins(self):
+    async def get_pay_coins(self) -> int:
         """
         获取视频已投币数量。
 
@@ -717,7 +720,7 @@ class CheeseVideo:
             await Api(**api, credential=self.credential).update_params(**params).result
         )["multiply"]
 
-    async def has_favoured(self):
+    async def has_favoured(self) -> bool:
         """
         是否已收藏。
 
@@ -732,12 +735,12 @@ class CheeseVideo:
             await Api(**api, credential=self.credential).update_params(**params).result
         )["favoured"]
 
-    async def like(self, status: bool = True):
+    async def like(self, status: bool = True) -> dict:
         """
         点赞视频。
 
         Args:
-            status (bool, optional): 点赞状态。Defaults to True.
+            status (bool, optional): 点赞状态. Defaults to True.
 
         Returns:
             dict: 调用 API 返回的结果。
@@ -749,14 +752,13 @@ class CheeseVideo:
         data = {"aid": await self.get_aid(), "like": 1 if status else 2}
         return await Api(**api, credential=self.credential).update_data(**data).result
 
-    async def pay_coin(self, num: int = 1, like: bool = False):
+    async def pay_coin(self, num: int = 1, like: bool = False) -> dict:
         """
         投币。
 
         Args:
-            num  (int, optional) : 硬币数量，为 1 ~ 2 个。Defaults to 1.
-
-            like (bool, optional): 是否同时点赞。Defaults to False.
+            num (int, optional): 硬币数量，为 1 ~ 2 个. Defaults to 1.
+            like (bool, optional): 是否同时点赞. Defaults to False.
 
         Returns:
             dict: 调用 API 返回的结果。
@@ -776,19 +778,22 @@ class CheeseVideo:
         return await Api(**api, credential=self.credential).update_data(**data).result
 
     async def set_favorite(
-        self, add_media_ids: List[int] = [], del_media_ids: List[int] = []
-    ):
+        self,
+        add_media_ids: list[int] | None = None,
+        del_media_ids: list[int] | None = None,
+    ) -> dict:
         """
         设置视频收藏状况。
 
         Args:
-            add_media_ids (List[int], optional): 要添加到的收藏夹 ID. Defaults to [].
-
-            del_media_ids (List[int], optional): 要移出的收藏夹 ID. Defaults to [].
+            add_media_ids (list[int] | None, optional): 要添加到的收藏夹 ID. Defaults to None.
+            del_media_ids (list[int] | None, optional): 要移出的收藏夹 ID. Defaults to None.
 
         Returns:
             dict: 调用 API 返回结果。
         """
+        add_media_ids = add_media_ids or []
+        del_media_ids = del_media_ids or []
         if len(add_media_ids) + len(del_media_ids) == 0:
             raise ArgsException(
                 "对收藏夹无修改。请至少提供 add_media_ids 和 del_media_ids 中的其中一个。"
@@ -801,8 +806,8 @@ class CheeseVideo:
         data = {
             "rid": await self.get_aid(),
             "type": 2,
-            "add_media_ids": ",".join(map(lambda x: str(x), add_media_ids)),
-            "del_media_ids": ",".join(map(lambda x: str(x), del_media_ids)),
+            "add_media_ids": ",".join(str(x) for x in add_media_ids),
+            "del_media_ids": ",".join(str(x) for x in del_media_ids),
         }
         return await Api(**api, credential=self.credential).update_data(**data).result
 
@@ -816,3 +821,19 @@ class CheeseVideo:
         cid = await self.get_cid()
         url = f"https://comment.bilibili.com/{cid}.xml"
         return (await Api(url=url, method="GET").request(byte=True)).decode("utf-8")
+
+    async def get_video_snapshot(self) -> dict:
+        """
+        获取视频快照(视频各个时间段的截图拼图)
+
+        Returns:
+            dict: 调用 API 返回的结果,数据中 Url 没有 http 头
+        """
+        params: dict[str, Any] = {
+            "aid": await self.get_aid(),
+            "cid": await self.get_cid(),
+        }
+        api = API_video["info"]["video_snapshot"]
+        return (
+            await Api(**api, credential=self.credential).update_params(**params).result
+        )

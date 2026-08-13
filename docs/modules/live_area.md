@@ -43,7 +43,7 @@ from bilibili_api import live_area
 | - | - | - |
 | `id` | `int` | 分区的 id。 |
 
-**Returns:** `Tuple[dict | None, dict | None]`:  第一个是主分区，第二个是子分区，没有时返回 None。
+**Returns:** `tuple[dict | None, dict | None]`:  第一个是主分区，第二个是子分区，没有时返回 None。
 
 
 
@@ -59,7 +59,7 @@ from bilibili_api import live_area
 | - | - | - |
 | `name` | `str` | 分区的名称。 |
 
-**Returns:** `Tuple[dict | None, dict | None]`:  第一个是主分区，第二个是子分区，没有时返回 None。
+**Returns:** `tuple[dict | None, dict | None]`:  第一个是主分区，第二个是子分区，没有时返回 None。
 
 
 
@@ -72,7 +72,7 @@ from bilibili_api import live_area
 
 
 
-**Returns:** `List[dict]`:  所有分区的数据
+**Returns:** `list[dict]`:  所有分区的数据
 
 
 
@@ -101,9 +101,9 @@ from bilibili_api import live_area
 | name | type | description |
 | - | - | - |
 | `area_id` | `int` | 分区 id |
-| `page` | `int` | 第几页. Defaults to 1. |
-| `order` | `LiveRoomOrder` | 直播间排序方式. 访问接口后查询 `new_tags` 字段对应 `sort_type`。Defaults to "" (综合). |
-| `credential` | `Credential, optional` | 凭据类. Defaults to None. |
+| `page` | `int, optional` | 第几页. Defaults to 1. |
+| `order` | `str, optional` | 直播间排序方式. 访问接口后查询 `new_tags` 字段对应 `sort_type`. Defaults to ''. |
+| `credential` | `Credential \| None, optional` | 凭据类. Defaults to None. |
 
 **Returns:** `dict`:  调用 API 返回的结果
 

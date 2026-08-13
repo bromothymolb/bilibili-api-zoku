@@ -6,17 +6,15 @@ bilibili_api.watchroom
 注意，此类操作务必传入 `Credential` 并且要求传入 `buvid3` 否则可能无法鉴权
 """
 
-import time
 from enum import Enum
-from typing import Dict, List, Union
+import time
+from typing import Union
 
+from .utils import cache_pool
 from .utils.network import Api, Credential
 from .utils.utils import get_api
 
 API = get_api("watchroom")
-
-
-watch_room_bangumi_cache: Dict[int, List[int]] = {}
 
 
 class SeasonType(Enum):
@@ -61,7 +59,12 @@ class MessageSegment:
         is_emoji (bool): 是否为表情包
     """
 
-    def __init__(self, msg: str, is_emoji: bool = False):
+    def __init__(self, msg: str, is_emoji: bool = False) -> None:
+        """
+        Args:
+            msg (str): 信息
+            is_emoji (bool, optional): 是否为表情包. Defaults to False.
+        """
         self.msg = msg
         self.msg_type = MessageType.EMOJI if is_emoji else MessageType.PLAIN
 
@@ -76,8 +79,12 @@ class Message:
     消息集合
     """
 
-    def __init__(self, *messages: Union[MessageSegment, str]):
-        self.msg_list: List[MessageSegment] = []
+    def __init__(self, *messages: MessageSegment | str) -> None:
+        """
+        Args:
+            messages (watchroom.MessageSegment | str): 消息片段。请按 *args 传入。
+        """
+        self.msg_list: list[MessageSegment] = []
         for msg in messages:
             if isinstance(msg, str):
                 self.msg_list.append(MessageSegment(msg))
@@ -103,27 +110,28 @@ class WatchRoom:
     放映室类
     """
 
-    __season_id: int
-    __episode_id: int
-
-    def __init__(self, room_id: int, credential: Credential = None) -> None:
+    def __init__(self, room_id: int, credential: Credential | None = None) -> None:
         """
         Args:
-
-            credential      (Credential): 凭据类 (大部分用户操作都需要与之匹配的 buvid3 值，务必在 credential 传入)
-
-            room_id         (int)       : 放映室 id
+            room_id (int): 放映室 id
+            credential (Credential | None, optional): 凭据类 (大部分用户操作都需要与之匹配的 buvid3 值，务必在 credential 传入). Defaults to None.
         """
-        credential = credential if credential else Credential()
+        credential = credential or Credential()
         self.__room_id = room_id
-        self.__season_id = None
-        self.__episode_id = None
+        self.__season_id: int | None = None
+        self.__episode_id: int | None = None
         self.credential: Credential = credential
         self.credential.raise_for_no_sessdata()
         self.credential.raise_for_no_bili_jct()
-        if room_id in watch_room_bangumi_cache.keys():
-            self.set_season_id(watch_room_bangumi_cache[room_id][0])
-            self.set_episode_id(watch_room_bangumi_cache[room_id][1])
+        if room_id in cache_pool.watch_room_bangumi_cache.keys():
+            self.set_season_id(cache_pool.watch_room_bangumi_cache[room_id][0])
+            self.set_episode_id(cache_pool.watch_room_bangumi_cache[room_id][1])
+
+    def __str__(self) -> str:
+        return f"WatchRoom(room_id={self.__room_id})"
+
+    def __repr__(self) -> str:
+        return f"WatchRoom(room_id={self.__room_id})"
 
     async def __fetch_meta(self) -> None:
         params = {"room_id": self.get_room_id(), "platform": "web"}
@@ -162,7 +170,7 @@ class WatchRoom:
         """
         if not self.__season_id:
             await self.__fetch_meta()
-        return self.__season_id
+        return self.__season_id  # type: ignore
 
     async def get_episode_id(self) -> int:
         """
@@ -173,7 +181,7 @@ class WatchRoom:
         """
         if not self.__episode_id:
             await self.__fetch_meta()
-        return self.__episode_id
+        return self.__episode_id  # type: ignore
 
     def get_room_id(self) -> int:
         """
@@ -231,15 +239,13 @@ class WatchRoom:
             .result
         )
 
-    async def progress(self, progress: int = None, status: int = 1) -> None:
+    async def progress(self, progress: int | None = None, status: int = 1) -> None:
         """
         设置播放状态，包括暂停与进度条
 
         Args:
-
-            progress (int, None): 进度，单位为秒
-
-            status (bool, None): 播放状态 1 播放中 0 暂停中 2 已结束
+            progress (int | None, optional): 进度，单位为秒. Defaults to None.
+            status (int, optional): 播放状态 1 播放中 0 暂停中 2 已结束. Defaults to 1.
         """
         api = API["operate"]["progress"]
         data = {
@@ -260,8 +266,7 @@ class WatchRoom:
         加入放映室
 
         Args:
-
-            token (str, Optional): 邀请 Token
+            token (str, optional): 邀请 Token. Defaults to ''.
 
         Returns:
             dict: 调用 API 返回的结果
@@ -287,8 +292,7 @@ class WatchRoom:
         发送消息
 
         Args:
-
-            msg (Message): 消息
+            msg (watchroom.Message): 消息
 
         Returns:
             dict: 调用 API 返回的结果
@@ -296,7 +300,7 @@ class WatchRoom:
         data = {
             "room_id": self.get_room_id(),
             "content_type": 0,
-            "content": '{"text":"%s"}' % msg,
+            "content": f'{{"text":"{msg}"}}',
             "req_id": int(time.time()) * 1000,
             "platform": "web",
             "csrf": self.credential.bili_jct,
@@ -313,7 +317,6 @@ class WatchRoom:
         踢出放映室
 
         Args:
-
             uid (int): 用户 uid
 
         Returns:
@@ -359,26 +362,20 @@ async def create(
     season_id: int,
     episode_id: int,
     is_open: bool = False,
-    credential: Credential = None,
+    credential: Credential | None = None,
 ) -> WatchRoom:
     """
     创建放映室
 
     Args:
-
         season_id (int): 每季度的 ID
-
-        ep_id (int): 剧集 ID
-
-        is_open (bool): 是否公开
-
-        credential (Credential): 凭据
+        episode_id (int): 剧集 ID
+        is_open (bool, optional): 是否公开. Defaults to False.
+        credential (Credential | None, optional): 凭据. Defaults to None.
 
     Returns:
-        Watchroom: 放映室
+        watchroom.WatchRoom: 放映室
     """
-    global watch_room_bangumi_cache
-
     if credential is None:
         credential = Credential()
 
@@ -393,26 +390,25 @@ async def create(
     room_id = (
         await Api(credential=credential, no_csrf=True, **api).update_data(**data).result
     )["room_id"]
-    watch_room_bangumi_cache[room_id] = [season_id, episode_id]
+    cache_pool.watch_room_bangumi_cache[room_id] = [season_id, episode_id]
     return WatchRoom(room_id=room_id, credential=credential)
 
 
 async def match(
     season_id: int,
     season_type: SeasonType = SeasonType.ANIME,
-    credential: Credential = None,
+    credential: Credential | None = None,
 ) -> WatchRoom:
     """
     匹配放映室
 
     Args:
-
         season_id (int): 季度 ID
-
-        season_type (str): 季度类型
+        season_type (SeasonType, optional): 季度类型. Defaults to SeasonType.ANIME.
+        credential (Credential | None, optional): 凭据类. Defaults to None.
 
     Returns:
-        Watchroom: 放映室
+        watchroom.WatchRoom: 放映室
     """
     if credential is None:
         credential = Credential()

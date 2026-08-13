@@ -42,7 +42,7 @@ from bilibili_api import game
 | name | type | description |
 | - | - | - |
 | `game_id` | `int` | 游戏 id |
-| `credential` | `Credential` | 凭据类. Defaults to None. |
+| `credential` | `Credential \| None, optional` | 凭据类. Defaults to None. |
 
 
 ### async def get_detail()
@@ -115,7 +115,7 @@ from bilibili_api import game
 
 ## class GameRankType()
 
-**Extend: enum.Enum**
+> Extend: `enum.Enum`
 
 游戏排行榜类型枚举
 

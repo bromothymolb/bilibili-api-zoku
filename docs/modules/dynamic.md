@@ -99,8 +99,10 @@ BuildDynamic.create_by_args(text="114514", topic_id=114514)
 
 | name | type | description |
 | - | - | - |
-| `uid` | `int` | 用户ID |
-| `uname` | `str` | 用户名称. Defaults to "". |
+| `uid` | `int, optional` | 用户ID. Defaults to 0. |
+| `uname` | `str, optional` | 用户名称. Defaults to ''. |
+
+**Returns:** `BuildDynamic`:  `self`
 
 
 
@@ -114,6 +116,8 @@ BuildDynamic.create_by_args(text="114514", topic_id=114514)
 | - | - | - |
 | `emoji` | `str` | 表情文字 |
 
+**Returns:** `BuildDynamic`:  `self`
+
 
 
 
@@ -124,7 +128,9 @@ BuildDynamic.create_by_args(text="114514", topic_id=114514)
 
 | name | type | description |
 | - | - | - |
-| `image` | `Picture \| List[Picture]` | 图片类 |
+| `image` | `list[Picture] \| Picture` | 图片类 |
+
+**Returns:** `BuildDynamic`:  `self`
 
 
 
@@ -138,6 +144,8 @@ BuildDynamic.create_by_args(text="114514", topic_id=114514)
 | - | - | - |
 | `text` | `str` | 文本内容 |
 
+**Returns:** `BuildDynamic`:  `self`
+
 
 
 
@@ -149,6 +157,8 @@ BuildDynamic.create_by_args(text="114514", topic_id=114514)
 | name | type | description |
 | - | - | - |
 | `text` | `str` | 文本内容 |
+
+**Returns:** `BuildDynamic`:  `self`
 
 
 
@@ -162,35 +172,41 @@ BuildDynamic.create_by_args(text="114514", topic_id=114514)
 | - | - | - |
 | `vote_id` | `int` | 投票对象 |
 
+**Returns:** `BuildDynamic`:  `self`
 
 
 
-**@staticmethod** 
 
 ### def create_by_args()
+
+> `@staticmethod` 
 
 通过参数构建动态
 
 
 | name | type | description |
 | - | - | - |
-| `text` | `str, optional` | 动态文字. Defaults to "". |
-| `pics` | `List[Picture]  , optional` | 动态图片列表. Defaults to []. |
-| `topic_id` | `int, optional` | 动态话题 id. Defaults to -1. |
-| `vote_id` | `int, optional` | 动态中的投票的 id. 将放在整个动态的最后面. Defaults to -1. |
-| `live_reserve_id` | `int, optional` | 直播预约 oid. 通过 `live.create_live_reserve` 获取. Defaults to -1. |
-| `send_time` | `datetime \| None, optional` | 发送时间. Defaults to None. |
+| `text` | `str, optional` | 动态文字. Defaults to ''. |
+| `pics` | `list[Picture] \| None, optional` | 动态图片列表. Defaults to None. |
+| `topic_id` | `int \| None, optional` | 动态话题 id. Defaults to None. |
+| `vote_id` | `int \| None, optional` | 动态中的投票的 id. 将放在整个动态的最后面. Defaults to None. |
+| `live_reserve_id` | `int \| None, optional` | 直播预约 oid. 通过 `live.create_live_reserve` 获取. Defaults to None. |
+| `send_time` | `datetime.datetime \| None, optional` | 发送时间. Defaults to None. |
+
+**Returns:** `BuildDynamic`:  `self`
 
 
 
-
-**@staticmethod** 
 
 ### def empty()
+
+> `@staticmethod` 
 
 新建空的动态以链式逐步构建
 
 
+
+**Returns:** `BuildDynamic`:  `self`
 
 
 
@@ -201,7 +217,7 @@ BuildDynamic.create_by_args(text="114514", topic_id=114514)
 
 
 
-**Returns:** `Optional[dict]`:  动态预约
+**Returns:** `dict | None`:  动态预约
 
 
 
@@ -259,7 +275,7 @@ BuildDynamic.create_by_args(text="114514", topic_id=114514)
 
 
 
-**Returns:** `Optional[dict]`:  动态话题
+**Returns:** `dict | None`:  动态话题
 
 
 
@@ -275,6 +291,8 @@ BuildDynamic.create_by_args(text="114514", topic_id=114514)
 | - | - | - |
 | `oid` | `int` | 卡片oid |
 
+**Returns:** `BuildDynamic`:  `self`
+
 
 
 
@@ -285,8 +303,10 @@ BuildDynamic.create_by_args(text="114514", topic_id=114514)
 
 | name | type | description |
 | - | - | - |
-| `up_choose_comment` | `bool` | 精选评论flag |
-| `close_comment` | `bool` | 关闭评论flag |
+| `up_choose_comment` | `bool, optional` | 精选评论flag. Defaults to False. |
+| `close_comment` | `bool, optional` | 关闭评论flag. Defaults to False. |
+
+**Returns:** `BuildDynamic`:  `self`
 
 
 
@@ -298,7 +318,9 @@ BuildDynamic.create_by_args(text="114514", topic_id=114514)
 
 | name | type | description |
 | - | - | - |
-| `time` | `datetime` | 发送时间 |
+| `time` | `datetime.datetime` | 发送时间 |
+
+**Returns:** `BuildDynamic`:  `self`
 
 
 
@@ -311,6 +333,8 @@ BuildDynamic.create_by_args(text="114514", topic_id=114514)
 | name | type | description |
 | - | - | - |
 | `topic_id` | `int` | 话题ID |
+
+**Returns:** `BuildDynamic`:  `self`
 
 
 
@@ -376,8 +400,8 @@ BuildDynamic.create_by_args(text="114514", topic_id=114514)
 
 | name | type | description |
 | - | - | - |
-| `pn` | `int, optional` | 页码，defaults to 1 |
-| `ps` | `int, optional` | 每页大小，defaults to 30 |
+| `pn` | `int, optional` | 页码，. Defaults to 1. |
+| `ps` | `int, optional` | 每页大小，. Defaults to 30. |
 
 **Returns:** `dict`:  调用 API 返回的结果
 
@@ -402,7 +426,7 @@ BuildDynamic.create_by_args(text="114514", topic_id=114514)
 
 | name | type | description |
 | - | - | - |
-| `offset` | `str, optional` | 偏移值（下一页的第一个动态 ID，为该请求结果中的 offset 键对应的值），类似单向链表. Defaults to "" |
+| `offset` | `str, optional` | 偏移值（下一页的第一个动态 ID，为该请求结果中的 offset 键对应的值），类似单向链表. Defaults to ''. |
 
 **Returns:** `dict`:  调用 API 返回的结果
 
@@ -416,7 +440,7 @@ BuildDynamic.create_by_args(text="114514", topic_id=114514)
 
 | name | type | description |
 | - | - | - |
-| `offset` | `str, optional` | 偏移值（下一页的第一个动态 ID，为该请求结果中的 offset 键对应的值），类似单向链表. Defaults to "0" |
+| `offset` | `str, optional` | 偏移值（下一页的第一个动态 ID，为该请求结果中的 offset 键对应的值），类似单向链表. Defaults to '0'. |
 
 **Returns:** `dict`:  调用 API 返回的结果
 
@@ -487,7 +511,7 @@ BuildDynamic.create_by_args(text="114514", topic_id=114514)
 
 | name | type | description |
 | - | - | - |
-| `text` | `str, optional` | 转发动态时的文本内容. Defaults to "转发动态" |
+| `text` | `str, optional` | 转发动态时的文本内容. Defaults to '转发动态'. |
 
 **Returns:** `dict`:  调用 API 返回的结果
 
@@ -501,7 +525,7 @@ BuildDynamic.create_by_args(text="114514", topic_id=114514)
 
 | name | type | description |
 | - | - | - |
-| `status` | `bool, optional` | 收藏状态. Defaults to True |
+| `status` | `bool, optional` | 收藏状态. Defaults to True. |
 
 **Returns:** `dict`:  调用 API 返回的结果
 
@@ -565,7 +589,7 @@ BuildDynamic.create_by_args(text="114514", topic_id=114514)
 
 ## class DynamicContentType()
 
-**Extend: enum.Enum**
+> Extend: `enum.Enum`
 
 动态内容类型
 
@@ -581,7 +605,7 @@ BuildDynamic.create_by_args(text="114514", topic_id=114514)
 
 ## class DynamicType()
 
-**Extend: enum.Enum**
+> Extend: `enum.Enum`
 
 动态类型
 
@@ -597,7 +621,7 @@ BuildDynamic.create_by_args(text="114514", topic_id=114514)
 
 ## class SendDynamicType()
 
-**Extend: enum.Enum**
+> Extend: `enum.Enum`
 
 发送动态类型
 scene 参数
@@ -655,11 +679,11 @@ scene 参数
 | name | type | description |
 | - | - | - |
 | `credential` | `Credential` | 凭据类. |
-| `_type` | `DynamicType, optional` | 动态类型. Defaults to DynamicType.ALL. |
-| `host_mid` | `int, optional` | 获取对应 UP 主动态的 mid. Defaults to None. |
-| `features` | `str, optional` | 默认 itemOpusStyle. |
+| `_type` | `dynamic.DynamicType \| None, optional` | 动态类型. Defaults to None. |
+| `host_mid` | `int \| None, optional` | 获取对应 UP 主动态的 mid. Defaults to None. |
+| `features` | `str, optional` | 默认 itemOpusStyle. Defaults to 'itemOpusStyle'. |
 | `pn` | `int, optional` | 页码. Defaults to 1. |
-| `offset` | `int, optional` | 偏移值（下一页的第一个动态 ID，为该请求结果中的 offset 键对应的值），类似单向链表. Defaults to None. |
+| `offset` | `int \| None, optional` | 偏移值（下一页的第一个动态 ID，为该请求结果中的 offset 键对应的值），类似单向链表. Defaults to None. |
 
 **Returns:** `dict`:  调用 API 返回的结果
 
@@ -680,13 +704,13 @@ scene 参数
 | name | type | description |
 | - | - | - |
 | `credential` | `Credential` | 凭据类. |
-| `_type` | `DynamicType, optional` | 动态类型. Defaults to DynamicType.ALL. |
-| `host_mid` | `int, optional` | 获取对应 UP 主动态的 mid. Defaults to None. |
-| `features` | `str, optional` | 默认 itemOpusStyle. |
+| `_type` | `dynamic.DynamicType \| None, optional` | 动态类型. Defaults to None. |
+| `host_mid` | `int \| None, optional` | 获取对应 UP 主动态的 mid. Defaults to None. |
+| `features` | `str, optional` | 默认 itemOpusStyle. Defaults to 'itemOpusStyle'. |
 | `pn` | `int, optional` | 页码. Defaults to 1. |
-| `offset` | `int, optional` | 偏移值（下一页的第一个动态 ID，为该请求结果中的 offset 键对应的值），类似单向链表. Defaults to None. |
+| `offset` | `int \| None, optional` | 偏移值（下一页的第一个动态 ID，为该请求结果中的 offset 键对应的值），类似单向链表. Defaults to None. |
 
-**Returns:** `list[Dynamic]`:  动态类列表
+**Returns:** `list[dynamic.Dynamic]`:  动态类列表
 
 
 
@@ -700,8 +724,8 @@ scene 参数
 
 | name | type | description |
 | - | - | - |
-| `size` | `int` | 获取的数据数量. Defaults to 10. |
-| `credential` | `Credential \| None` | 凭据类. Defaults to None. |
+| `size` | `int, optional` | 获取的数据数量. Defaults to 10. |
+| `credential` | `Credential \| None, optional` | 凭据类. Defaults to None. |
 
 **Returns:** `dict`:  调用 API 返回的结果
 
@@ -717,7 +741,7 @@ scene 参数
 
 | name | type | description |
 | - | - | - |
-| `credential` | `Credential \| None` | 凭据类. Defaults to None. |
+| `credential` | `Credential \| None, optional` | 凭据类. Defaults to None. |
 
 **Returns:** `dict`:  调用 API 返回的结果
 
@@ -749,7 +773,7 @@ scene 参数
 
 | name | type | description |
 | - | - | - |
-| `info` | `BuildDynamic` | 动态内容 |
+| `info` | `dynamic.BuildDynamic` | 动态内容 |
 | `credential` | `Credential` | 凭据 |
 
 **Returns:** `dict`:  调用 API 返回的结果
@@ -785,7 +809,7 @@ scene 参数
 | - | - | - |
 | `image` | `Picture` | 图片流. 有格式要求. |
 | `credential` | `Credential` | 凭据 |
-| `data` | `Dict` | 自定义请求体 |
+| `data` | `dict \| None, optional` | 自定义请求体. Defaults to None. |
 
 **Returns:** `dict`:  调用 API 返回的结果
 

@@ -1,10 +1,6 @@
+![bilibili-api logo](img/logo.png)
+
 <div align="center">
-
-<img src="./design/logo.png" />
-
-# bilibili-api-zoku
-
-**The Continuation of bilibili-API**
 
 [![API 数量](https://img.shields.io/badge/API%20数量-400+-blue)][api.json]
 [![LICENSE](https://img.shields.io/badge/LICENSE-GPLv3+-red)][LICENSE]
@@ -15,208 +11,103 @@
 [![Docs](https://img.shields.io/badge/Docs-Site-green)][docs]
 [![Docs](https://img.shields.io/badge/Docs-Github-green)][docs-github]
 
+## 欢迎来到 `bilibili-api-zoku v18.0.0.b0` 文档！ヾ(ﾟ∀ﾟゞ)
+
 </div>
 
-# 简介
+### 简介
 
 这是一个用 Python 写的调用 [Bilibili](https://www.bilibili.com) 各种 API 的库，
-范围涵盖视频、音频、直播、动态、专栏、用户、番剧等[^1]。
+范围涵盖视频、音频、直播、动态、专栏、用户、番剧等。
 
-## 特色
+`bilibili-api-zoku` 是原 `bilibili-api` 的接续，项目名称来源于日语『続』（<ruby>ぞ<rp>(</rp><rt>zo</rt><rp>)</rp>く<rp>(</rp><rt>ku</rt><rp>)</rp></ruby>），即汉字“续”。
 
-- 范围涵盖广，基本覆盖常用的爬虫，操作。
-- 可使用代理，绕过 b 站风控策略。
-- 全面支持 BV 号（bvid），同时也兼容 AV 号（aid）。
-- 调用简便，函数命名易懂，代码注释详细。
-- 不仅仅是官方提供的 API！还附加：AV 号与 BV 号互转[^2]、连接直播弹幕 Websocket 服务器、视频弹幕反查、下载弹幕、字幕文件[^3]、专栏内容爬取、cookies 刷新等[^4]。
-- 支持采用各种手段避免触发反爬虫风控[^5]。
-- **全部是异步操作**。
-- 默认支持 `aiohttp` / `httpx` / `curl_cffi`。
+如果你是首次接触模块，可以从 `快速上手` 开始。
 
-# 快速上手
+进一步了解模块，可以阅读 `通用` `子模块相关` `进阶` 中的内容。
 
-首先使用以下指令安装本模块：
+模块根目录下不同的子模块提供了不同方面的功能，例如 `video.py` 提供了视频相关功能，`user.py` 提供了用户相关功能。以上子模块提供所有函数与类的相关文档，配有部分常用示例代码可供参考。
 
-```
-# 主版本
-$ pip3 install bilibili-api-zoku
+> API 示例部分内容尚为稀缺，欢迎补充更多示例！
 
-# 开发版本
-$ pip3 install bilibili-api-zoku --pre
+寻找功能请前往对应子模块下寻找：
 
-# 最新修改会在 dev 分支
-$ pip3 install git+https://github.com/bromothymolb/bilibili-api-zoku.git@dev
-```
+| 子模块 | 说明 | 链接 |
+| ----- | --- | ---- |
+| `activity` | 活动 | [文档](modules/activity.md) - [示例](examples/activity.md) |
+| `app` | 应用程序 | [文档](modules/app.md) - [示例](examples/app.md) |
+| `article_category` | 专栏分类 | [文档](modules/article_category.md) - [示例](examples/article_category.md) |
+| `article` | 专栏 | [文档](modules/article.md) - [示例](examples/article.md) |
+| `ass` | 字幕 | [文档](modules/ass.md) - [示例](examples/ass.md) |
+| `audio_uploader` | 音频上传 | [文档](modules/audio_uploader.md) - [示例](examples/audio_uploader.md) |
+| `audio` | 音频 | [文档](modules/audio.md) - [示例](examples/audio.md) |
+| `bangumi` | 番剧 | [文档](modules/bangumi.md) - [示例](examples/bangumi.md) |
+| `black_room` | 小黑屋 | [文档](modules/black_room.md) - [示例](examples/black_room.md) |
+| `channel_series` | 合集与列表 | [文档](modules/channel_series.md) - [示例](examples/channel_series.md) |
+| `cheese` | 课程 | [文档](modules/cheese.md) - [示例](examples/cheese.md) |
+| `client` | 终端 | [文档](modules/client.md) - [示例](examples/client.md) |
+| `comment` | 评论 | [文档](modules/comment.md) - [示例](examples/comment.md) |
+| `creative_center` | 创作中心 | [文档](modules/creative_center.md) - [示例](examples/creative_center.md) |
+| `dynamic` | 动态 | [文档](modules/dynamic.md) - [示例](examples/dynamic.md) |
+| `emoji` | 表情包 | [文档](modules/emoji.md) - [示例](examples/emoji.md) |
+| `favorite_list` | 收藏夹 | [文档](modules/favorite_list.md) - [示例](examples/favorite_list.md) |
+| `festival` | 节日 | [文档](modules/festival.md) - [示例](examples/festival.md) |
+| `game` | 游戏 | [文档](modules/game.md) - [示例](examples/game.md) |
+| `garb` | 装扮/收藏集 | [文档](modules/garb.md) - [示例](examples/garb.md) |
+| `homepage` | 主页 | [文档](modules/homepage.md) - [示例](examples/homepage.md) |
+| `hot` | 热门 | [文档](modules/hot.md) - [示例](examples/hot.md) |
+| `interactive_video` | 互动视频 | [文档](modules/interactive_video.md) - [示例](examples/interactive_video.md) |
+| `live_area` | 直播分区 | [文档](modules/live_area.md) - [示例](examples/live_area.md) |
+| `live` | 直播 | [文档](modules/live.md) - [示例](examples/live.md) |
+| `login_v2` | 登录 | [文档](modules/login_v2.md) - [示例](examples/login_v2.md) |
+| `manga` | 漫画 | [文档](modules/manga.md) - [示例](examples/manga.md) |
+| `music` | 音乐 | [文档](modules/music.md) - [示例](examples/music.md) |
+| `note` | 笔记 | [文档](modules/note.md) - [示例](examples/note.md) |
+| `opus` | 图文 | [文档](modules/opus.md) - [示例](examples/opus.md) |
+| `rank` | 排行 | [文档](modules/rank.md) - [示例](examples/rank.md) |
+| `search` | 搜索 | [文档](modules/search.md) - [示例](examples/search.md) |
+| `session` | 会话 | [文档](modules/session.md) - [示例](examples/session.md) |
+| `show` | 展出 | [文档](modules/show.md) - [示例](examples/show.md) |
+| `topic` | 话题 | [文档](modules/topic.md) - [示例](examples/topic.md) |
+| `user` | 用户 | [文档](modules/user.md) - [示例](examples/user.md) |
+| `video_tag` | 视频标签 | [文档](modules/video_tag.md) - [示例](examples/video_tag.md) |
+| `video_uploader` | 视频上传 | [文档](modules/video_uploader.md) - [示例](examples/video_uploader.md) |
+| `video_zone` | 视频分区 | [文档](modules/video_zone.md) - [示例](examples/video_zone.md) |
+| `video_zone_v2` | 新版视频分区 | [文档](modules/video_zone_v2.md) - [示例](examples/video_zone_v2.md) |
+| `video` | 视频 | [文档](modules/video.md) - [示例](examples/video.md) |
+| `vote` | 投票 | [文档](modules/vote.md) - [示例](examples/vote.md) |
+| `watchroom` | 放映室 | [文档](modules/watchroom.md) - [示例](examples/watchroom.md) |
 
-然后需要**自行安装**一个支持异步的第三方请求库，如 `aiohttp` / `httpx` / `curl_cffi`。
+模块部分类与函数直接绑定在 `bilibili_api` 包下，例如 `bilibili_api.sync` `bilibili_api.select_client`，诸如此类函数和类的文档，请参考 [根模块文档](modules/bilibili_api.md)
 
-```
-# aiohttp
-$ pip3 install aiohttp
+部分功能在文档中有进一步说明，可在侧边栏选择相应页面阅读。
 
-# httpx
-$ pip3 install httpx
+如果实在找不到想要的功能，可以前往 Discussion 区发 Q/A。需要注意，模块并非万能的，亦和和哔哩哔哩官方无任何关系，存在不支持或不可用（失效）的功能是正常现象。
 
-# curl_cffi
-$ pip3 install "curl_cffi"
-```
+## 致谢
 
-接下来我们来获取视频的播放量等信息：
+bilibili-api 发展到今天，离不开以下项目的直接或间接支持：
 
-```python
-import asyncio
-from bilibili_api import video
+- `MoyuScript/bilibili-api`<sup>1</sup>: 模块最早的仓库。
+- `Nemo2011/bilibili-api`<sup>2</sup>: 模块第二个仓库。
+- `SocialSisterYi/bilibili-API-collect`<sup>2</sup>:: bilibili API 社区文档。
+- `kuresaru/geetest-validator`: 模块极验验证码页面支持。
+- `m13253/danmaku2ass`: 模块 ASS 字幕支持。
 
+1: 仓库已删除。
+2: 仓库已被 _Cease and Desist Letter_ 后删档。
 
-async def main() -> None:
-    # 实例化 Video 类
-    v = video.Video(bvid="BV1uv411q7Mv")
-    # 获取信息
-    info = await v.get_info()
-    # 打印信息
-    print(info)
+另外，模块 aid 与 bvid 转换逻辑参考了 <https://www.zhihu.com/question/381784377/answer/1099438784> 这篇回答。
 
+最后，感谢所有贡献者对 bilibili-api 作出的贡献：
 
-if __name__ == "__main__":
-    asyncio.run(main())
+<a href="https://github.com/bromothymolb/bilibili-api-zoku/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=bromothymolb/bilibili-api-zoku&max=1000" alt="contributors" />
+</a>
 
-```
+也感谢所有曾经的或现在的模块使用者们！
 
-输出（已格式化，已省略部分）：
-
-```json
-{
-    "bvid": "BV1uv411q7Mv",
-    "aid": 243922477,
-    "videos": 1,
-    "tid": 17,
-    "tname": "单机游戏",
-    "copyright": 1,
-    "pic": "http://i2.hdslb.com/bfs/archive/82e52df9d0221836c260c82f2890e3761a46716b.jpg",
-    "title": "爆肝９８小时！在 MC 中还原糖调小镇",
-    "pubdate": 1595203214,
-    "ctime": 1595168654,
-    ...and more
-}
-```
-
-如何给这个视频点赞？我们需要登录自己的账号。
-
-这里设计是传入一个 Credential 类，获取所需的信息参照：[获取 Credential 类所需信息][get-credential]
-
-下面的代码将会给视频点赞
-
-```python
-import asyncio
-from bilibili_api import video, Credential
-
-async def main() -> None:
-    # 实例化 Credential 类
-    credential = Credential(sessdata=SESSDATA, bili_jct=BILI_JCT, buvid3=BUVID3)
-    # 实例化 Video 类
-    v = video.Video(bvid="BVxxxxxxxx", credential=credential)
-    info = await v.get_info()
-    print(info)
-    # 给视频点赞
-    await v.like(True)
-
-if __name__ == '__main__':
-    asyncio.run(main())
-```
-
-如果没有报错，就代表调用 API 成功，你可以到视频页面确认是不是调用成功了。
-
-> **Warning** 注意，请不要泄露这两个值给他人，否则你的账号将可能遭受盗号的风险！
-
-# 异步迁移
-
-由于从 v5 版本开始，基本全部改为异步，如果你不会异步，可以参考 [asyncio](https://docs.python.org/zh-cn/3/library/asyncio.html)
-
-异步可以进行并发请求，性能更高，不过如果请求过快仍然会导致被屏蔽。
-
-总的来说，异步比同步更有优势，所以不会的话可以去学一下，会发现新天地（误
-
-如果你仍然想继续使用同步代码，请参考 [同步执行异步代码](https://bromothymolb.github.io/bilibili-api-zoku/#/sync-executor)
-
-# 模块使用的请求库
-
-模块在允许的条件下，按照 `curl_cffi` `aiohttp` `httpx` 的优先级选择第三方请求库。
-
-如果想要指定请求库，可以利用 `select_client` 进行切换。
-
-``` python
-from bilibili_api import select_client
-
-select_client("curl_cffi") # 选择 curl_cffi，支持伪装浏览器的 TLS / JA3 / Fingerprint
-select_client("aiohttp") # 选择 aiohttp
-select_client("httpx") # 选择 httpx，不支持 WebSocket
-```
-
-curl_cffi 支持伪装浏览器的 TLS / JA3 / Fingerprint，但需要手动设置。
-
-``` python
-from bilibili_api import request_settings
-
-request_settings.set("impersonate", "chrome131") # 第二参数数值参考 curl_cffi 文档
-# https://curl-cffi.readthedocs.io/en/latest/impersonate.html
-```
-
-# FA♂Q
-
-**Q: 关于 API 调用的正确姿势是什么？**
-
-A: 所有 API 调用，请尽量使用 **指名方式** 传参，
-因为 API 较多，可能不同函数的传参顺序不一样，例子：
-
-```python
-# 推荐
-video.get_info(bvid="BV1uv411q7Mv")
-
-# 当然也可以这样
-kwargs = {
-    "bvid": "BV1uv411q7Mv"
-}
-video.get_info(**kwargs)
-
-# 不推荐
-video.get_info("BV1uv411q7Mv")
-```
-
-**Q: 为什么会提示 412 Precondition Failed ？**
-
-A: 你的请求速度太快了。造成请求速度过快的原因可能是你写了高并发的代码。
-
-这种情况下，你的 IP 会暂时被封禁而无法使用，你可以设置代理绕过。
-
-```python
-from bilibili_api import request_settings
-
-request_settings.set_proxy("http://your-proxy.com") # 里头填写你的代理地址
-
-request_settings.set_proxy("http://username:password@your-proxy.com") # 如果需要用户名、密码
-```
-
-**Q: 怎么没有我想要的功能？**
-
-A: 你可以发 Issue 来提交你的需求，但是，最好的办法是自己写（懒）
-
-<span id="contribute">**Q: 我有一个大胆的想法，如何给代码库贡献？**</span>
-
-A: 请先 clone 本仓库一份，然后从 main 分支新建一个分支，在该分支上工作。
-如果你觉得已经可以了，请向项目仓库的 develop 分支发起 Pull request。
-如果你不明白这些操作的话，可以百度。完整指南：[CONTRIBUTING.md](https://github.com/bromothymolb/bilibili-api-zoku/blob/main/.github/CONTRIBUTING.md)
-
-**Q: 稳定性怎么样？**
-
-A: 由于该模块比较特殊，是爬虫模块，如果 b 站的接口变更，可能会马上失效。因此请始终保证是最新版本。如果发现问题可以提 [Issues][issues-new]。
-
-[^1]: 这里只列出一部分，请以实际 API 为准。
-[^2]: 代码来源：<https://www.zhihu.com/question/381784377/answer/1099438784> (WTFPL)
-[^3]: 部分代码来源：<https://github.com/m13253/danmaku2ass> (GPLv3) <https://github.com/ewwink/python-srt2ass>
-[^4]: 思路来源：<https://socialsisteryi.github.io/bilibili-API-collect/docs/login/cookie_refresh.html> (CC-BY-NC 4.0)
-[^5]: 大量思路来源 <https://github.com/SocialSisterYi/bilibili-API-collect> 中相关讨论。
-
-# 使用前须知
+## 使用前须知
 
 > 您开始使用本项目即默认您已阅读、认同并将遵守下列内容：
 >
@@ -228,9 +119,15 @@ A: 由于该模块比较特殊，是爬虫模块，如果 b 站的接口变更�
 
 [docs]: https://bromothymolb.github.io/bilibili-api-zoku
 [docs-github]: https://github.com/bromothymolb/bilibili-api-zoku/tree/main/docs
-[api.json]: https://github.com/bromothymolb/bilibili-api-zoku/tree/main/bilibili_api/data/api/
+[api.json]: https://github.com/bromothymolb/bilibili-api-zoku/tree/main/bilibili_api/data/api
 [license]: https://github.com/bromothymolb/bilibili-api-zoku/tree/main/LICENSE
 [stargazers]: https://github.com/bromothymolb/bilibili-api-zoku/stargazers
 [issues-new]: https://github.com/bromothymolb/bilibili-api-zoku/issues/new/choose
-[get-credential]: https://bromothymolb.github.io/bilibili-api-zoku/#/get-credential
+[get-credential]: https://bromothymolb.github.io/bilibili-api-zoku/#/docs/common/credential.md
 [pypi]: https://pypi.org/project/bilibili-api-zoku
+[aiohttp]: https://github.com/aio-libs/aiohttp
+[httpx]: https://github.com/encode/httpx
+[curl_cffi]: https://github.com/lexiforest/curl_cffi
+[fpgen]: https://github.com/scrapfly/fingerprint-generator
+[trio]: https://github.com/python-trio/trio
+[anyio]: https://github.com/agronholm/anyio

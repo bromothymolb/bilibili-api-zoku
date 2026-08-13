@@ -24,7 +24,7 @@ from bilibili_api import video_zone
 
 ## class VideoZoneTypes()
 
-**Extend: enum.Enum**
+> Extend: `enum.Enum`
 
 所有分区枚举
 
@@ -183,7 +183,7 @@ from bilibili_api import video_zone
 | - | - | - |
 | `tid` | `int` | 分区 id |
 
-**Returns:** `List[dict]`:  热门标签
+**Returns:** `list[dict]`:  热门标签
 
 
 
@@ -199,7 +199,7 @@ from bilibili_api import video_zone
 | - | - | - |
 | `name` | `str` | 频道的名称。 |
 
-**Returns:** `Tuple[dict | None, dict | None]`:  第一个是主分区，第二个是子分区，没有时返回 None。
+**Returns:** `tuple[dict | None, dict | None]`:  第一个是主分区，第二个是子分区，没有时返回 None。
 
 
 
@@ -215,7 +215,7 @@ from bilibili_api import video_zone
 | - | - | - |
 | `tid` | `int` | 频道的 tid。 |
 
-**Returns:** `Tuple[dict | None, dict | None]`:  第一个是主分区，第二个是子分区，没有时返回 None。
+**Returns:** `tuple[dict | None, dict | None]`:  第一个是主分区，第二个是子分区，没有时返回 None。
 
 
 
@@ -228,7 +228,7 @@ from bilibili_api import video_zone
 
 
 
-**Returns:** `List[dict]`:  所有分区的数据
+**Returns:** `list[dict]`:  所有分区的数据
 
 
 
@@ -242,7 +242,7 @@ from bilibili_api import video_zone
 
 
 
-**Returns:** `dict`:  所有分区的数据
+**Returns:** `list[dict]`:  所有分区的数据
 
 
 
@@ -257,8 +257,8 @@ from bilibili_api import video_zone
 | name | type | description |
 | - | - | - |
 | `tid` | `int` | 分区 id |
-| `page_num` | `int` | 第几页. Defaults to 1. |
-| `page_size` | `int` | 每页的数据大小. Defaults to 10. |
+| `page_num` | `int, optional` | 第几页. Defaults to 1. |
+| `page_size` | `int, optional` | 每页的数据大小. Defaults to 10. |
 
 **Returns:** `dict`:  调用 API 返回的结果
 
@@ -275,10 +275,10 @@ from bilibili_api import video_zone
 | name | type | description |
 | - | - | - |
 | `tid` | `int` | 频道的 tid。 |
-| `day` | `int, optional` | 3 天排行还是 7 天排行。 Defaults to 7. |
-| `credential` | `Credential \| None, optional` | Credential 类。Defaults to None. |
+| `day` | `int, optional` | 3 天排行还是 7 天排行. Defaults to 7. |
+| `credential` | `Credential \| None, optional` | Credential 类. Defaults to None. |
 
-**Returns:** `list`:  前 10 的视频信息。
+**Returns:** `dict`:  前 10 的视频信息。
 
 
 
@@ -292,7 +292,7 @@ from bilibili_api import video_zone
 
 | name | type | description |
 | - | - | - |
-| `credential` | `Credential \| None` | 凭据类 |
+| `credential` | `Credential \| None, optional` | 凭据类. Defaults to None. |
 
 **Returns:** `dict`:  调用 API 返回的结果
 

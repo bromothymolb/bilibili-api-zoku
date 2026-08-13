@@ -41,6 +41,7 @@ from bilibili_api import cheese
   - [async def get\_pay\_coins()](#async-def-get\_pay\_coins)
   - [async def get\_pbp()](#async-def-get\_pbp)
   - [async def get\_stat()](#async-def-get\_stat)
+  - [async def get\_video\_snapshot()](#async-def-get\_video\_snapshot)
   - [async def has\_favoured()](#async-def-has\_favoured)
   - [async def has\_liked()](#async-def-has\_liked)
   - [async def like()](#async-def-like)
@@ -63,15 +64,14 @@ from bilibili_api import cheese
 
 ### def \_\_init\_\_()
 
-注意：season_id 和 ep_id 任选一个即可，两个都选的话
 以 season_id 为主
 
 
 | name | type | description |
 | - | - | - |
-| `season_id` | `int` | ssid |
-| `ep_id` | `int` | 单集 ep_id |
-| `credential` | `Credential` | 凭据类 |
+| `season_id` | `int, optional` | ssid. Defaults to -1. |
+| `ep_id` | `int, optional` | 单集 ep_id. Defaults to -1. |
+| `credential` | `Credential \| None, optional` | 凭据类. Defaults to None. |
 
 
 ### async def get_list()
@@ -80,7 +80,7 @@ from bilibili_api import cheese
 
 
 
-**Returns:** `List[CheeseVideo]`:  课程视频列表
+**Returns:** `list['CheeseVideo']`:  课程视频列表
 
 
 
@@ -147,6 +147,7 @@ from bilibili_api import cheese
 ## class CheeseVideo()
 
 教程视频类
+
 因为不和其他视频相通，所以这里是一个新的类，无继承
 
 
@@ -162,7 +163,7 @@ from bilibili_api import cheese
 | name | type | description |
 | - | - | - |
 | `epid` | `int` | 单集 ep_id |
-| `credential` | `Credential` | 凭据类 |
+| `credential` | `Credential \| None, optional` | 凭据类. Defaults to None. |
 
 
 ### async def get_aid()
@@ -227,11 +228,11 @@ from bilibili_api import cheese
 
 | name | type | description |
 | - | - | - |
-| `date` | `datetime.Date \| None, optional` | 指定日期后为获取历史弹幕，精确到年月日。Defaults to None. |
-| `from_seg` | `int, optional` | 从第几段开始(0 开始编号，None 为从第一段开始，一段 6 分钟). Defaults to None. |
-| `to_seg` | `int, optional` | 到第几段结束(0 开始编号，None 为到最后一段，包含编号的段，一段 6 分钟). Defaults to None. |
+| `date` | `datetime.date \| None, optional` | 指定日期后为获取历史弹幕，精确到年月日. Defaults to None. |
+| `from_seg` | `int \| None, optional` | 从第几段开始(0 开始编号，None 为从第一段开始，一段 6 分钟). Defaults to None. |
+| `to_seg` | `int \| None, optional` | 到第几段结束(0 开始编号，None 为到最后一段，包含编号的段，一段 6 分钟). Defaults to None. |
 
-**Returns:** `List[Danmaku]`:  Danmaku 类的列表。
+**Returns:** `list[Danmaku]`:  Danmaku 类的列表。
 
 
 注意：
@@ -318,6 +319,17 @@ from bilibili_api import cheese
 
 
 
+### async def get_video_snapshot()
+
+获取视频快照(视频各个时间段的截图拼图)
+
+
+
+**Returns:** `dict`:  调用 API 返回的结果,数据中 Url 没有 http 头
+
+
+
+
 ### async def has_favoured()
 
 是否已收藏。
@@ -347,7 +359,7 @@ from bilibili_api import cheese
 
 | name | type | description |
 | - | - | - |
-| `status` | `bool, optional` | 点赞状态。Defaults to True. |
+| `status` | `bool, optional` | 点赞状态. Defaults to True. |
 
 **Returns:** `dict`:  调用 API 返回的结果。
 
@@ -361,8 +373,8 @@ from bilibili_api import cheese
 
 | name | type | description |
 | - | - | - |
-| `num` | `int, optional` | 硬币数量，为 1 ~ 2 个。Defaults to 1. |
-| `like` | `bool, optional` | 是否同时点赞。Defaults to False. |
+| `num` | `int, optional` | 硬币数量，为 1 ~ 2 个. Defaults to 1. |
+| `like` | `bool, optional` | 是否同时点赞. Defaults to False. |
 
 **Returns:** `dict`:  调用 API 返回的结果。
 
@@ -376,7 +388,7 @@ from bilibili_api import cheese
 
 | name | type | description |
 | - | - | - |
-| `danmaku` | `Danmaku \| None` | Danmaku 类。Defaults to None. |
+| `danmaku` | `Danmaku \| None, optional` | Danmaku 类. Defaults to None. |
 
 **Returns:** `dict`:  调用 API 返回的结果。
 
@@ -402,8 +414,8 @@ from bilibili_api import cheese
 
 | name | type | description |
 | - | - | - |
-| `add_media_ids` | `List[int], optional` | 要添加到的收藏夹 ID. Defaults to []. |
-| `del_media_ids` | `List[int], optional` | 要移出的收藏夹 ID. Defaults to []. |
+| `add_media_ids` | `list[int] \| None, optional` | 要添加到的收藏夹 ID. Defaults to None. |
+| `del_media_ids` | `list[int] \| None, optional` | 要移出的收藏夹 ID. Defaults to None. |
 
 **Returns:** `dict`:  调用 API 返回结果。
 

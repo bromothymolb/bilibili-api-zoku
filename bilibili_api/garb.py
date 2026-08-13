@@ -4,13 +4,12 @@ bilibili_api.garb
 装扮/收藏集相关
 """
 
-from .utils.network import Credential, Api
-from .utils.utils import get_api
-from typing import Union, List, Tuple
+from copy import copy
 from enum import Enum
 
-dlc_lottery_id = {}
-
+from .utils import cache_pool
+from .utils.network import Api, Credential
+from .utils.utils import get_api
 
 API = get_api("garb")
 
@@ -24,9 +23,9 @@ class GarbType(Enum):
     - CARD: 动态卡片
     """
 
-    GARB = {"group_id": 0, "part_id": 6}
-    PENDANT = {"group_id": 22, "part_id": 1}
-    CARD = {"group_id": 5, "part_id": 2}
+    GARB = (0, 6)
+    PENDANT = (22, 1)
+    CARD = (5, 2)
 
 
 class GarbSortType(Enum):
@@ -44,27 +43,27 @@ class GarbSortType(Enum):
 
 
 async def search_garb_dlc_raw(
-    keyword: str, pn: int = 1, ps: int = 20, credential: Union[Credential, None] = None
+    keyword: str, pn: int = 1, ps: int = 20, credential: Credential | None = None
 ) -> dict:
     """
     搜索装扮/收藏集
 
     Args:
-        keyword    (str)                 : 关键词
-        pn         (int)                 : 页码. Defaults to 1.
-        ps         (int)                 : 每页大小. Defaults to 20.
-        credential (Credential, optional): 凭据类. Defaults to None.
+        keyword (str): 关键词
+        pn (int, optional): 页码. Defaults to 1.
+        ps (int, optional): 每页大小. Defaults to 20.
+        credential (Credential | None, optional): 凭据类. Defaults to None.
 
     Returns:
         dict: 调用 API 返回的结果。
     """
-    credential = credential if credential else Credential()
+    credential = credential or Credential()
     api = API["common"]["search"]
     params = {
         "key_word": keyword,
         "pn": pn,
         "ps": ps,
-        "csrf": credential.get_cookies()["bili_jct"],
+        "csrf": credential.get_core_cookies()["bili_jct"],
     }
     return await Api(**api, credential=credential).update_params(**params).result
 
@@ -77,18 +76,24 @@ class DLC:
         credential (Credential): 凭据类。
     """
 
-    def __init__(self, act_id: int, credential: Union[Credential, None] = None) -> None:
+    def __init__(self, act_id: int, credential: Credential | None = None) -> None:
         """
         Args:
             act_id (int): 收藏集的 act_id。 (链接中 blackboard/activity-Mz9T5bO5Q3.html?id={act_id}... 即为 act_id)
-            credential (Credential | None, optional): 凭据类。Defaults to None.
+            credential (Credential | None, optional): 凭据类. Defaults to None.
         """
         self.__act_id = act_id
         self.__lottery_id = None
         self.__basic_info = None
-        self.credential = credential if credential else Credential()
-        if dlc_lottery_id.get(self.__act_id):
-            self.__lottery_id = dlc_lottery_id[self.__act_id]
+        self.credential = credential or Credential()
+        if cache_pool.dlc_lottery_id.get(self.__act_id):
+            self.__lottery_id = cache_pool.dlc_lottery_id[self.__act_id]
+
+    def __str__(self) -> str:
+        return f"DLC(act_id={self.__act_id})"
+
+    def __repr__(self) -> str:
+        return f"DLC(act_id={self.__act_id})"
 
     def get_act_id(self) -> int:
         """
@@ -99,7 +104,7 @@ class DLC:
         """
         return self.__act_id
 
-    def set_act_id(self, act_id: int) -> int:
+    def set_act_id(self, act_id: int) -> None:
         """
         设置 act_id
 
@@ -119,7 +124,7 @@ class DLC:
             api = API["dlc"]["basic"]
             params = {
                 "act_id": self.__act_id,
-                "csrf": self.credential.get_cookies()["bili_jct"],
+                "csrf": self.credential.get_core_cookies()["bili_jct"],
             }
             self.__basic_info = (
                 await Api(**api, credential=self.credential)
@@ -127,7 +132,7 @@ class DLC:
                 .result
             )
             self.__lottery_id = self.__basic_info["lottery_list"][0]["lottery_id"]
-        return self.__basic_info
+        return copy(self.__basic_info)
 
     async def get_lottery_id(self) -> int:
         """
@@ -138,7 +143,7 @@ class DLC:
         """
         if not self.__lottery_id:
             await self.get_info()
-        return self.__lottery_id
+        return self.__lottery_id  # type: ignore
 
     async def get_detail(self) -> dict:
         """
@@ -151,7 +156,7 @@ class DLC:
         params = {
             "act_id": self.__act_id,
             "lottery_id": await self.get_lottery_id(),
-            "csrf": self.credential.get_cookies()["bili_jct"],
+            "csrf": self.credential.get_core_cookies()["bili_jct"],
         }
         return (
             await Api(**api, credential=self.credential).update_params(**params).result
@@ -166,16 +171,20 @@ class Garb:
         credential (Credential): 凭据类。
     """
 
-    def __init__(
-        self, item_id: int, credential: Union[Credential, None] = None
-    ) -> None:
+    def __init__(self, item_id: int, credential: Credential | None = None) -> None:
         """
         Args:
-            act_id (int): 装扮的 item_id。(可通过 garb.search_garb_dlc_raw 获取)
-            credential (Credential | None, optional): 凭据类。Defaults to None.
+            item_id (int): 装扮的 item_id。(可通过 garb.search_garb_dlc_raw 获取)
+            credential (Credential | None, optional): 凭据类. Defaults to None.
         """
         self.__item_id = item_id
-        self.credential = credential if credential else Credential()
+        self.credential = credential or Credential()
+
+    def __str__(self) -> str:
+        return f"Garb(item_id={self.__item_id})"
+
+    def __repr__(self) -> str:
+        return f"Garb(item_id={self.__item_id})"
 
     def get_item_id(self) -> int:
         """
@@ -205,7 +214,7 @@ class Garb:
         api = API["garb"]["detail"]
         params = {
             "item_id": self.__item_id,
-            "csrf": self.credential.get_cookies()["bili_jct"],
+            "csrf": self.credential.get_core_cookies()["bili_jct"],
         }
         return (
             await Api(**api, credential=self.credential).update_params(**params).result
@@ -213,30 +222,31 @@ class Garb:
 
 
 async def search_garb_dlc_obj(
-    keyword: str, pn: int = 1, ps: int = 20, credential: Union[Credential, None] = None
-) -> List[Union[DLC, Garb]]:
+    keyword: str, pn: int = 1, ps: int = 20, credential: Credential | None = None
+) -> list[DLC | Garb]:
     """
     搜索装扮/收藏集
 
     Args:
-        keyword    (str)                 : 关键词
-        pn         (int)                 : 页码. Defaults to 1.
-        ps         (int)                 : 每页大小. Defaults to 20.
-        credential (Credential, optional): 凭据类. Defaults to None.
+        keyword (str): 关键词
+        pn (int, optional): 页码. Defaults to 1.
+        ps (int, optional): 每页大小. Defaults to 20.
+        credential (Credential | None, optional): 凭据类. Defaults to None.
 
     Returns:
-        List[DLC | Garb]: 装扮/收藏集对象列表
+        list[garb.DLC | garb.Garb]: 装扮/收藏集对象列表
     """
-    global dlc_properties
-    credential = credential if credential else Credential()
+    credential = credential or Credential()
     res = await search_garb_dlc_raw(
         keyword=keyword, pn=pn, ps=ps, credential=credential
     )
+    if res["list"] is None:
+        return []
     ret = []
     for obj in res["list"]:
         if obj["item_id"] == 0:
             act_id = int(obj["properties"]["dlc_act_id"])
-            dlc_lottery_id[act_id] = int(obj["properties"]["dlc_lottery_id"])
+            cache_pool.dlc_lottery_id[act_id] = int(obj["properties"]["dlc_lottery_id"])
             ret.append(DLC(act_id, credential=credential))
         else:
             ret.append(Garb(obj["item_id"]))
@@ -244,30 +254,31 @@ async def search_garb_dlc_obj(
 
 
 async def search_garb_dlc(
-    keyword: str, pn: int = 1, ps: int = 20, credential: Union[Credential, None] = None
-) -> List[Tuple[dict, Union[DLC, Garb]]]:
+    keyword: str, pn: int = 1, ps: int = 20, credential: Credential | None = None
+) -> list[tuple[dict, DLC | Garb]]:
     """
     搜索装扮/收藏集
 
     Args:
-        keyword    (str)                 : 关键词
-        pn         (int)                 : 页码. Defaults to 1.
-        ps         (int)                 : 每页大小. Defaults to 20.
-        credential (Credential, optional): 凭据类. Defaults to None.
+        keyword (str): 关键词
+        pn (int, optional): 页码. Defaults to 1.
+        ps (int, optional): 每页大小. Defaults to 20.
+        credential (Credential | None, optional): 凭据类. Defaults to None.
 
     Returns:
-        List[Tuple[dict, DLC | Garb]]: 装扮/收藏集信息与装扮/收藏集对象列表
+        list[tuple[dict, garb.DLC | garb.Garb]]: 装扮/收藏集信息与装扮/收藏集对象列表
     """
-    global dlc_properties
-    credential = credential if credential else Credential()
+    credential = credential or Credential()
     res = await search_garb_dlc_raw(
         keyword=keyword, pn=pn, ps=ps, credential=credential
     )
+    if res["list"] is None:
+        return []
     ret = []
     for obj in res["list"]:
         if obj["item_id"] == 0:
             act_id = int(obj["properties"]["dlc_act_id"])
-            dlc_lottery_id[act_id] = int(obj["properties"]["dlc_lottery_id"])
+            cache_pool.dlc_lottery_id[act_id] = int(obj["properties"]["dlc_lottery_id"])
             ret.append((obj, DLC(act_id, credential=credential)))
         else:
             ret.append((obj, Garb(obj["item_id"])))
@@ -279,30 +290,31 @@ async def get_garb_dlc_items_raw(
     sort: GarbSortType = GarbSortType.DEFAULT,
     pn: int = 1,
     ps: int = 20,
-    credential: Union[Credential, None] = None,
+    credential: Credential | None = None,
 ) -> dict:
     """
     装扮/收藏集列表
 
     Args:
-        type_      (GarbType)            : 装扮/收藏集类型
-        sort       (GarbSortType)        : 装扮/收藏集排序方式
-        pn         (int)                 : 页码. Defaults to 1.
-        ps         (int)                 : 每页大小. Defaults to 20.
-        credential (Credential, optional): 凭据类. Defaults to None.
+        type_ (GarbType, optional): 装扮/收藏集类型. Defaults to GarbType.GARB.
+        sort (GarbSortType, optional): 装扮/收藏集排序方式. Defaults to GarbSortType.DEFAULT.
+        pn (int, optional): 页码. Defaults to 1.
+        ps (int, optional): 每页大小. Defaults to 20.
+        credential (Credential | None, optional): 凭据类. Defaults to None.
 
     Returns:
-        List[Tuple[dict, DLC | Garb]]: 装扮/收藏集信息与装扮/收藏集对象列表
+        dict: 调用 API 返回的结果
     """
-    credential = credential if credential else Credential()
+    credential = credential or Credential()
     api = API["common"]["list"]
     params = {
         "sort_type": sort.value,
         "pn": pn,
         "ps": ps,
-        "csrf": credential.get_cookies()["bili_jct"],
+        "csrf": credential.get_core_cookies()["bili_jct"],
+        "group_id": type_.value[0],
+        "part_id": type_.value[1],
     }
-    params.update(type_.value)
     return await Api(**api, credential=credential).update_params(**params).result
 
 
@@ -311,23 +323,22 @@ async def get_garb_dlc_items_obj(
     sort: GarbSortType = GarbSortType.DEFAULT,
     pn: int = 1,
     ps: int = 20,
-    credential: Union[Credential, None] = None,
-) -> dict:
+    credential: Credential | None = None,
+) -> list[DLC | Garb]:
     """
     装扮/收藏集列表
 
     Args:
-        type_      (GarbType)            : 装扮/收藏集类型
-        sort       (GarbSortType)        : 装扮/收藏集排序方式
-        pn         (int)                 : 页码. Defaults to 1.
-        ps         (int)                 : 每页大小. Defaults to 20.
-        credential (Credential, optional): 凭据类. Defaults to None.
+        type_ (GarbType, optional): 装扮/收藏集类型. Defaults to GarbType.GARB.
+        sort (GarbSortType, optional): 装扮/收藏集排序方式. Defaults to GarbSortType.DEFAULT.
+        pn (int, optional): 页码. Defaults to 1.
+        ps (int, optional): 每页大小. Defaults to 20.
+        credential (Credential | None, optional): 凭据类. Defaults to None.
 
     Returns:
-        List[DLC | Garb]: 装扮/收藏集对象列表
+        list[garb.DLC | garb.Garb]: 装扮/收藏集对象列表
     """
-    global dlc_properties
-    credential = credential if credential else Credential()
+    credential = credential or Credential()
     res = await get_garb_dlc_items_raw(
         type_=type_, sort=sort, pn=pn, ps=ps, credential=credential
     )
@@ -335,7 +346,7 @@ async def get_garb_dlc_items_obj(
     for obj in res["list"]:
         if obj["item_id"] == 0:
             act_id = int(obj["properties"]["dlc_act_id"])
-            dlc_lottery_id[act_id] = int(obj["properties"]["dlc_lottery_id"])
+            cache_pool.dlc_lottery_id[act_id] = int(obj["properties"]["dlc_lottery_id"])
             ret.append(DLC(act_id, credential=credential))
         else:
             ret.append(Garb(obj["item_id"]))
@@ -347,23 +358,22 @@ async def get_garb_dlc_items(
     sort: GarbSortType = GarbSortType.DEFAULT,
     pn: int = 1,
     ps: int = 20,
-    credential: Union[Credential, None] = None,
-) -> dict:
+    credential: Credential | None = None,
+) -> list[tuple[dict, DLC | Garb]]:
     """
     装扮/收藏集列表
 
     Args:
-        type_      (GarbType)            : 装扮/收藏集类型
-        sort       (GarbSortType)        : 装扮/收藏集排序方式
-        pn         (int)                 : 页码. Defaults to 1.
-        ps         (int)                 : 每页大小. Defaults to 20.
-        credential (Credential, optional): 凭据类. Defaults to None.
+        type_ (GarbType, optional): 装扮/收藏集类型. Defaults to GarbType.GARB.
+        sort (GarbSortType, optional): 装扮/收藏集排序方式. Defaults to GarbSortType.DEFAULT.
+        pn (int, optional): 页码. Defaults to 1.
+        ps (int, optional): 每页大小. Defaults to 20.
+        credential (Credential | None, optional): 凭据类. Defaults to None.
 
     Returns:
-        List[Tuple[dict, DLC | Garb]]: 装扮/收藏集信息与装扮/收藏集对象列表
+        list[tuple[dict, garb.DLC | garb.Garb]]: 装扮/收藏集信息与装扮/收藏集对象列表
     """
-    global dlc_properties
-    credential = credential if credential else Credential()
+    credential = credential or Credential()
     res = await get_garb_dlc_items_raw(
         type_=type_, sort=sort, pn=pn, ps=ps, credential=credential
     )
@@ -371,7 +381,7 @@ async def get_garb_dlc_items(
     for obj in res["list"]:
         if obj["item_id"] == 0:
             act_id = int(obj["properties"]["dlc_act_id"])
-            dlc_lottery_id[act_id] = int(obj["properties"]["dlc_lottery_id"])
+            cache_pool.dlc_lottery_id[act_id] = int(obj["properties"]["dlc_lottery_id"])
             ret.append((obj, DLC(act_id, credential=credential)))
         else:
             ret.append((obj, Garb(obj["item_id"])))

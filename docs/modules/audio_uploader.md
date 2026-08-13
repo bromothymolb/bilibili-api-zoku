@@ -12,7 +12,7 @@ from bilibili_api import audio_uploader
 
 - [class AudioUploader()](#class-AudioUploader)
   - [def \_\_init\_\_()](#def-\_\_init\_\_)
-  - [async def abort()](#async-def-abort)
+  - [def abort()](#def-abort)
   - [async def start()](#async-def-start)
 - [class AudioUploaderEvents()](#class-AudioUploaderEvents)
 - [class AuthorInfo()](#class-AuthorInfo)
@@ -41,7 +41,7 @@ from bilibili_api import audio_uploader
 
 ## class AudioUploader()
 
-**Extend: bilibili_api.utils.AsyncEvent.AsyncEvent**
+> Extend: `bilibili_api.utils.network.AsyncEvent`
 
 音频上传
 
@@ -56,11 +56,11 @@ from bilibili_api import audio_uploader
 | name | type | description |
 | - | - | - |
 | `path` | `str` | 文件路径 |
-| `meta` | `AudioMeta` | 元数据 |
+| `meta` | `audio_uploader.SongMeta` | 元数据 |
 | `credential` | `Credential` | 账号信息 |
 
 
-### async def abort()
+### def abort()
 
 中断更改
 
@@ -75,6 +75,8 @@ from bilibili_api import audio_uploader
 
 
 
+**Returns:** `int | None`:  歌曲 auid
+
 
 
 
@@ -82,7 +84,7 @@ from bilibili_api import audio_uploader
 
 ## class AudioUploaderEvents()
 
-**Extend: enum.Enum**
+> Extend: `enum.Enum`
 
 上传事件枚举
 
@@ -107,9 +109,9 @@ Events:
 
 ---
 
-**@dataclasses.dataclass** 
-
 ## class AuthorInfo()
+
+> `@dataclasses.dataclass` 
 
 AuthorInfo(name: str, uid: int = 0)
 
@@ -126,7 +128,7 @@ AuthorInfo(name: str, uid: int = 0)
 
 ### class AudioType()
 
-**Extend: enum.Enum**
+> Extend: `enum.Enum`
 
 声音类型
 
@@ -140,7 +142,7 @@ AuthorInfo(name: str, uid: int = 0)
 
 ### class ContentType()
 
-**Extend: enum.Enum**
+> Extend: `enum.Enum`
 
 内容类型
 
@@ -152,7 +154,7 @@ AuthorInfo(name: str, uid: int = 0)
 
 ### class CreationType()
 
-**Extend: enum.Enum**
+> Extend: `enum.Enum`
 
 创作类型
 
@@ -165,7 +167,7 @@ AuthorInfo(name: str, uid: int = 0)
 
 ### class Language()
 
-**Extend: enum.Enum**
+> Extend: `enum.Enum`
 
 语种
 
@@ -181,7 +183,7 @@ AuthorInfo(name: str, uid: int = 0)
 
 ### class SongType()
 
-**Extend: enum.Enum**
+> Extend: `enum.Enum`
 
 声音类型
 
@@ -195,7 +197,7 @@ AuthorInfo(name: str, uid: int = 0)
 
 ### class Style()
 
-**Extend: enum.Enum**
+> Extend: `enum.Enum`
 
 风格
 
@@ -231,7 +233,7 @@ AuthorInfo(name: str, uid: int = 0)
 
 ### class Theme()
 
-**Extend: enum.Enum**
+> Extend: `enum.Enum`
 
 主题来源
 
@@ -256,7 +258,7 @@ AuthorInfo(name: str, uid: int = 0)
 
 ### class AudioType()
 
-**Extend: enum.Enum**
+> Extend: `enum.Enum`
 
 有声节目类型
 
@@ -269,7 +271,7 @@ AuthorInfo(name: str, uid: int = 0)
 
 ### class ContentType()
 
-**Extend: enum.Enum**
+> Extend: `enum.Enum`
 
 内容类型
 
@@ -281,7 +283,7 @@ AuthorInfo(name: str, uid: int = 0)
 
 ### class CreationType()
 
-**Extend: enum.Enum**
+> Extend: `enum.Enum`
 
 创作类型
 
@@ -294,7 +296,7 @@ AuthorInfo(name: str, uid: int = 0)
 
 ### class Language()
 
-**Extend: enum.Enum**
+> Extend: `enum.Enum`
 
 语言
 
@@ -310,7 +312,7 @@ AuthorInfo(name: str, uid: int = 0)
 
 ### class SongType()
 
-**Extend: enum.Enum**
+> Extend: `enum.Enum`
 
 声音类型
 
@@ -324,7 +326,7 @@ AuthorInfo(name: str, uid: int = 0)
 
 ### class Style()
 
-**Extend: enum.Enum**
+> Extend: `enum.Enum`
 
 音乐风格
 
@@ -359,7 +361,7 @@ AuthorInfo(name: str, uid: int = 0)
 
 ### class Theme()
 
-**Extend: enum.Enum**
+> Extend: `enum.Enum`
 
 主题
 
@@ -375,9 +377,9 @@ AuthorInfo(name: str, uid: int = 0)
 
 ---
 
-**@dataclasses.dataclass** 
-
 ## class SongMeta()
+
+> `@dataclasses.dataclass` 
 
 content_type (SongCategories.ContentType): 内容类型
 
@@ -445,8 +447,10 @@ lrc (Optional[str]): 歌词
 
 | name | type | description |
 | - | - | - |
-| `param` | `Union[int, str]` | UP 主 ID 或者用户名 |
+| `param` | `int \| str` | UP 主 ID 或者用户名 |
 | `credential` | `Credential` | 凭据 |
+
+**Returns:** `list[dict]`:  调用 API 获得的结果
 
 
 
@@ -478,7 +482,10 @@ lrc (Optional[str]): 歌词
 | name | type | description |
 | - | - | - |
 | `lrc` | `str` | 歌词 |
+| `song_id` | `int` | 音频 id |
 | `credential` | `Credential` | 凭据 |
+
+**Returns:** `str`:  调用 API 获得的结果
 
 
 

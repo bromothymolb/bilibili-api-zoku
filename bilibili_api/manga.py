@@ -4,18 +4,11 @@ bilibili_api.manga
 漫画相关操作
 """
 
-import base64
 import datetime
 from enum import Enum
-from urllib.parse import urlparse
-from typing import Dict, List, Union, Optional
 
-from bilibili_api.utils.utils import get_api
-from bilibili_api.exceptions import ArgsException
-from bilibili_api.utils.picture import Picture
-from bilibili_api.utils.network import HEADERS, Api, Credential
-
-from Cryptodome.PublicKey import ECC
+from .utils.network import Api, Credential
+from .utils.utils import get_api
 
 API = get_api("manga")
 
@@ -29,10 +22,11 @@ class MangaOrderType(Enum):
     - READING: 最近阅读
     - FREE: 等免
     """
-    FOLLOW = {"order": 1, "wait_free": 0}
-    UPDATE = {"order": 2, "wait_free": 0}
-    READING = {"order": 3, "wait_free": 0}
-    FREE = {"order": 3, "wait_free": 1}
+
+    FOLLOW = (1, 0)
+    UPDATE = (2, 0)
+    READING = (3, 0)
+    FREE = (3, 1)
 
 
 class MangaIndexFilter:
@@ -148,17 +142,16 @@ class Manga:
         credential (Credential): 凭据类。
     """
 
-    def __init__(self, manga_id: int, credential: Optional[Credential] = None):
+    def __init__(self, manga_id: int, credential: Credential | None = None) -> None:
         """
         Args:
-            manga_id   (int)              : 漫画 id
-
-            credential (Credential | None): 凭据类. Defaults to None.
+            manga_id (int): 漫画 id
+            credential (Credential | None, optional): 凭据类. Defaults to None.
         """
-        credential = credential if credential else Credential()
+        credential = credential or Credential()
         self.__manga_id = manga_id
         self.credential: Credential = credential
-        self.__info: Optional[Dict] = None
+        self.__info: dict | None = None
 
     def get_manga_id(self) -> int:
         """
@@ -168,6 +161,12 @@ class Manga:
             int: 漫画的 id
         """
         return self.__manga_id
+
+    def __str__(self) -> str:
+        return f"Manga(manga_id={self.__manga_id})"
+
+    def __repr__(self) -> str:
+        return f"Manga(manga_id={self.__manga_id})"
 
     # async def get_info(self) -> dict:
     #     """
@@ -374,26 +373,27 @@ class Manga:
 
 
 async def set_follow_manga(
-    manga: Manga, status: bool = True, credential: Optional[Credential] = None
+    manga: Manga, status: bool = True, credential: Credential | None = None
 ) -> dict:
     """
     设置追漫
 
     Args:
-        manga      (Manga)     : 漫画类。
+        manga (manga.Manga): 漫画类。
+        status (bool, optional): 设置是否追漫。是为 True，否为 False. Defaults to True.
+        credential (Credential | None, optional): 凭据类. Defaults to None.
 
-        status     (bool)      : 设置是否追漫。是为 True，否为 False。Defaults to True.
-
-        credential (Credential): 凭据类。
+    Returns:
+        dict: 调用 API 返回的结果
     """
-    if credential == None:
+    if credential is None:
         if manga.credential.has_sessdata() and manga.credential.has_bili_jct():
             credential = manga.credential
         else:
             credential = Credential()
     credential.raise_for_no_sessdata()
     credential.raise_for_no_bili_jct()
-    if status == True:
+    if status:
         api = API["operate"]["add_favorite"]
     else:
         api = API["operate"]["del_favorite"]
@@ -409,26 +409,33 @@ async def set_follow_manga(
 
 
 async def get_followed_manga(
-    pn: int = 1, ps: int = 15, order: MangaOrderType = MangaOrderType.FOLLOW, credential: Optional[Credential] = None
-) -> List[Manga]:
+    pn: int = 1,
+    ps: int = 15,
+    order: MangaOrderType = MangaOrderType.FOLLOW,
+    credential: Credential | None = None,
+) -> list[Manga]:
     """
     获取追漫列表
 
     Args:
-        pn         (int)           : 页码。Defaults to 1.
-        ps         (int)           : 每页数量。Defaults to 18.
-        order      (MangaOrderType): 排序方式。Defaults to MangaOrderType.FOLLOW.
-        credential (Credential)    : 凭据类.
+        pn (int, optional): 页码. Defaults to 1.
+        ps (int, optional): 每页数量. Defaults to 15.
+        order (MangaOrderType, optional): 排序方式. Defaults to MangaOrderType.FOLLOW.
+        credential (Credential | None, optional): 凭据类. Defaults to None.
 
     Returns:
-        List[Manga]: 追漫列表
+        list[manga.Manga]: 追漫列表
     """
-    credential = credential if credential else Credential()
+    credential = credential or Credential()
     credential.raise_for_no_sessdata()
     api = API["info"]["followed_manga"]
     params = {"device": "pc", "platform": "web", "nov": 25}
-    data = {"page_num": pn, "page_size": ps}
-    data.update(order.value)
+    data = {
+        "page_num": pn,
+        "page_size": ps,
+        "order": order.value[0],
+        "wait_free": order.value[1],
+    }
     return (
         await Api(**api, credential=credential, no_csrf=True)
         .update_data(**data)
@@ -533,30 +540,28 @@ async def get_followed_manga(
 
 
 async def get_manga_update(
-    date: Union[str, datetime.datetime] = datetime.datetime.now(),
+    date: str | datetime.date | None = None,
     pn: int = 1,
     ps: int = 8,
-    credential: Credential = None,
-) -> List[Manga]:
+    credential: Credential | None = None,
+) -> list[Manga]:
     """
     获取更新推荐的漫画
 
     Args:
-        date (Union[str, datetime.datetime]): 日期，默认为今日。
-
-        pn   (int)                          : 页码。Defaults to 1.
-
-        ps   (int)                          : 每页数量。Defaults to 8.
-
-        credential (Credential)           : 凭据类. Defaults to None.
+        date (str | datetime.date | None, optional): 日期。Defaults to None.
+        pn (int, optional): 页码. Defaults to 1.
+        ps (int, optional): 每页数量. Defaults to 8.
+        credential (Credential | None, optional): 凭据类. Defaults to None.
 
     Returns:
-        List[Manga]: 漫画列表
+        list[manga.Manga]: 漫画列表
     """
-    credential = credential if credential else Credential()
+    date = date or datetime.date.today()
+    credential = credential or Credential()
     api = API["info"]["update"]
     params = {"device": "pc", "platform": "web", "nov": 25}
-    if isinstance(date, datetime.datetime):
+    if isinstance(date, datetime.date):
         date = date.strftime("%Y-%m-%d")
     data = {"date": date, "page_num": pn, "page_size": ps}
     manga_data = (
@@ -569,22 +574,20 @@ async def get_manga_update(
 
 
 async def get_manga_home_recommend(
-    pn: int = 1, seed: Optional[str] = "0", credential: Credential = None
-) -> List[Manga]:
+    pn: int = 1, seed: str | None = "0", credential: Credential | None = None
+) -> list[Manga]:
     """
     获取首页推荐的漫画
 
     Args:
-        pn   (int)                          : 页码。Defaults to 1.
-
-        seed (Optional, str)                : Unknown param，无需传入.
-
-        credential (Credential)           : 凭据类. Defaults to None.
+        pn (int, optional): 页码. Defaults to 1.
+        seed (str | None, optional): Unknown param，无需传入. Defaults to '0'.
+        credential (Credential | None, optional): 凭据类. Defaults to None.
 
     Returns:
-        List[Manga]: 漫画列表
+        list[manga.Manga]: 漫画列表
     """
-    credential = credential if credential else Credential()
+    credential = credential or Credential()
     api = API["info"]["home_recommend"]
     params = {"device": "pc", "platform": "web", "nov": 25}
     data = {"page_num": pn, "seed": seed}

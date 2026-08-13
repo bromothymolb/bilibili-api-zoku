@@ -1,232 +1,23 @@
-import os
-import sys
+"""
+bilibili_api.tools.ivitools.player
+"""
+
 import copy
-import enum
 import json
-import time
-import random
+import os
 import shutil
+import sys
+import time
 import zipfile
-from random import random as rand
-from typing import List, Tuple, Union
 
-from PyQt6 import QtGui, QtCore, QtWidgets, QtMultimedia, QtMultimediaWidgets
+from PyQt6 import QtCore, QtGui, QtMultimedia, QtMultimediaWidgets, QtWidgets
 
-
-class InteractiveVariable:
-    """
-    互动节点的变量
-    """
-
-    def __init__(
-        self,
-        name: str,
-        var_id: str,
-        var_value: int,
-        show: bool = False,
-        random: bool = False,
-    ):
-        """
-        Args:
-            name      (str)  : 变量名
-            var_id    (str)  : 变量 id
-            var_value (int)  : 变量的值
-            show      (bool) : 是否显示
-            random    (bool) : 是否为随机值(1-100)
-        """
-        self.__var_id = var_id
-        self.__var_value = var_value
-        self.__name = name
-        self.__is_show = show
-        self.__random = random
-
-    def get_id(self) -> str:
-        return self.__var_id
-
-    def refresh_value(self) -> None:
-        """
-        刷新变量数值
-        """
-        if self.is_random():
-            self.__var_value = int(rand(0, 100))
-
-    def get_value(self) -> int:
-        return self.__var_value
-
-    def is_show(self) -> bool:
-        return self.__is_show
-
-    def is_random(self) -> bool:
-        return self.__random
-
-    def get_name(self) -> str:
-        return self.__name
-
-    def __str__(self):
-        return f"{self.__name} {self.__var_value}"
-
-
-class InteractiveButtonAlign(enum.Enum):
-    """
-    按钮的文字在按钮中的位置
-
-
-    ``` text
-    -----
-    |xxx|----o (TEXT_LEFT)
-    -----
-
-         -----
-    o----|xxx| (TEXT_RIGHT)
-         -----
-
-    ----------
-    |XXXXXXXX| (DEFAULT)
-    ----------
-    ```
-
-    - DEFAULT
-    - TEXT_UP
-    - TEXT_RIGHT
-    - TEXT_DOWN
-    - TEXT_LEFT
-    """
-
-    DEFAULT = 0
-    TEXT_UP = 1
-    TEXT_RIGHT = 2
-    TEXT_DOWN = 3
-    TEXT_LEFT = 4
-
-
-class InteractiveButton:
-    """
-    互动视频节点按钮类
-    """
-
-    def __init__(
-        self,
-        text: str,
-        x: int,
-        y: int,
-        align: Union[InteractiveButtonAlign, int] = InteractiveButtonAlign.DEFAULT,
-    ):
-        """
-        Args:
-            text  (str)                         : 文字
-            x     (int)                         : x 轴
-            y     (int)                         : y 轴
-            align (InteractiveButtonAlign | int): 按钮的文字在按钮中的位置
-        """
-        self.__text = text
-        self.__pos = (x, y)
-        if isinstance(align, InteractiveButtonAlign):
-            align = align.value
-        self.__align = align
-
-    def get_text(self) -> str:
-        return self.__text
-
-    def get_align(self) -> int:
-        return self.__align  # type: ignore
-
-    def get_pos(self) -> Tuple[int, int]:
-        return self.__pos
-
-    def __str__(self):
-        return f"{self.__text} {self.__pos}"
-
-
-class InteractiveJumpingCondition:
-    """
-    节点跳转的公式，只有公式成立才会跳转
-    """
-
-    def __init__(self, var: List[InteractiveVariable] = [], condition: str = "True"):
-        """
-        Args:
-            var       (List[InteractiveVariable]): 所有变量
-            condition (str)                      : 公式
-        """
-        self.__vars = var
-        self.__command = condition
-
-    def get_result(self) -> bool:
-        """
-        计算公式获得结果
-
-        Returns:
-            bool: 是否成立
-        """
-        if self.__command == "":
-            return True
-        command = copy.copy(self.__command)
-        for var in self.__vars:
-            var_name = var.get_id()
-            var_value = var.get_value()
-            command = command.replace(var_name, str(var_value))
-        command = command.replace("&&", " and ")
-        command = command.replace("||", " or ")
-        command = command.replace("!", " not ")
-        command = command.replace("===", "==")
-        command = command.replace("!==", "!=")
-        command = command.replace("true", "True")
-        command = command.replace("false", "False")
-        return eval(command)
-
-    def __str__(self):
-        return f"{self.__command}"
-
-
-class InteractiveJumpingCommand:
-    """
-    节点跳转对变量的操作
-    """
-
-    def __init__(self, var: List[InteractiveVariable] = [], command: str = ""):
-        """
-        Args:
-            var       (List[InteractiveVariable]): 所有变量
-            condition (str)                      : 公式
-        """
-        self.__vars = var
-        self.__command = command
-
-    def run_command(self) -> List["InteractiveVariable"]:
-        """
-        执行操作
-
-        Returns:
-            List[InteractiveVariable]
-        """
-        if self.__command == "":
-            return self.__vars
-        for code in self.__command.split(";"):
-            var_name_ = code.split("=")[0]
-            var_new_value = code.split("=")[1]
-            for var in self.__vars:
-                var_name = var.get_id()
-                var_value = var.get_value()
-                var_new_value = var_new_value.replace(var_name, str(var_value))
-            var_new_value_calc = eval(var_new_value)
-            for var in self.__vars:
-                if var.get_id() == var_name_:
-                    var._InteractiveVariable__var_value = var_new_value_calc  # type: ignore
-        return self.__vars
-
-
-class InteractiveNodeJumpingType(enum.Enum):
-    """
-    对下一节点的跳转的方式
-
-    - ASK    : 选择
-    - DEFAULT: 跳转到默认节点
-    - READY  : 选择(只有一个选择)
-    """
-
-    READY = 1
-    DEFAULT = 0
-    ASK = 2
+from bilibili_api.interactive_video import (
+    InteractiveJumpingCommand,
+    InteractiveJumpingCondition,
+    InteractiveNodeJumpingType,
+    InteractiveVariable,
+)
 
 
 class Button:
@@ -244,7 +35,7 @@ class Button:
 
 
 class ButtonLabel(QtWidgets.QLabel):
-    def __init__(self, parent: QtWidgets.QWidget = None):
+    def __init__(self, parent: QtWidgets.QWidget = None):  # type: ignore
         super().__init__(parent=parent)
         self.setObjectName(str(time.time()))
 
@@ -269,7 +60,7 @@ class ButtonLabel(QtWidgets.QLabel):
         return self
 
 
-class MPlayer(object):
+class MPlayer:
     def setup(self, Form):
         # UI
         Form.setObjectName("Form")
@@ -348,7 +139,7 @@ class MPlayer(object):
         self.pp.setEnabled(False)
         self.pushButton.setEnabled(False)
         self.retranslateUi(Form)
-        self.win.closeEvent = self.on_close_check
+        self.win.closeEvent = self.on_close_check  # type: ignore
         self.pushButton_2.clicked.connect(self.open_ivi)
         self.pushButton_3.clicked.connect(self.close_ivi)
         self.pushButton_4.clicked.connect(self.sound_on_off_event)
@@ -360,11 +151,11 @@ class MPlayer(object):
 
         # InteractiveVariables
         self.current_node = 0
-        self.variables: List[InteractiveVariable] = []
+        self.variables: list[InteractiveVariable] = []
         self.state_log = []
         self.graph = None
-        self.choice_buttons: List[Button] = []
-        self.choice_labels: List[ButtonLabel] = []
+        self.choice_buttons: list[Button] = []
+        self.choice_labels: list[ButtonLabel] = []
 
         # Video Play Variables & Functions
         self.temp_dir = ""
@@ -383,14 +174,14 @@ class MPlayer(object):
                         lbl.raise_()
                     self.player.lower()
                 else:
-                    children = self.graph[str(self.current_node)]["sub"]
+                    children = self.graph[str(self.current_node)]["sub"]  # type: ignore
                     if len(children) == 0:
                         # 已结束
                         pass
                     else:
                         # 跳转类型
                         if (
-                            self.graph[str(self.current_node)]["sub"][0]["jump_type"]
+                            self.graph[str(self.current_node)]["sub"][0]["jump_type"]  # type: ignore
                             == InteractiveNodeJumpingType.DEFAULT.value
                         ):
                             # 直接跳转
@@ -412,15 +203,20 @@ class MPlayer(object):
                                     )
                                     self.variables = native_command.run_command()
                                     btn_id = btn.node_id
-                                    self.set_source(self.graph[str(btn_id)]["cid"])
+                                    self.set_source(self.graph[str(btn_id)]["cid"])  # type: ignore
                                     self.current_node = btn.node_id
                                     self.volume_change_event()
-                                    title = self.graph[str(btn_id)]["title"]
+                                    title = self.graph[str(btn_id)]["title"]  # type: ignore
                                     self.node.setText(f"(当前节点: {title})")
                                     break
                         else:
                             cnt = 0
                             for idx, child in enumerate(children):
+                                condition = InteractiveJumpingCondition(
+                                    self.variables, child["condition"]
+                                )
+                                if condition.is_never():
+                                    continue
                                 pos_x = cnt * 200
                                 pos_y = 600
                                 # 生成 Button 对象
@@ -434,7 +230,7 @@ class MPlayer(object):
                                     )
                                 )
                                 # 生成 ButtonLabel 对象
-                                if child["pos"][0] == None:
+                                if child["pos"][0] is None:
                                     if idx != 0:
                                         previous_info = children[idx - 1]
                                         curtext, previoustext = (
@@ -480,7 +276,7 @@ class MPlayer(object):
                                     self.choice_labels.append(lbl)
                                     pass
                             add_space = int((800 - cnt * 200) / 2)
-                            for idx, lbl in enumerate(self.choice_labels):
+                            for _, lbl in enumerate(self.choice_labels):
                                 lbl.setGeometry(
                                     QtCore.QRect(
                                         lbl.geometry().left() + add_space,
@@ -551,7 +347,6 @@ class MPlayer(object):
                 for lbl in self.choice_labels:
                     lbl.hide()
                 self.choice_labels = []
-            self.last_position = self.mediaplayer.position()
             self.slider.setValue(
                 int(self.mediaplayer.position() / self.mediaplayer.duration() * 100)
             )
@@ -583,8 +378,7 @@ class MPlayer(object):
             pos = event.position()
             pos = [pos.x(), pos.y()]
             for var in self.variables:
-                if var.is_random():
-                    var._InteractiveVariable__var_value = random.random() * 100
+                var.refresh_value()
             for btn in self.choice_buttons:
                 if (
                     (pos[0] - btn.pos[0] <= 200)
@@ -602,14 +396,14 @@ class MPlayer(object):
                         )
                         self.variables = native_command.run_command()
                         btn_id = btn.node_id
-                        self.set_source(self.graph[str(btn_id)]["cid"])
+                        self.set_source(self.graph[str(btn_id)]["cid"])  # type: ignore
                         self.current_node = btn.node_id
                         self.volume_change_event()
-                        title = self.graph[str(btn.node_id)]["title"]
+                        title = self.graph[str(btn.node_id)]["title"]  # type: ignore
                         self.node.setText(f"(当前节点: {title})")
                         break
 
-        self.win.mouseReleaseEvent = mouseReleaseEvent
+        self.win.mouseReleaseEvent = mouseReleaseEvent  # type: ignore
 
     def start_playing(self):
         self.videoplayer.play()
@@ -671,7 +465,7 @@ class MPlayer(object):
         curtime = str(time.time())
         try:
             os.mkdir(".mplayer")
-        except:
+        except Exception:
             pass
         os.mkdir(".mplayer/" + curtime)
         self.temp_dir = ".mplayer/" + curtime + "/"
@@ -681,20 +475,17 @@ class MPlayer(object):
         self.node.setText("(当前节点: 视频主节点)")
         self.info.setText(
             bilivideo_parser.decode(
-                open(self.temp_dir + "bilivideo.json", "r", encoding="utf-8").read()
+                open(self.temp_dir + "bilivideo.json", encoding="utf-8").read()
             )["title"]
             + "("
             + bilivideo_parser.decode(
-                open(self.temp_dir + "bilivideo.json", "r", encoding="utf-8").read()
+                open(self.temp_dir + "bilivideo.json", encoding="utf-8").read()
             )["bvid"]
             + ")"
         )
-        self.graph = json.load(
-            open(self.temp_dir + "ivideo.json", "r", encoding="utf-8")
-        )
-        self.current_node = bilivideo_parser.decode(
-            open(self.temp_dir + "bilivideo.json", "r", encoding="utf-8").read()
-        )["root_id"]
+        graph = json.load(open(self.temp_dir + "ivideo.json", encoding="utf-8"))
+        self.graph = graph["nodes"]
+        self.current_node = graph["root"]
         variables = self.graph[str(self.current_node)]["vars"]
         for var in variables:
             self.variables.append(
@@ -722,8 +513,12 @@ class MPlayer(object):
         self.stop_playing()
         self.pp.setText("Pause")
         self.has_end = False
-        if self.horizontalSlider.value() != 0: # I don't know why but without it the application will be blocked
-            self.mediaplayer = QtMultimedia.QMediaPlayer()  # Clear the multimedia source
+        if (
+            self.horizontalSlider.value() != 0
+        ):  # I don't know why but without it the application will be blocked
+            self.mediaplayer = (
+                QtMultimedia.QMediaPlayer()
+            )  # Clear the multimedia source
             self.mediaplayer.setAudioOutput(QtMultimedia.QAudioOutput())
         self.videoplayer = QtMultimedia.QMediaPlayer()
         self.videoplayer.setVideoOutput(self.player)
@@ -735,7 +530,7 @@ class MPlayer(object):
                 break
         try:
             os.rmdir(".mplayer")
-        except:
+        except Exception:
             # Not empty
             pass
         self.temp_dir = ""
@@ -869,14 +664,13 @@ class MPlayer(object):
         new_cid = copy.deepcopy(self.state_log[-2]["cid"])
         new_vars = copy.deepcopy(self.state_log[-2]["vars"])
         self.state_log.pop()
-        for key in self.graph.keys():
-            if self.graph[key]["cid"] == new_cid:
-                new_node_id = int(key)
-                self.current_node = new_node_id
+        for key in self.graph.keys():  # type: ignore
+            if self.graph[key]["cid"] == new_cid:  # type: ignore
+                self.current_node = int(key)
                 self.variables = new_vars
                 self.set_source(new_cid)
                 self.state_log.pop()
-                title = self.graph[str(new_node_id)]["title"]
+                title = self.graph[key]["title"]  # type: ignore
                 self.node.setText(f"(当前节点: {title})")
                 self.volume_change_event()
                 return

@@ -4,32 +4,27 @@ bilibili_api.dynamic
 动态相关
 """
 
-import os
+from copy import copy
+from datetime import datetime
+from enum import Enum
+import json
 import re
 import sys
-import json
-import asyncio
-from enum import Enum
-from datetime import datetime
-from typing import Any, List, Tuple, Union, Optional
+from typing import Any
 
 import yaml
 
-from .utils import utils
-from .utils.picture import Picture
 from . import user, vote
-from .utils.network import Api, Credential
-from .exceptions import ArgsException
 from .article import Article
+from .exceptions import ArgsException
 from .opus import Opus
 from .utils import cache_pool
+from .utils.network import Api, Credential
+from .utils.picture import Picture
+from .utils.utils import get_api
 
-API = utils.get_api("dynamic")
-API_opus = utils.get_api("opus")
-raise_for_statement = utils.raise_for_statement
-
-uid2uname = {}
-uname2uid = {}
+API = get_api("dynamic")
+API_opus = get_api("opus")
 
 
 class DynamicType(Enum):
@@ -78,24 +73,22 @@ class DynamicContentType(Enum):
 
 
 async def _name2uid(uname: str, credential: Credential) -> int:
-    global uname2uid
-    if uname2uid.get(uname) is None:
+    if cache_pool.uname2uid.get(uname) is None:
         resp = (await user.name2uid(uname, credential=credential))["uid_list"]
         if len(resp) == 0:
             return 0
         if resp[0]["name"] != uname:
             return 0
-        uname2uid[uname] = resp[0]["uid"]
-    return uname2uid[uname]
+        cache_pool.uname2uid[uname] = resp[0]["uid"]
+    return cache_pool.uname2uid[uname]
 
 
 async def _uid2name(uid: int, credential: Credential) -> str:
-    global uid2uname
-    if uid2uname.get(uid) is None:
-        uid2uname[uid] = (await user.User(uid, credential=credential).get_user_info())[
-            "name"
-        ]
-    return uid2uname[uid]
+    if cache_pool.uid2uname.get(uid) is None:
+        cache_pool.uid2uname[uid] = (
+            await user.User(uid, credential=credential).get_user_info()
+        )["name"]
+    return cache_pool.uid2uname[uid]
 
 
 async def _parse_at(text: str, credential: Credential) -> tuple[str, str, str]:
@@ -160,17 +153,16 @@ async def _get_text_data(text: str, credential: Credential) -> dict:
 
 
 async def upload_image(
-    image: Picture, credential: Credential, data: dict = None
+    image: Picture, credential: Credential, data: dict | None = None
 ) -> dict:
     """
     上传动态图片
 
     Args:
-        image (Picture)   : 图片流. 有格式要求.
-
+        image (Picture): 图片流. 有格式要求.
         credential (Credential): 凭据
+        data (dict | None, optional): 自定义请求体. Defaults to None.
 
-        data (dict): 自定义请求体
     Returns:
         dict: 调用 API 返回的结果
     """
@@ -182,7 +174,7 @@ async def upload_image(
     if data is None:
         data = {"biz": "new_dyn", "category": "daily"}
 
-    files = {"file_up": image._to_biliapifile()}
+    files = {"file_up": await image.to_biliapifile()}
     return_info = (
         await Api(**api, credential=credential)
         .update_data(**data)
@@ -214,54 +206,56 @@ class BuildDynamic:
         构建动态内容
         """
         self.contents: list = []
-        self.pics: List[Picture] = []
-        self.attach_card: Optional[dict] = None
-        self.topic: Optional[dict] = None
+        self.pics: list[Picture] = []
+        self.attach_card: dict | None = None
+        self.topic: dict | None = None
         self.options: dict = {}
-        self.time: Optional[datetime] = None
+        self.time: datetime | None = None
 
     @staticmethod
-    def empty():
+    def empty() -> "BuildDynamic":
         """
         新建空的动态以链式逐步构建
+
+        Returns:
+            BuildDynamic: `self`
         """
         return BuildDynamic()
 
     @staticmethod
     def create_by_args(
         text: str = "",
-        pics: List[Picture] = [],
-        topic_id: int = -1,
-        vote_id: int = -1,
-        live_reserve_id: int = -1,
-        send_time: Union[datetime, None] = None,
-    ):
+        pics: list[Picture] | None = None,
+        topic_id: int | None = None,
+        vote_id: int | None = None,
+        live_reserve_id: int | None = None,
+        send_time: datetime | None = None,
+    ) -> "BuildDynamic":
         """
         通过参数构建动态
 
         Args:
-            text            (str            , optional): 动态文字. Defaults to "".
+            text (str, optional): 动态文字. Defaults to ''.
+            pics (list[Picture] | None, optional): 动态图片列表. Defaults to None.
+            topic_id (int | None, optional): 动态话题 id. Defaults to None.
+            vote_id (int | None, optional): 动态中的投票的 id. 将放在整个动态的最后面. Defaults to None.
+            live_reserve_id (int | None, optional): 直播预约 oid. 通过 `live.create_live_reserve` 获取. Defaults to None.
+            send_time (datetime.datetime | None, optional): 发送时间. Defaults to None.
 
-            pics            (List[Picture]  , optional): 动态图片列表. Defaults to [].
-
-            topic_id        (int            , optional): 动态话题 id. Defaults to -1.
-
-            vote_id         (int            , optional): 动态中的投票的 id. 将放在整个动态的最后面. Defaults to -1.
-
-            live_reserve_id (int            , optional): 直播预约 oid. 通过 `live.create_live_reserve` 获取. Defaults to -1.
-
-            send_time       (datetime | None, optional): 发送时间. Defaults to None.
+        Returns:
+            BuildDynamic: `self`
         """
         dyn = BuildDynamic()
         dyn.add_text(text)
-        dyn.add_image(pics)
-        if topic_id != -1:
+        if pics:
+            dyn.add_image(pics)
+        if topic_id:
             dyn.set_topic(topic_id)
-        if vote_id != -1:
-            dyn.add_vote(vote.Vote(vote_id=vote_id))
-        if live_reserve_id != -1:
+        if vote_id:
+            dyn.add_vote(vote_id)
+        if live_reserve_id:
             dyn.set_attach_card(live_reserve_id)
-        if send_time != None:
+        if send_time is not None:
             dyn.set_send_time(send_time)
         return dyn
 
@@ -271,6 +265,9 @@ class BuildDynamic:
 
         Args:
             text (str): 文本内容
+
+        Returns:
+            BuildDynamic: `self`
         """
         self.contents.append(
             {"biz_id": "", "type": DynamicContentType.TEXT.value, "raw_text": text}
@@ -282,8 +279,11 @@ class BuildDynamic:
         添加@用户，支持传入 用户名或 UID
 
         Args:
-            uid   (int): 用户ID
-            uname (str): 用户名称. Defaults to "".
+            uid (int, optional): 用户ID. Defaults to 0.
+            uname (str, optional): 用户名称. Defaults to ''.
+
+        Returns:
+            BuildDynamic: `self`
         """
         self.contents.append(
             {
@@ -300,6 +300,9 @@ class BuildDynamic:
 
         Args:
             emoji (str): 表情文字
+
+        Returns:
+            BuildDynamic: `self`
         """
         self.contents.append(
             {
@@ -316,6 +319,9 @@ class BuildDynamic:
 
         Args:
             vote_id (int): 投票对象
+
+        Returns:
+            BuildDynamic: `self`
         """
         self.contents.append(
             {
@@ -326,12 +332,15 @@ class BuildDynamic:
         )
         return self
 
-    def add_image(self, image: Union[List[Picture], Picture]) -> "BuildDynamic":
+    def add_image(self, image: list[Picture] | Picture) -> "BuildDynamic":
         """
         添加图片
 
         Args:
-            image (Picture | List[Picture]): 图片类
+            image (list[Picture] | Picture): 图片类
+
+        Returns:
+            BuildDynamic: `self`
         """
         if isinstance(image, Picture):
             image = [image]
@@ -344,9 +353,12 @@ class BuildDynamic:
 
         Args:
             text (str): 文本内容
+
+        Returns:
+            BuildDynamic: `self`
         """
 
-        def _get_ats(text: str) -> List:
+        def _get_ats(text: str) -> list:
             text += " "
             pattern = re.compile(r"(?<=@).*?(?=\s)")
             match_result = re.finditer(pattern, text)
@@ -355,7 +367,7 @@ class BuildDynamic:
                 names.append(match.group())
             data = []
             last_index = 0
-            for i, name in enumerate(names):
+            for _, name in enumerate(names):
                 index = text.index(f"@{name}", last_index)
                 last_index = index + 1
                 length = 2 + len(name)
@@ -370,7 +382,7 @@ class BuildDynamic:
                 )
             return data
 
-        def _get_emojis(text: str) -> List:
+        def _get_emojis(text: str) -> list:
             pattern = re.compile(r"(?<=\[).*?(?=\])")
             match_result = re.finditer(pattern, text)
             emotes = []
@@ -379,7 +391,7 @@ class BuildDynamic:
                 emotes.append(f"[{emote}]")
             data = []
             last_index = 0
-            for i, emoji in enumerate(emotes):
+            for _, emoji in enumerate(emotes):
                 index = text.index(emoji, last_index)
                 last_index = index + 1
                 length = len(emoji)
@@ -395,8 +407,8 @@ class BuildDynamic:
 
         all_at_and_emoji = _get_ats(text) + _get_emojis(text)
 
-        def split_text_to_plain_at_and_emoji(text: str, at_and_emoji: List):
-            def base_split(texts: List[str], at_and_emoji: List, last_length: int):
+        def split_text_to_plain_at_and_emoji(text: str, at_and_emoji: list):
+            def base_split(texts: list[str], at_and_emoji: list, last_length: int):
                 if len(at_and_emoji) == 0:
                     return texts
                 last_piece_of_text = texts.pop(-1)
@@ -453,6 +465,9 @@ class BuildDynamic:
 
         Args:
             oid (int): 卡片oid
+
+        Returns:
+            BuildDynamic: `self`
         """
         self.attach_card = {
             "type": 14,
@@ -468,6 +483,9 @@ class BuildDynamic:
 
         Args:
             topic_id (int): 话题ID
+
+        Returns:
+            BuildDynamic: `self`
         """
         self.topic = {"id": topic_id}
         return self
@@ -479,9 +497,11 @@ class BuildDynamic:
         设置选项
 
         Args:
-            up_choose_comment	(bool): 	精选评论flag
+            up_choose_comment (bool, optional): 精选评论flag. Defaults to False.
+            close_comment (bool, optional): 关闭评论flag. Defaults to False.
 
-            close_comment	    (bool): 	关闭评论flag
+        Returns:
+            BuildDynamic: `self`
         """
         if up_choose_comment:
             self.options["up_choose_comment"] = 1
@@ -489,12 +509,15 @@ class BuildDynamic:
             self.options["close_comment"] = 1
         return self
 
-    def set_send_time(self, time: datetime):
+    def set_send_time(self, time: datetime) -> "BuildDynamic":
         """
         设置发送时间
 
         Args:
-            time (datetime): 发送时间
+            time (datetime.datetime): 发送时间
+
+        Returns:
+            BuildDynamic: `self`
         """
         self.time = time
         return self
@@ -545,10 +568,10 @@ class BuildDynamic:
                         content["biz_id"], credential=credential
                     )
             if content["type"] == DynamicContentType.VOTE.value:
-                contents[idx]["raw_text"] = (
-                    await vote.Vote(vote_id=content["biz_id"]).get_info()
-                )["info"]["title"]
-        for idx, content in enumerate(contents):
+                contents[idx]["raw_text"] = await vote.Vote(
+                    vote_id=content["biz_id"]
+                ).get_title()
+        for idx in range(len(contents)):
             contents[idx]["biz_id"] = str(contents[idx]["biz_id"])
         return contents
 
@@ -561,21 +584,21 @@ class BuildDynamic:
         """
         return self.pics
 
-    def get_attach_card(self) -> Optional[dict]:
+    def get_attach_card(self) -> dict | None:
         """
         获取动态预约
 
         Returns:
-            Optional[dict]: 动态预约
+            dict | None: 动态预约
         """
         return self.attach_card
 
-    def get_topic(self) -> Optional[dict]:
+    def get_topic(self) -> dict | None:
         """
         获取动态话题
 
         Returns:
-            Optional[dict]: 动态话题
+            dict | None: 动态话题
         """
         return self.topic
 
@@ -589,13 +612,12 @@ class BuildDynamic:
         return self.options
 
 
-async def send_dynamic(info: BuildDynamic, credential: Credential):
+async def send_dynamic(info: BuildDynamic, credential: Credential) -> dict:
     """
     发送动态
 
     Args:
-        info (BuildDynamic): 动态内容
-
+        info (dynamic.BuildDynamic): 动态内容
         credential (Credential): 凭据
 
     Returns:
@@ -611,7 +633,7 @@ async def send_dynamic(info: BuildDynamic, credential: Credential):
         )
 
     api = API["send"]["instant"]
-    data = {
+    data: dict = {
         "dyn_req": {
             "content": {
                 "contents": await info.get_contents(credential=credential)
@@ -654,7 +676,7 @@ async def get_schedules_list(credential: Credential) -> dict:
     获取待发送定时动态列表
 
     Args:
-        credential  (Credential): 凭据
+        credential (Credential): 凭据
 
     Returns:
         dict: 调用 API 返回的结果
@@ -671,8 +693,7 @@ async def send_schedule_now(draft_id: int, credential: Credential) -> dict:
 
     Args:
         draft_id (int): 定时动态 ID
-
-        credential  (Credential): 凭据
+        credential (Credential): 凭据
 
     Returns:
         dict: 调用 API 返回的结果
@@ -690,8 +711,7 @@ async def delete_schedule(draft_id: int, credential: Credential) -> dict:
 
     Args:
         draft_id (int): 定时动态 ID
-
-        credential  (Credential): 凭据
+        credential (Credential): 凭据
 
     Returns:
         dict: 调用 API 返回的结果
@@ -711,12 +731,10 @@ class Dynamic:
         credential (Credential): 凭据类
     """
 
-    def __init__(
-        self, dynamic_id: int, credential: Union[Credential, None] = None
-    ) -> None:
+    def __init__(self, dynamic_id: int, credential: Credential | None = None) -> None:
         """
         Args:
-            dynamic_id (int)                        : 动态 ID
+            dynamic_id (int): 动态 ID
             credential (Credential | None, optional): 凭据类. Defaults to None.
         """
         self.__dynamic_id = dynamic_id
@@ -725,7 +743,13 @@ class Dynamic:
             credential if credential is not None else Credential()
         )
 
-    def get_dynamic_id(self) -> None:
+    def __str__(self) -> str:
+        return f"Dynamic(dynamic_id={self.__dynamic_id})"
+
+    def __repr__(self) -> str:
+        return f"Dynamic(dynamic_id={self.__dynamic_id})"
+
+    def get_dynamic_id(self) -> int:
         """
         获取 动态 ID。
 
@@ -742,22 +766,27 @@ class Dynamic:
             dict: 调用 API 返回的结果
         """
         if not self.__detail:
-            api = API["info"]["detail"]
-            params = {
-                "id": self.__dynamic_id,
-                "timezone_offset": -480,
-                "platform": "web",
-                "gaia_source": "main_web",
-                "features": "itemOpusStyle,opusBigCover,onlyfansVote,endFooterHidden,decorationCard,onlyfansAssetsV2,ugcDelete",
-                "web_location": "333.1368",
-                "x-bili-device-req-json": '{"platform":"web","device":"pc"}',
-                "x-bili-web-req-json": '{"spm_id":"333.1368"}',
-            }
-            self.__detail = (
-                await Api(**api, credential=self.credential)
-                .update_params(**params)
-                .result
-            )
+            if cache_pool.dynamic_info.get(str(self.__dynamic_id)):
+                self.__detail = {
+                    "item": cache_pool.dynamic_info[str(self.__dynamic_id)]
+                }
+            else:
+                api = API["info"]["detail"]
+                params = {
+                    "id": self.__dynamic_id,
+                    "timezone_offset": -480,
+                    "platform": "web",
+                    "gaia_source": "main_web",
+                    "features": "itemOpusStyle,opusBigCover,onlyfansVote,endFooterHidden,decorationCard,onlyfansAssetsV2,ugcDelete",
+                    "web_location": "333.1368",
+                    "x-bili-device-req-json": '{"platform":"web","device":"pc"}',
+                    "x-bili-web-req-json": '{"spm_id":"333.1368"}',
+                }
+                self.__detail = (
+                    await Api(**api, credential=self.credential)
+                    .update_params(**params)
+                    .result
+                )
             cache_pool.dynamic_is_article[self.__dynamic_id] = (
                 self.__detail["item"]["basic"]["comment_type"] == 12
             )
@@ -775,7 +804,7 @@ class Dynamic:
                 cache_pool.dynamic_is_opus[self.__dynamic_id] = (
                     module_dynamic["major"]["type"] == "MAJOR_TYPE_OPUS"
                 )
-        return self.__detail
+        return copy(self.__detail)
 
     async def is_article(self) -> bool:
         """
@@ -842,6 +871,9 @@ class Dynamic:
         info = await self.get_info()
 
         def parse_module_dynamic(module: dict):
+            title = ""
+            nodes = []
+            pics = []
             if module["major"] is None:
                 # 转发动态
                 nodes = module["desc"]["rich_text_nodes"]
@@ -863,10 +895,9 @@ class Dynamic:
                             and module["major"][key].get("title") is not None
                         ):
                             cover = module["major"][key].get("cover")
+                            jump_url = module["major"][key].get("jump_url")
                             if jump_url.startswith("//"):
-                                jump_url = "https:" + module["major"][key].get(
-                                    "jump_url"
-                                )
+                                jump_url = "https:" + jump_url
                             title = module["major"][key].get("title")
                             return f"# {title}\n\n![]({cover})\n\n<{jump_url}>\n"
             ret = "" if title is None else "# " + title + "\n\n"
@@ -905,8 +936,6 @@ class Dynamic:
                     ret += f"{text} "
             ret += "\n\n"
             for pic in pics:
-                width = pic["width"]
-                height = pic["height"]
                 url = pic["url"]
                 if url.startswith("//"):
                     url = f"https:{url}"
@@ -930,7 +959,7 @@ class Dynamic:
         获取点赞、转发
 
         Args:
-            offset (str, optional): 偏移值（下一页的第一个动态 ID，为该请求结果中的 offset 键对应的值），类似单向链表. Defaults to ""
+            offset (str, optional): 偏移值（下一页的第一个动态 ID，为该请求结果中的 offset 键对应的值），类似单向链表. Defaults to ''.
 
         Returns:
             dict: 调用 API 返回的结果
@@ -947,7 +976,7 @@ class Dynamic:
         获取动态转发列表
 
         Args:
-            offset (str, optional): 偏移值（下一页的第一个动态 ID，为该请求结果中的 offset 键对应的值），类似单向链表. Defaults to "0"
+            offset (str, optional): 偏移值（下一页的第一个动态 ID，为该请求结果中的 offset 键对应的值），类似单向链表. Defaults to '0'.
 
         Returns:
             dict: 调用 API 返回的结果
@@ -974,9 +1003,8 @@ class Dynamic:
         获取动态点赞列表
 
         Args:
-            pn (int, optional): 页码，defaults to 1
-
-            ps (int, optional): 每页大小，defaults to 30
+            pn (int, optional): 页码，. Defaults to 1.
+            ps (int, optional): 每页大小，. Defaults to 30.
 
         Returns:
             dict: 调用 API 返回的结果
@@ -1030,7 +1058,7 @@ class Dynamic:
         转发动态
 
         Args:
-            text (str, optional): 转发动态时的文本内容. Defaults to "转发动态"
+            text (str, optional): 转发动态时的文本内容. Defaults to '转发动态'.
 
         Returns:
             dict: 调用 API 返回的结果
@@ -1047,7 +1075,7 @@ class Dynamic:
         设置动态（图文）收藏状态
 
         Args:
-            status (bool, optional): 收藏状态. Defaults to True
+            status (bool, optional): 收藏状态. Defaults to True.
 
         Returns:
             dict: 调用 API 返回的结果
@@ -1146,37 +1174,34 @@ class Dynamic:
         )
 
 
-async def get_new_dynamic_users(credential: Union[Credential, None] = None) -> dict:
+async def get_new_dynamic_users(credential: Credential | None = None) -> dict:
     """
     获取更新动态的关注者
 
     Args:
-        credential (Credential | None): 凭据类. Defaults to None.
+        credential (Credential | None, optional): 凭据类. Defaults to None.
 
     Returns:
         dict: 调用 API 返回的结果
     """
-    credential = credential if credential else Credential()
+    credential = credential or Credential()
     credential.raise_for_no_sessdata()
     api = API["info"]["attention_new_dynamic"]
     return await Api(**api, credential=credential).result
 
 
-async def get_live_users(
-    size: int = 10, credential: Union[Credential, None] = None
-) -> dict:
+async def get_live_users(size: int = 10, credential: Credential | None = None) -> dict:
     """
     获取正在直播的关注者
 
     Args:
-        size       (int)       : 获取的数据数量. Defaults to 10.
-
-        credential (Credential | None): 凭据类. Defaults to None.
+        size (int, optional): 获取的数据数量. Defaults to 10.
+        credential (Credential | None, optional): 凭据类. Defaults to None.
 
     Returns:
         dict: 调用 API 返回的结果
     """
-    credential = credential if credential else Credential()
+    credential = credential or Credential()
     credential.raise_for_no_sessdata()
     api = API["info"]["attention_live"]
     params = {"size": size}
@@ -1199,11 +1224,11 @@ async def get_dynamic_page_UPs_info(credential: Credential) -> dict:
 
 async def get_dynamic_page_info(
     credential: Credential,
-    _type: Optional[DynamicType] = None,
-    host_mid: Optional[int] = None,
+    _type: DynamicType | None = None,
+    host_mid: int | None = None,
     features: str = "itemOpusStyle",
     pn: int = 1,
-    offset: Optional[int] = None,
+    offset: int | None = None,
 ) -> dict:
     """
     获取动态页动态信息
@@ -1214,16 +1239,11 @@ async def get_dynamic_page_info(
 
     Args:
         credential (Credential): 凭据类.
-
-        _type      (DynamicType, optional): 动态类型. Defaults to DynamicType.ALL.
-
-        host_mid   (int, optional): 获取对应 UP 主动态的 mid. Defaults to None.
-
-        features   (str, optional): 默认 itemOpusStyle.
-
-        pn         (int, optional): 页码. Defaults to 1.
-
-        offset     (int, optional): 偏移值（下一页的第一个动态 ID，为该请求结果中的 offset 键对应的值），类似单向链表. Defaults to None.
+        _type (dynamic.DynamicType | None, optional): 动态类型. Defaults to None.
+        host_mid (int | None, optional): 获取对应 UP 主动态的 mid. Defaults to None.
+        features (str, optional): 默认 itemOpusStyle. Defaults to 'itemOpusStyle'.
+        pn (int, optional): 页码. Defaults to 1.
+        offset (int | None, optional): 偏移值（下一页的第一个动态 ID，为该请求结果中的 offset 键对应的值），类似单向链表. Defaults to None.
 
     Returns:
         dict: 调用 API 返回的结果
@@ -1240,7 +1260,7 @@ async def get_dynamic_page_info(
         params["type"] = _type.value
     elif host_mid:  # 指定 UP 主动态
         params["host_mid"] = host_mid
-    elif not _type:
+    if not _type:
         api["params"].pop("type")
     elif not host_mid:
         api["params"].pop("host_mid")
@@ -1250,12 +1270,12 @@ async def get_dynamic_page_info(
 
 async def get_dynamic_page_list(
     credential: Credential,
-    _type: Optional[DynamicType] = None,
-    host_mid: Optional[int] = None,
+    _type: DynamicType | None = None,
+    host_mid: int | None = None,
     features: str = "itemOpusStyle",
     pn: int = 1,
-    offset: Optional[int] = None,
-) -> List[Dynamic]:
+    offset: int | None = None,
+) -> list[Dynamic]:
     """
     获取动态页动态列表
 
@@ -1265,19 +1285,14 @@ async def get_dynamic_page_list(
 
     Args:
         credential (Credential): 凭据类.
-
-        _type      (DynamicType, optional): 动态类型. Defaults to DynamicType.ALL.
-
-        host_mid   (int, optional): 获取对应 UP 主动态的 mid. Defaults to None.
-
-        features   (str, optional): 默认 itemOpusStyle.
-
-        pn         (int, optional): 页码. Defaults to 1.
-
-        offset     (int, optional): 偏移值（下一页的第一个动态 ID，为该请求结果中的 offset 键对应的值），类似单向链表. Defaults to None.
+        _type (dynamic.DynamicType | None, optional): 动态类型. Defaults to None.
+        host_mid (int | None, optional): 获取对应 UP 主动态的 mid. Defaults to None.
+        features (str, optional): 默认 itemOpusStyle. Defaults to 'itemOpusStyle'.
+        pn (int, optional): 页码. Defaults to 1.
+        offset (int | None, optional): 偏移值（下一页的第一个动态 ID，为该请求结果中的 offset 键对应的值），类似单向链表. Defaults to None.
 
     Returns:
-        list[Dynamic]: 动态类列表
+        list[dynamic.Dynamic]: 动态类列表
     """
 
     api = API["info"]["dynamic_page_info"]

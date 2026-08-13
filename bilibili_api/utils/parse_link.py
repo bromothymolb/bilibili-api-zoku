@@ -5,33 +5,31 @@ bilibili_api.utils.parse_link
 """
 
 from enum import Enum
-from typing import Tuple, Union, Literal
+from typing import Literal
 
 from yarl import URL
 
-from ..game import Game
-from ..manga import Manga
-from ..topic import Topic
-from ..video import Video
-from ..exceptions import *
-from .utils import get_api
-from ..live import LiveRoom
-from ..dynamic import Dynamic
-from .short import get_real_url
-from ..note import Note, NoteType
-from ..black_room import BlackRoom
-from .network import Credential, Api
+from ..article import Article, ArticleList
 from ..audio import Audio, AudioList
 from ..bangumi import Bangumi, Episode
-from ..article import Article, ArticleList
+from ..black_room import BlackRoom
 from ..cheese import CheeseList, CheeseVideo
-from ..interactive_video import InteractiveVideo
+from ..dynamic import Dynamic
 from ..favorite_list import FavoriteList, FavoriteListType
-from ..user import User, ChannelSeries, ChannelSeriesType, get_self_info
-from ..opus import Opus
+from ..game import Game
 from ..garb import DLC
-
+from ..interactive_video import InteractiveVideo
+from ..live import LiveRoom
+from ..manga import Manga
+from ..note import Note, NoteType
+from ..opus import Opus
+from ..topic import Topic
+from ..user import ChannelSeries, ChannelSeriesType, User, get_self_info
+from ..video import Video
 from .initial_state import get_initial_state
+from .network import Api, Credential
+from .short import get_real_url
+from .utils import get_api
 
 
 class ResourceType(Enum):
@@ -84,40 +82,41 @@ class ResourceType(Enum):
     FAILED = "failed"
 
 
-async def parse_link(url: str, credential: Union[Credential, None] = None) -> Union[
-    Tuple[Video, Literal[ResourceType.VIDEO]],
-    Tuple[InteractiveVideo, Literal[ResourceType.INTERACTIVE_VIDEO]],
-    Tuple[Bangumi, Literal[ResourceType.BANGUMI]],
-    Tuple[Episode, Literal[ResourceType.EPISODE]],
-    Tuple[FavoriteList, Literal[ResourceType.FAVORITE_LIST]],
-    Tuple[CheeseVideo, Literal[ResourceType.CHEESE_VIDEO]],
-    Tuple[Audio, Literal[ResourceType.AUDIO]],
-    Tuple[AudioList, Literal[ResourceType.AUDIO_LIST]],
-    Tuple[Article, Literal[ResourceType.ARTICLE]],
-    Tuple[User, Literal[ResourceType.USER]],
-    Tuple[LiveRoom, Literal[ResourceType.LIVE]],
-    Tuple[ChannelSeries, Literal[ResourceType.CHANNEL_SERIES]],
-    Tuple[ArticleList, Literal[ResourceType.ARTICLE_LIST]],
-    Tuple[Dynamic, Literal[ResourceType.DYNAMIC]],
-    Tuple[BlackRoom, Literal[ResourceType.BLACK_ROOM]],
-    Tuple[Game, Literal[ResourceType.GAME]],
-    Tuple[Topic, Literal[ResourceType.TOPIC]],
-    Tuple[Manga, Literal[ResourceType.MANGA]],
-    Tuple[Note, Literal[ResourceType.NOTE]],
-    Tuple[Literal[-1], Literal[ResourceType.FAILED]],
-]:
+async def parse_link(
+    url: str, credential: Credential | None = None
+) -> (
+    tuple[Video, Literal[ResourceType.VIDEO]]
+    | tuple[InteractiveVideo, Literal[ResourceType.INTERACTIVE_VIDEO]]
+    | tuple[Bangumi, Literal[ResourceType.BANGUMI]]
+    | tuple[Episode, Literal[ResourceType.EPISODE]]
+    | tuple[FavoriteList, Literal[ResourceType.FAVORITE_LIST]]
+    | tuple[CheeseVideo, Literal[ResourceType.CHEESE_VIDEO]]
+    | tuple[Audio, Literal[ResourceType.AUDIO]]
+    | tuple[AudioList, Literal[ResourceType.AUDIO_LIST]]
+    | tuple[Article, Literal[ResourceType.ARTICLE]]
+    | tuple[User, Literal[ResourceType.USER]]
+    | tuple[LiveRoom, Literal[ResourceType.LIVE]]
+    | tuple[ChannelSeries, Literal[ResourceType.CHANNEL_SERIES]]
+    | tuple[ArticleList, Literal[ResourceType.ARTICLE_LIST]]
+    | tuple[Dynamic, Literal[ResourceType.DYNAMIC]]
+    | tuple[BlackRoom, Literal[ResourceType.BLACK_ROOM]]
+    | tuple[Game, Literal[ResourceType.GAME]]
+    | tuple[Topic, Literal[ResourceType.TOPIC]]
+    | tuple[Manga, Literal[ResourceType.MANGA]]
+    | tuple[Note, Literal[ResourceType.NOTE]]
+    | tuple[Literal[-1], Literal[ResourceType.FAILED]]
+):
     """
     调用 yarl 解析 bilibili url 的函数。
 
     Args:
-        url(str)              : 链接
-
-        credential(Credential): 凭据类
+        url (str): 链接
+        credential (Credential | None, optional): 凭据类. Defaults to None.
 
     Returns:
-        Tuple[obj, ResourceType]: (对象，类型) 或 -1,-1 表示出错
+        tuple[object, ResourceType]: (对象，类型) 或 -1,-1 表示出错
     """
-    credential = credential if credential else Credential()
+    credential = credential or Credential()
     url = url.replace("\\", "/")  # 说多了都是泪
     try:
         obj = None
@@ -131,7 +130,8 @@ async def parse_link(url: str, credential: Union[Credential, None] = None) -> Un
         # 删去首尾部空格
         url = url.strip()
         # 添加 https: 协议头
-        if url.lstrip("https:") == url:
+        url.removeprefix("http:")
+        if url.removeprefix("https:") == url:
             url = "https:" + url
 
         # 转换为 yarl
@@ -144,16 +144,17 @@ async def parse_link(url: str, credential: Union[Credential, None] = None) -> Un
             return obj  # type: ignore
 
         # 过滤 https://space.bilibili.com/
-        if url.host == "space.bilibili.com" and url.path == "/" or url.path == "":  # type: ignore
+        if (url.host == "space.bilibili.com" and url.path == "/") or url.path == "":  # type: ignore
             try:
                 info = await get_self_info(credential)
-            except Exception as e:
+            except Exception:
                 return (-1, ResourceType.FAILED)
             else:
                 return (User(info["mid"], credential=credential), ResourceType.USER)
 
         channel = parse_season_series(
-            url, credential  # type: ignore
+            url,  # type: ignore
+            credential,  # type: ignore
         )  # 不需要 real_url，提前处理
         if channel != -1:
             return (channel, ResourceType.CHANNEL_SERIES)  # type: ignore
@@ -223,11 +224,11 @@ async def parse_link(url: str, credential: Union[Credential, None] = None) -> Un
         opus_dynamic = parse_opus_dynamic(url, credential)  # type: ignore
         if not opus_dynamic == -1:
             obj = (opus_dynamic, ResourceType.OPUS)
-        garb = parse_garb(url, credential)
+        garb = parse_garb(url, credential)  # type: ignore
         if not garb == -1:
             obj = (garb, ResourceType.DLC)
 
-        if obj == None or obj[0] == None:
+        if obj is None or obj[0] is None:
             return (-1, ResourceType.FAILED)
         else:
             obj[0].credential = credential  # type: ignore
@@ -238,8 +239,8 @@ async def parse_link(url: str, credential: Union[Credential, None] = None) -> Un
 
 
 async def auto_convert_video(
-    video: Video, credential: Union[Credential, None] = None
-) -> Tuple[Union[Video, Episode, InteractiveVideo], ResourceType]:
+    video: Video, credential: Credential | None = None
+) -> tuple[Video | Episode | InteractiveVideo, ResourceType]:
     # check interactive video
     video_info = await video.get_info()
     if video_info["rights"]["is_stein_gate"] == 1:
@@ -259,18 +260,20 @@ async def auto_convert_video(
     return (video, ResourceType.VIDEO)
 
 
-async def check_short_name(name: str, credential: Credential) -> Union[
-    Tuple[Video, Literal[ResourceType.VIDEO]],
-    Tuple[Episode, Literal[ResourceType.EPISODE]],
-    Tuple[CheeseVideo, Literal[ResourceType.CHEESE_VIDEO]],
-    Tuple[FavoriteList, Literal[ResourceType.FAVORITE_LIST]],
-    Tuple[User, Literal[ResourceType.USER]],
-    Tuple[Article, Literal[ResourceType.ARTICLE]],
-    Tuple[Audio, Literal[ResourceType.AUDIO]],
-    Tuple[AudioList, Literal[ResourceType.AUDIO_LIST]],
-    Tuple[ArticleList, Literal[ResourceType.ARTICLE_LIST]],
-    Literal[-1],
-]:
+async def check_short_name(
+    name: str, credential: Credential
+) -> (
+    tuple[Video, Literal[ResourceType.VIDEO]]
+    | tuple[Episode, Literal[ResourceType.EPISODE]]
+    | tuple[CheeseVideo, Literal[ResourceType.CHEESE_VIDEO]]
+    | tuple[FavoriteList, Literal[ResourceType.FAVORITE_LIST]]
+    | tuple[User, Literal[ResourceType.USER]]
+    | tuple[Article, Literal[ResourceType.ARTICLE]]
+    | tuple[Audio, Literal[ResourceType.AUDIO]]
+    | tuple[AudioList, Literal[ResourceType.AUDIO_LIST]]
+    | tuple[ArticleList, Literal[ResourceType.ARTICLE_LIST]]
+    | Literal[-1]
+):
     """
     解析:
       - mlxxxxxxxxxx
@@ -313,7 +316,7 @@ async def check_short_name(name: str, credential: Credential) -> Union[
 
 async def parse_video(
     url: URL, credential: Credential
-) -> Union[Tuple[Union[Video, Episode, InteractiveVideo], ResourceType], Literal[-1]]:
+) -> tuple[Video | Episode | InteractiveVideo, ResourceType] | Literal[-1]:
     """
     解析视频,如果不是返回 -1，否则返回对应类
     """
@@ -331,7 +334,7 @@ async def parse_video(
         return -1
 
 
-def parse_bangumi(url: URL, credential: Credential) -> Union[Bangumi, int]:
+def parse_bangumi(url: URL, credential: Credential) -> Bangumi | int:
     """
     解析番剧,如果不是返回 -1，否则返回对应类
     """
@@ -342,7 +345,7 @@ def parse_bangumi(url: URL, credential: Credential) -> Union[Bangumi, int]:
     return -1
 
 
-async def parse_episode(url: URL, credential: Credential) -> Union[Episode, int]:
+async def parse_episode(url: URL, credential: Credential) -> Episode | int:
     """
     解析番剧剧集,如果不是返回 -1，否则返回对应类
     """
@@ -360,7 +363,7 @@ async def parse_episode(url: URL, credential: Credential) -> Union[Episode, int]
     return -1
 
 
-def parse_favorite_list(url: URL, credential: Credential) -> Union[FavoriteList, int]:
+def parse_favorite_list(url: URL, credential: Credential) -> FavoriteList | int:
     """
     解析收藏夹,如果不是返回 -1，否则返回对应类
     """
@@ -371,9 +374,7 @@ def parse_favorite_list(url: URL, credential: Credential) -> Union[FavoriteList,
     return -1
 
 
-async def parse_cheese_video(
-    url: URL, credential: Credential
-) -> Union[CheeseVideo, int]:
+async def parse_cheese_video(url: URL, credential: Credential) -> CheeseVideo | int:
     """
     解析课程视频,如果不是返回 -1，否则返回对应类
     """
@@ -392,7 +393,7 @@ async def parse_cheese_video(
     return -1
 
 
-def parse_audio(url: URL, credential: Credential) -> Union[Audio, int]:
+def parse_audio(url: URL, credential: Credential) -> Audio | int:
     """
     解析音频,如果不是返回 -1，否则返回对应类
     """
@@ -403,7 +404,7 @@ def parse_audio(url: URL, credential: Credential) -> Union[Audio, int]:
     return -1
 
 
-def parse_audio_list(url: URL, credential: Credential) -> Union[AudioList, int]:
+def parse_audio_list(url: URL, credential: Credential) -> AudioList | int:
     """
     解析歌单,如果不是返回 -1，否则返回对应类
     """
@@ -414,7 +415,7 @@ def parse_audio_list(url: URL, credential: Credential) -> Union[AudioList, int]:
     return -1
 
 
-def parse_article(url: URL, credential: Credential) -> Union[Article, int]:
+def parse_article(url: URL, credential: Credential) -> Article | int:
     """
     解析专栏，如果不是返回 -1，否则返回对应类
     """
@@ -425,7 +426,7 @@ def parse_article(url: URL, credential: Credential) -> Union[Article, int]:
     return -1
 
 
-def parse_user(url: URL, credential: Credential) -> Union[User, int]:
+def parse_user(url: URL, credential: Credential) -> User | int:
     if url.host == "space.bilibili.com":
         if len(url.parts) >= 2:
             uid = url.parts[1]
@@ -433,7 +434,7 @@ def parse_user(url: URL, credential: Credential) -> Union[User, int]:
     return -1
 
 
-def parse_live(url: URL, credential: Credential) -> Union[LiveRoom, int]:
+def parse_live(url: URL, credential: Credential) -> LiveRoom | int:
     if url.host == "live.bilibili.com":
         if len(url.parts) >= 2:
             room_display_id = int(url.parts[1])
@@ -441,12 +442,12 @@ def parse_live(url: URL, credential: Credential) -> Union[LiveRoom, int]:
     return -1
 
 
-def parse_season_series(url: URL, credential: Credential) -> Union[ChannelSeries, int]:
+def parse_season_series(url: URL, credential: Credential) -> ChannelSeries | int:
     if url.host == "space.bilibili.com":
         if len(url.parts) >= 2:  # path 存在 uid
             try:
                 uid = int(url.parts[1])
-            except:
+            except Exception:
                 pass  # uid 无效
             else:
                 if len(url.parts) >= 4:  # path 存在 collectiondetail 或者 seriesdetail
@@ -494,15 +495,15 @@ def parse_season_series(url: URL, credential: Credential) -> Union[ChannelSeries
 
 async def parse_space_favorite_list(
     url: URL, credential: Credential
-) -> Union[
-    Tuple[FavoriteList, ResourceType], Tuple[ChannelSeries, ResourceType], Literal[-1]
-]:
+) -> (
+    tuple[FavoriteList, ResourceType] | tuple[ChannelSeries, ResourceType] | Literal[-1]
+):
     if url.host == "space.bilibili.com":
         uid = url.parts[1]  # 获取 uid
         if len(url.parts) >= 3:  # path 存在 favlist
             if url.parts[2] == "favlist":
                 if (
-                    len(url.parts) == 3 and url.query.get("fid") == None
+                    len(url.parts) == 3 and url.query.get("fid") is None
                 ):  # query 中不存在 fid 则返回默认收藏夹
                     api = get_api("favorite-list")["info"]["list_list"]
                     params = {"up_mid": uid, "type": 2}
@@ -510,7 +511,7 @@ async def parse_space_favorite_list(
                         Api(**api, credential=credential).update_params(**params).result
                     )
 
-                    if favorite_lists == None:
+                    if favorite_lists is None:
                         return -1
                     else:
                         default_favorite_id = int(favorite_lists["list"][0]["id"])
@@ -527,7 +528,7 @@ async def parse_space_favorite_list(
                     try:  # 尝试转换为 int 类型并设置 fid_is_int
                         fid = int(fid)  # type: ignore
                         fid_is_int = True
-                    except:
+                    except Exception:
                         fid_is_int = False
                     if ctype is None and fid_is_int:
                         # 我的视频收藏夹
@@ -552,7 +553,7 @@ async def parse_space_favorite_list(
                                 ),
                                 ResourceType.CHANNEL_SERIES,
                             )
-                    elif fid_is_int == False:
+                    elif not fid_is_int:
                         # ctype 不存在且 fid 非 int 类型
                         if fid == FavoriteListType.ARTICLE.value:
                             return (
@@ -571,7 +572,7 @@ async def parse_space_favorite_list(
     return -1
 
 
-def parse_article_list(url: URL, credential: Credential) -> Union[ArticleList, int]:
+def parse_article_list(url: URL, credential: Credential) -> ArticleList | int:
     if url.host == "www.bilibili.com" and len(url.parts) >= 3:
         if url.parts[:3] == ("/", "read", "readlist"):
             rlid = int(url.parts[3][2:])
@@ -579,7 +580,7 @@ def parse_article_list(url: URL, credential: Credential) -> Union[ArticleList, i
     return -1
 
 
-def parse_dynamic(url: URL, credential: Credential) -> Union[Dynamic, int]:
+def parse_dynamic(url: URL, credential: Credential) -> Dynamic | int:
     if url.host == "t.bilibili.com":
         if len(url.parts) >= 2:
             dynamic_id = int(url.parts[1])
@@ -587,7 +588,7 @@ def parse_dynamic(url: URL, credential: Credential) -> Union[Dynamic, int]:
     return -1
 
 
-def parse_black_room(url: URL, credential: Credential) -> Union[BlackRoom, int]:
+def parse_black_room(url: URL, credential: Credential) -> BlackRoom | int:
     if len(url.parts) >= 3:
         if url.parts[:3] == ("/", "blackroom", "ban"):
             if len(url.parts) >= 4:  # 存在 id
@@ -595,7 +596,7 @@ def parse_black_room(url: URL, credential: Credential) -> Union[BlackRoom, int]:
     return -1
 
 
-def parse_game(url: URL, credential: Credential) -> Union[Game, int]:
+def parse_game(url: URL, credential: Credential) -> Game | int:
     if (
         url.host == "www.biligame.com"
         and url.parts[1] == "detail"
@@ -605,7 +606,7 @@ def parse_game(url: URL, credential: Credential) -> Union[Game, int]:
     return -1
 
 
-def parse_topic(url: URL, credential: Credential) -> Union[Topic, int]:
+def parse_topic(url: URL, credential: Credential) -> Topic | int:
     if url.host == "www.bilibili.com" and len(url.parts) >= 4:
         if (
             url.parts[:4] == ("/", "v", "topic", "detail")
@@ -615,13 +616,13 @@ def parse_topic(url: URL, credential: Credential) -> Union[Topic, int]:
     return -1
 
 
-def parse_manga(url: URL, credential: Credential) -> Union[Manga, int]:
+def parse_manga(url: URL, credential: Credential) -> Manga | int:
     if url.host == "manga.bilibili.com" and url.parts[1] == "detail":
         return Manga(int(url.parts[2][2:]), credential=credential)
     return -1
 
 
-async def parse_festival(url: URL, credential: Credential) -> Union[Video, int]:
+async def parse_festival(url: URL, credential: Credential) -> Video | int:
     bvid = url.query.get("bvid")
     if bvid is not None:  # get bvid if provided
         return Video(bvid, credential=credential)
@@ -629,21 +630,26 @@ async def parse_festival(url: URL, credential: Credential) -> Union[Video, int]:
     if (
         url.host == "www.bilibili.com" and url.parts[1] == "festival"
     ):  # use __initial_state__ to fetch
-        content, content_type = await get_initial_state(
+        content, _content_type = await get_initial_state(
             url=str(url), credential=credential
         )
         return Video(
-            content["videoSections"][0]["episodes"][0]["bvid"], credential=credential
+            content["videoSections"][0]["episodes"][0]["bvid"],
+            credential=credential,  # type: ignore
         )  # 返回当前第一个视频
     return -1
 
 
-def parse_note(url: URL, credential: Credential) -> Union[Note, int]:
+def parse_note(url: URL, credential: Credential) -> Note | int:
     # https://www.bilibili.com/h5/note-app/view?cvid=21385583
     if url.host == "www.bilibili.com" and url.parts[1:4] == ("h5", "note-app", "view"):
-        if url.query.get("cvid") == None:
+        if url.query.get("cvid") is None:
             return -1
-        return Note(cvid=int(url.query.get("cvid")), note_type=NoteType.PUBLIC, credential=credential)  # type: ignore
+        return Note(
+            cvid=int(url.query.get("cvid")),  # type: ignore
+            note_type=NoteType.PUBLIC,
+            credential=credential,
+        )  # type: ignore
     return -1
 
 
@@ -653,15 +659,19 @@ def parse_nianshizhiwang(url: URL) -> None:
     # 貌似 parse_bnj 已经可以判断了
 
 
-def parse_opus_dynamic(url: URL, credential: Credential) -> Union[Dynamic, int]:
+def parse_opus_dynamic(url: URL, credential: Credential) -> Opus | int:
     # https://www.bilibili.com/opus/767674573455884292
     if url.host == "www.bilibili.com" and url.parts[:2] == ("/", "opus"):
         return Opus(opus_id=int(url.parts[-1]), credential=credential)
     return -1
 
 
-def parse_garb(url: URL, credential: Credential) -> Union[DLC, int]:
+def parse_garb(url: URL, credential: Credential) -> DLC | int:
     # https://www.bilibili.com/blackboard/activity-Mz9T5bO5Q3.html?id=154&type=dlc&f_source=ogv&from=video.task
-    if url.host == "www.bilibili.com" and url.parts[:3] == ("/", "blackboard", "activity-Mz9T5bO5Q3.html"):
+    if url.host == "www.bilibili.com" and url.parts[:3] == (
+        "/",
+        "blackboard",
+        "activity-Mz9T5bO5Q3.html",
+    ):
         return DLC(act_id=int(url.query["id"]), credential=credential)
     return -1

@@ -4,20 +4,28 @@ bilibili_api.video_zone
 分区相关操作，与频道不互通。
 """
 
-import os
 import copy
 import enum
-import json
-from typing import Dict, List, Tuple, Union
 
-from .utils.utils import get_api
 from .exceptions import ArgsException
 from .utils.network import Api, Credential
+from .utils.utils import get_api, get_data
 
 API = get_api("video_zone")
 
 
-def get_zone_info_by_tid(tid: int) -> Tuple[Union[dict, None], Union[dict, None]]:
+def get_zone_list_sub() -> list[dict]:
+    """
+    获取所有分区的数据
+    含父子关系（即一层次只有主分区）
+
+    Returns:
+        list[dict]: 所有分区的数据
+    """
+    return get_data("video_zone.json")  # type: ignore
+
+
+def get_zone_info_by_tid(tid: int) -> tuple[dict | None, dict | None]:
     """
     根据 tid 获取分区信息。
 
@@ -25,12 +33,9 @@ def get_zone_info_by_tid(tid: int) -> Tuple[Union[dict, None], Union[dict, None]
         tid (int): 频道的 tid。
 
     Returns:
-        Tuple[dict | None, dict | None]: 第一个是主分区，第二个是子分区，没有时返回 None。
+        tuple[dict | None, dict | None]: 第一个是主分区，第二个是子分区，没有时返回 None。
     """
-    with open(
-        os.path.join(os.path.dirname(__file__), "data/video_zone.json"), encoding="utf8"
-    ) as f:
-        channel = json.loads(f.read())
+    channel = get_zone_list_sub()
 
     for main_ch in channel:
         if "tid" not in main_ch:
@@ -49,7 +54,7 @@ def get_zone_info_by_tid(tid: int) -> Tuple[Union[dict, None], Union[dict, None]
         return None, None
 
 
-def get_zone_info_by_name(name: str) -> Tuple[Union[dict, None], Union[dict, None]]:
+def get_zone_info_by_name(name: str) -> tuple[dict | None, dict | None]:
     """
     根据分区名称获取分区信息。
 
@@ -57,12 +62,9 @@ def get_zone_info_by_name(name: str) -> Tuple[Union[dict, None], Union[dict, Non
         name (str): 频道的名称。
 
     Returns:
-        Tuple[dict | None, dict | None]: 第一个是主分区，第二个是子分区，没有时返回 None。
+        tuple[dict | None, dict | None]: 第一个是主分区，第二个是子分区，没有时返回 None。
     """
-    with open(
-        os.path.join(os.path.dirname(__file__), "data/video_zone.json"), encoding="utf8"
-    ) as f:
-        channel = json.loads(f.read())
+    channel = get_zone_list_sub()
 
     for main_ch in channel:
         if name in main_ch["name"]:
@@ -76,20 +78,18 @@ def get_zone_info_by_name(name: str) -> Tuple[Union[dict, None], Union[dict, Non
 
 
 async def get_zone_top10(
-    tid: int, day: int = 7, credential: Union[Credential, None] = None
+    tid: int, day: int = 7, credential: Credential | None = None
 ) -> dict:
     """
     获取分区前十排行榜。
 
     Args:
-        tid        (int)                        : 频道的 tid。
-
-        day        (int, optional)              : 3 天排行还是 7 天排行。 Defaults to 7.
-
-        credential (Credential | None, optional): Credential 类。Defaults to None.
+        tid (int): 频道的 tid。
+        day (int, optional): 3 天排行还是 7 天排行. Defaults to 7.
+        credential (Credential | None, optional): Credential 类. Defaults to None.
 
     Returns:
-        list: 前 10 的视频信息。
+        dict: 前 10 的视频信息。
     """
     if credential is None:
         credential = Credential()
@@ -101,17 +101,14 @@ async def get_zone_top10(
     return await Api(**api, credential=credential).update_params(**params).result
 
 
-def get_zone_list() -> List[Dict]:
+def get_zone_list() -> list[dict]:
     """
     获取所有分区的数据
 
     Returns:
-        List[dict]: 所有分区的数据
+        list[dict]: 所有分区的数据
     """
-    with open(
-        os.path.join(os.path.dirname(__file__), "data/video_zone.json"), encoding="utf8"
-    ) as f:
-        channel = json.loads(f.read())
+    channel = get_zone_list_sub()
     channel_list = []
     for channel_big in channel:
         channel_big_copy = copy.copy(channel_big)
@@ -125,34 +122,19 @@ def get_zone_list() -> List[Dict]:
     return channel_list
 
 
-def get_zone_list_sub() -> dict:
-    """
-    获取所有分区的数据
-    含父子关系（即一层次只有主分区）
-
-    Returns:
-        dict: 所有分区的数据
-    """
-    with open(
-        os.path.join(os.path.dirname(__file__), "data/video_zone.json"), encoding="utf8"
-    ) as f:
-        channel = json.loads(f.read())
-    return channel
-
-
 async def get_zone_videos_count_today(
-    credential: Union[Credential, None] = None
+    credential: Credential | None = None,
 ) -> dict:
     """
     获取每个分区当日最新投稿数量
 
     Args:
-        credential (Credential | None): 凭据类
+        credential (Credential | None, optional): 凭据类. Defaults to None.
 
     Returns:
         dict: 调用 API 返回的结果
     """
-    credential = credential if credential else Credential()
+    credential = credential or Credential()
     api = API["count"]
     return (await Api(**api, credential=credential).result)["region_count"]
 
@@ -162,11 +144,9 @@ async def get_zone_new_videos(tid: int, page_num: int = 1, page_size: int = 10) 
     获取分区最新投稿
 
     Args:
-        tid        (int)              : 分区 id
-
-        page_num   (int)              : 第几页. Defaults to 1.
-
-        page_size  (int)              : 每页的数据大小. Defaults to 10.
+        tid (int): 分区 id
+        page_num (int, optional): 第几页. Defaults to 1.
+        page_size (int, optional): 每页的数据大小. Defaults to 10.
 
     Returns:
         dict: 调用 API 返回的结果
@@ -176,15 +156,15 @@ async def get_zone_new_videos(tid: int, page_num: int = 1, page_size: int = 10) 
     return await Api(**api).update_params(**params).result
 
 
-async def get_zone_hot_tags(tid: int) -> List[dict]:
+async def get_zone_hot_tags(tid: int) -> list[dict]:
     """
     获取分区热门标签
 
     Args:
-        tid        (int)              : 分区 id
+        tid (int): 分区 id
 
     Returns:
-        List[dict]: 热门标签
+        list[dict]: 热门标签
     """
 
     api = API["get_hot_tags"]

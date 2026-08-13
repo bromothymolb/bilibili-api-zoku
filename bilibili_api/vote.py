@@ -2,16 +2,17 @@
 bilibili_api.vote
 
 投票相关操作。
-
-需要 vote_id,获取 vote_id: https://bromothymolb.github.io/bilibili-api-zoku/#/vote_id
 """
 
+from copy import copy
 from enum import Enum
-from typing import Union, Optional
 
-from .utils.utils import get_api
-from .utils.picture import Picture
+from .exceptions import ArgsException
+from .user import fetch_dedeuserid
+from .utils import cache_pool
 from .utils.network import Api, Credential
+from .utils.picture import Picture
+from .utils.utils import get_api
 
 API = get_api("vote")
 
@@ -34,22 +35,28 @@ class VoteChoices:
     """
 
     def __init__(self) -> None:
+        """ """
+        # don't remove this empty docstring
         self.choices = []
 
     def add_choice(
-        self, desc: str, image: Optional[Union[str, Picture]] = None
+        self, desc: str, image: str | Picture | None = None
     ) -> "VoteChoices":
         """
         往 VoteChoices 添加选项
 
         Args:
             desc (str): 选项描述
+            image (str | Picture | None, optional): 选项的图片链接，用于图片投票。支持 Picture 类. Defaults to None.
 
-            image (str, Picture, optional): 选项的图片链接，用于图片投票。支持 Picture 类. Defaults to None.
+        Returns:
+            VoteChoices: `self`
         """
         if isinstance(image, Picture):
             image = image.url
-        self.choices.append({"desc": desc, "img_url": image})
+            if image.startswith("file://") or image.startswith("<bytes>"):
+                raise ArgsException("请先上传图片。")
+        self.choices.append({"desc": desc, "img_url": image or ""})
         return self
 
     def remove_choice(self, index: int) -> "VoteChoices":
@@ -58,6 +65,9 @@ class VoteChoices:
 
         Args:
             index (int): 选项索引
+
+        Returns:
+            VoteChoices: `self`
         """
         self.choices.remove(index)
         return self
@@ -69,11 +79,14 @@ class VoteChoices:
         Returns:
             dict: choices
         """
-        results = {}
+        results = {"options": []}
         for i in range(len(self.choices)):
-            choice_key_name = f"info[options][{i}]"
-            results[f"{choice_key_name}[desc]"] = self.choices[i]["desc"]
-            results[f"{choice_key_name}[img_url]"] = self.choices[i]["img_url"]
+            results["options"].append(
+                {
+                    "opt_desc": self.choices[i]["desc"],
+                    "img_url": self.choices[i]["img_url"],
+                }
+            )
         return results
 
 
@@ -82,21 +95,25 @@ class Vote:
     投票类
 
     Attributes:
-        vote_id (int): vote_id, 获取：https://bromothymolb.github.io/bilibili-api-zoku/#/vote_id
-
+        vote_id (int): vote_id
         credential (Credential): 凭据类
     """
 
-    def __init__(self, vote_id: int, credential: Optional[Credential] = None) -> None:
+    def __init__(self, vote_id: int, credential: Credential | None = None) -> None:
         """
         Args:
-            vote_id (int): vote_id, 获取：https://bromothymolb.github.io/bilibili-api-zoku/#/vote_id
-
-            credential (Credential): 凭据类，非必要.
+            vote_id (int): vote_id
+            credential (Credential | None, optional): 凭据类，非必要. Defaults to None.
         """
         self.__vote_id = vote_id
-        self.credential: Credential = credential if credential else Credential()
-        self.title: Optional[str] = None
+        self.credential: Credential = credential or Credential()
+        self.__info: dict | None = None
+
+    def __str__(self) -> str:
+        return f"Vote(vote_id={self.__vote_id})"
+
+    def __repr__(self) -> str:
+        return f"Vote(vote_id={self.__vote_id})"
 
     def get_vote_id(self) -> int:
         """
@@ -114,11 +131,16 @@ class Vote:
         Returns:
             dict: 调用 API 返回的结果
         """
-        api = API["info"]["vote_info"]
-        params = {"vote_id": self.get_vote_id()}
-        info = await Api(**api).update_params(**params).result
-        self.title = info["info"]["title"]  # 为 dynmaic.BuildDnamic.add_vote 缓存 title
-        return info
+        if self.__info is None:
+            api = API["info"]["vote_info"]
+            params = {
+                "vote_id": self.get_vote_id(),
+                "csrf": self.credential.bili_jct or "",
+            }
+            info = await Api(**api).update_params(**params).result
+            self.__info = info
+            return info
+        return copy(self.__info)
 
     async def get_title(self) -> str:
         """
@@ -127,9 +149,54 @@ class Vote:
         Returns:
             str: 投票标题
         """
-        if self.title is None:
-            return (await self.get_info())["info"]["title"]
-        return self.title
+        if cache_pool.vote_info.get(self.get_vote_id()):
+            return cache_pool.vote_info[self.get_vote_id()]["title"]
+        return (await self.get_info())["vote_info"]["title"]
+
+    async def get_desc(self) -> str:
+        """
+        获取投票描述
+
+        Returns:
+            str: 投票描述
+        """
+        if cache_pool.vote_info.get(self.get_vote_id()):
+            return cache_pool.vote_info[self.get_vote_id()]["desc"]
+        return (await self.get_info())["vote_info"]["desc"]
+
+    async def get_choice_cnt(self) -> int:
+        """
+        获取最多选择选项数目
+
+        Returns:
+            int: 最多选择选项数目
+        """
+        if cache_pool.vote_info.get(self.get_vote_id()):
+            return cache_pool.vote_info[self.get_vote_id()]["choice_cnt"]
+        return (await self.get_info())["vote_info"]["choice_cnt"]
+
+    async def get_options(self) -> dict:
+        """
+        获取选项
+
+        Returns:
+            dict: 选项数据
+        """
+        if cache_pool.vote_info.get(self.get_vote_id()):
+            return cache_pool.vote_info[self.get_vote_id()]["options"]
+        return (await self.get_info())["vote_info"]["options"]
+
+    async def get_duration(self) -> dict:
+        """
+        获取选项
+
+        Returns:
+            dict: 选项数据
+        """
+        if cache_pool.vote_info.get(self.get_vote_id()):
+            return cache_pool.vote_info[self.get_vote_id()]["duration"]
+        info = (await self.get_info())["vote_info"]
+        return info["end_time"] - info["ctime"]
 
     async def update_vote(
         self,
@@ -138,45 +205,68 @@ class Vote:
         choice_cnt: int,
         duration: int,
         choices: VoteChoices,
-        desc: Optional[str] = None,
+        desc: str | None = None,
     ) -> dict:
         """
         更新投票内容
 
         Args:
-            vote_id (int): vote_id
-
             title (str): 投票标题
-
             _type (VoteType): 投票类型
-
             choice_cnt (int): 最多几项
-
-            duration (int): 投票持续秒数 常用: 三天:259200 七天:604800 三十天:2592000
-
-            choices (VoteChoices): 投票选项
-
-            credential (Credential): Credential 枚举类
-
-            desc (Optional[str], optional): 投票描述. Defaults to None.
+            duration (int): 常用: 三天:259200/七天:604800/三十天:2592000
+            choices (vote.VoteChoices): 投票选项
+            desc (str | None, optional): 投票描述. Defaults to None.
 
         Returns:
             dict: 调用 API 返回的结果
         """
         self.credential.raise_for_no_sessdata()
+        self.credential.raise_for_no_bili_jct()
         api = API["operate"]["update"]
+        params = {"csrf": self.credential.bili_jct}
         data = {
-            "info[title]": title,
-            "info[desc]": desc,
-            "info[type]": _type.value,
-            "info[choice_cnt]": choice_cnt,
-            "info[duration]": duration,
-            "info[vote_id]": self.get_vote_id(),
+            "title": title,
+            "desc": desc,
+            "type": _type.value,
+            "choice_cnt": choice_cnt,
+            "duration": duration,
+            "vote_id": self.get_vote_id(),
+            "vote_publisher": await fetch_dedeuserid(self.credential),
         }
         data.update(choices.get_choices())
+        self.__info = None
+        cache_pool.vote_info[self.get_vote_id()] = data
         if choice_cnt > len(choices.choices):
             raise ValueError("choice_cnt 大于 choices 选项数")
-        return await Api(**api, credential=self.credential).update_data(**data).result
+        return (
+            await Api(**api, credential=self.credential)
+            .update_params(**params)
+            .update_data(**{"vote_info": data})
+            .result
+        )
+
+    async def delete_vote(self) -> dict:
+        """
+        删除投票
+
+        Returns:
+            dict: 调用 API 返回的结果
+        """
+        self.credential.raise_for_no_sessdata()
+        self.credential.raise_for_no_bili_jct()
+        api = API["operate"]["delete"]
+        params = {"csrf": self.credential.bili_jct}
+        data = {
+            "vote_id": self.get_vote_id(),
+            "uid": await fetch_dedeuserid(self.credential),
+        }
+        return (
+            await Api(**api, credential=self.credential)
+            .update_params(**params)
+            .update_data(**data)
+            .result
+        )
 
 
 async def create_vote(
@@ -186,41 +276,45 @@ async def create_vote(
     duration: int,
     choices: VoteChoices,
     credential: Credential,
-    desc: Optional[str] = None,
+    desc: str | None = None,
 ) -> Vote:
     """
     创建投票
 
     Args:
         title (str): 投票标题
-
         _type (VoteType): 投票类型
-
         choice_cnt (int): 最多几项
-
-        duration (int): 投票持续秒数 常用: 三天:259200 七天:604800 三十天:2592000
-
-        choices (VoteChoices): 投票选项
-
+        duration (int): 投票持续秒数，常用: 三天:259200/七天:604800/三十天:2592000
+        choices (vote.VoteChoices): 投票选项
         credential (Credential): Credential
-
-        desc (Optional[str], optional): 投票描述. Defaults to None.
+        desc (str | None, optional): 投票描述. Defaults to None.
 
     Returns:
-        Vote: Vote 类
+        vote.Vote: Vote 类
     """
+    credential.raise_for_no_sessdata()
+    credential.raise_for_no_bili_jct()
     api = API["operate"]["create"]
+    params = {"csrf": credential.bili_jct}
     data = {
-        "info[title]": title,
-        "info[desc]": desc,
-        "info[type]": _type.value,
-        "info[choice_cnt]": choice_cnt,
-        "info[duration]": duration,
+        "title": title,
+        "desc": desc or "",
+        "type": _type.value,
+        "choice_cnt": choice_cnt,
+        "duration": duration,
+        "release_scene": "dynamic",
+        "vote_publisher": await fetch_dedeuserid(credential),
     }
     data.update(choices.get_choices())
     if choice_cnt > len(choices.choices):
         raise ValueError("choice_cnt 大于 choices 选项数")
-    vote_id = (await Api(**api, credential=credential).update_data(**data).result)[
-        "vote_id"
-    ]
+    vote_id = (
+        await Api(**api, credential=credential)
+        .update_params(**params)
+        .update_data(**{"vote_info": data})
+        .update_headers(Referer="https://t.bilibili.com")
+        .result
+    )["vote_id"]
+    cache_pool.vote_info[vote_id] = data
     return Vote(vote_id=vote_id, credential=credential)

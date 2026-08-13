@@ -34,7 +34,7 @@ from bilibili_api import black_room
 
 ## class BlackFrom()
 
-**Extend: enum.Enum**
+> Extend: `enum.Enum`
 
 违规来源
 
@@ -49,7 +49,7 @@ from bilibili_api import black_room
 
 ## class BlackReasonType()
 
-**Extend: enum.Enum**
+> Extend: `enum.Enum`
 
 违规原因类型枚举 (英语翻译错误请忽略/提 issue/发起 PR)
 
@@ -158,7 +158,7 @@ from bilibili_api import black_room
 
 ## class BlackType()
 
-**Extend: enum.Enum**
+> Extend: `enum.Enum`
 
 违规类型枚举
 
@@ -230,7 +230,7 @@ from bilibili_api import black_room
 | `opinion` | `JuryVoteOpinion` | 投票选项类型 |
 | `is_insider` | `bool` | 是否观看此类视频 |
 | `is_anonymous` | `bool` | 是否匿名投票 |
-| `reason` | `str, optional` | 投票理由. Defaults to None. |
+| `reason` | `str \| None, optional` | 投票理由. Defaults to None. |
 
 **Returns:** `dict`:  调用 API 返回的结果
 
@@ -241,7 +241,7 @@ from bilibili_api import black_room
 
 ## class JuryVoteOpinion()
 
-**Extend: enum.Enum**
+> Extend: `enum.Enum`
 
 仲裁投票类型枚举，选择对应案件类型的观点
 
@@ -269,10 +269,12 @@ from bilibili_api import black_room
 
 | name | type | description |
 | - | - | - |
-| `from_` | `BlackFrom` | 违规来源. Defaults to BlackFrom.ALL. |
-| `type_` | `int` | 违规类型. Defaults to BlackType.ALL. |
-| `pn` | `int` | 页数. Defaults to 1. |
-| `credential` | `Credential \| None` | 凭据. Defaults to None. |
+| `from_` | `BlackFrom, optional` | 违规来源. Defaults to BlackFrom.ALL. |
+| `type_` | `BlackType, optional` | 违规类型. Defaults to BlackType.ALL. |
+| `pn` | `int, optional` | 页数. Defaults to 1. |
+| `credential` | `Credential \| None, optional` | 凭据. Defaults to None. |
+
+**Returns:** `dict`:  调用 API 返回的结果
 
 
 
@@ -290,7 +292,7 @@ from bilibili_api import black_room
 | `pn` | `int, optional` | 页数. Defaults to 1. |
 | `ps` | `int, optional` | 每页数量. Defaults to 20. |
 
-**Returns:** `List[JuryCase]`:  仲裁案件列表
+**Returns:** `list[black_room.JuryCase]`:  仲裁案件列表
 
 
 
@@ -322,9 +324,9 @@ from bilibili_api import black_room
 
 | name | type | description |
 | - | - | - |
-| `credential` | `Credential \| None, optional` | 凭据类. Defaults to None. |
+| `credential` | `Credential` | 凭据类. |
 
-**Returns:** `JuryCase`:  案件类
+**Returns:** `black_room.JuryCase`:  案件类
 
 
 

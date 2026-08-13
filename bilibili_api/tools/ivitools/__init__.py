@@ -1,9 +1,5 @@
 """
-IVITools
+bilibili_api.tools.ivitools
 
-A Simple IVI file manager & toolbox. 
-
-BY Nemo2011 <yimoxia@outlook.com>
-
-Licensed under the GNU General Public License v3+. 
+bilibili-api Interactive VIdeo file Tools
 """

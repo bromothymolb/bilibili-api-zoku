@@ -9,6 +9,16 @@
       "verify": false,
       "comment": "获取主页最上方的图像"
     },
+    "top_photo_v2": {
+      "url": "https://api.bilibili.com/x/web-show/page/header/v2?category=0&web_location=333.934",
+      "method": "GET",
+      "params": {
+        "category": "int: 0",
+        "web_location": "333.934"
+      },
+      "verify": false,
+      "comment": "获取主页最上方的图像"
+    },
     "links": {
       "url": "https://api.bilibili.com/x/web-show/res/locs",
       "method": "GET",

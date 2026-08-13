@@ -4,14 +4,12 @@ bilibili_api.search
 搜索
 """
 
-import json
 from enum import Enum
-from typing import List, Union, Callable
-from .utils.utils import to_timestamps
-from .utils.utils import get_api
-from .video_zone import VideoZoneTypes
-from .utils.network import Api, Credential
+
 from .exceptions import ArgsException
+from .utils.network import Api, Credential
+from .utils.utils import get_api, to_timestamps
+from .video_zone import VideoZoneTypes
 
 API = get_api("search")
 
@@ -158,8 +156,7 @@ async def search(keyword: str, page: int = 1) -> dict:
 
     Args:
         keyword (str): 搜索关键词
-
-        page    (int): 页码. Defaults to 1.
+        page (int, optional): 页码. Defaults to 1.
 
     Returns:
         dict: 调用 API 返回的结果
@@ -171,14 +168,14 @@ async def search(keyword: str, page: int = 1) -> dict:
 
 async def search_by_type(
     keyword: str,
-    search_type: Union[SearchObjectType, None] = None,
-    order_type: Union[OrderUser, OrderLiveRoom, OrderArticle, OrderVideo, None] = None,
+    search_type: SearchObjectType | None = None,
+    order_type: OrderUser | OrderLiveRoom | OrderArticle | OrderVideo | None = None,
     time_range: int = -1,
-    video_zone_type: Union[int, VideoZoneTypes, None] = None,
-    order_sort: Union[int, None] = None,
-    category_id: Union[CategoryTypeArticle, CategoryTypePhoto, int, None] = None,
-    time_start: Union[str, None] = None,
-    time_end: Union[str, None] = None,
+    video_zone_type: int | VideoZoneTypes | None = None,
+    order_sort: int | None = None,
+    category_id: CategoryTypeArticle | CategoryTypePhoto | int | None = None,
+    time_start: str | None = None,
+    time_end: str | None = None,
     page: int = 1,
     page_size: int = 42,
 ) -> dict:
@@ -188,17 +185,17 @@ async def search_by_type(
     类型：视频(video)、番剧(media_bangumi)、影视(media_ft)、直播(live)、直播用户(liveuser)、专栏(article)、话题(topic)、用户(bili_user)
 
     Args:
-        keyword          (str)                                                                   : 搜索关键词
-        search_type      (SearchObjectType | None, optional)                                     : 搜索类型
-        order_type       (OrderUser | OrderLiveRoom | OrderArticle | OrderVideo | None, optional): 排序分类类型
-        time_range       (int, optional)                                                         : 指定时间，自动转换到指定区间，只在视频类型下生效 有四种：10分钟以下，10-30分钟，30-60分钟，60分钟以上
-        video_zone_type  (int | ZoneTypes | None, optional)                                      : 话题类型，指定 tid (可使用 video_zone 模块查询)
-        order_sort       (int | None, optional)                                                  : 用户粉丝数及等级排序顺序 默认为0 由高到低：0 由低到高：1
-        category_id      (CategoryTypeArticle | CategoryTypePhoto | int | None, optional)        : 专栏/相簿分区筛选，指定分类，只在相册和专栏类型下生效
-        time_start       (str, optional)                                                         : 指定开始时间，与结束时间搭配使用，格式为："YYYY-MM-DD"
-        time_end         (str, optional)                                                         : 指定结束时间，与开始时间搭配使用，格式为："YYYY-MM-DD"
-        page             (int, optional)                                                         : 页码
-        page_size        (int, optional)                                                         : 每一页的数据大小
+        keyword (str): 搜索关键词
+        search_type (search.SearchObjectType | None, optional): 搜索类型. Defaults to None.
+        order_type (search.OrderUser | search.OrderLiveRoom | search.OrderArticle | search.OrderVideo | None, optional): 排序分类类型. Defaults to None.
+        time_range (int, optional): 指定时间，自动转换到指定区间，只在视频类型下生效 有四种：10分钟以下，10-30分钟，30-60分钟，60分钟以上. Defaults to -1.
+        video_zone_type (int | video_zone.VideoZoneTypes | None, optional): 话题类型，指定 tid (可使用 video_zone 模块查询). Defaults to None.
+        order_sort (int | None, optional): 用户粉丝数及等级排序顺序 由高到低：0 由低到高：1. Defaults to None.
+        category_id (search.CategoryTypeArticle | search.CategoryTypePhoto | int | None, optional): 专栏/相簿分区筛选，指定分类，只在相册和专栏类型下生效. Defaults to None.
+        time_start (str | None, optional): 指定开始时间，与结束时间搭配使用，格式为："YYYY-MM-DD". Defaults to None.
+        time_end (str | None, optional): 指定结束时间，与开始时间搭配使用，格式为："YYYY-MM-DD". Defaults to None.
+        page (int, optional): 页码. Defaults to 1.
+        page_size (int, optional): 每一页的数据大小. Defaults to 42.
 
     Returns:
         dict: 调用 API 返回的结果
@@ -277,15 +274,15 @@ async def get_hot_search_keywords() -> dict:
     return await Api(**api).request(raw=True)
 
 
-async def get_suggest_keywords(keyword: str) -> List[str]:
+async def get_suggest_keywords(keyword: str) -> list[str]:
     """
     通过一些文字输入获取搜索建议。类似搜索词的联想。
 
     Args:
-        keyword(str): 搜索关键词
+        keyword (str): 搜索关键词
 
     Returns:
-        List[str]: 关键词列表
+        list[str]: 关键词列表
     """
     keywords = []
     api = API["search"]["suggest"]
@@ -312,24 +309,24 @@ async def search_games(keyword: str) -> dict:
 
 
 async def search_manga(
-    keyword: str, page_num: int = 1, page_size: int = 9, credential: Credential = None
-):
+    keyword: str,
+    page_num: int = 1,
+    page_size: int = 9,
+    credential: Credential | None = None,
+) -> dict:
     """
     搜索漫画特用函数
 
     Args:
-        keyword   (str): 搜索关键词
-
-        page_num  (int): 页码. Defaults to 1.
-
-        page_size (int): 每一页的数据大小. Defaults to 9.
-
-        credential (Credential): 凭据类. Defaults to None.
+        keyword (str): 搜索关键词
+        page_num (int, optional): 页码. Defaults to 1.
+        page_size (int, optional): 每一页的数据大小. Defaults to 9.
+        credential (Credential | None, optional): 凭据类. Defaults to None.
 
     Returns:
         dict: 调用 API 返回的结果
     """
-    credential = credential if credential else Credential()
+    credential = credential or Credential()
     api = API["search"]["manga"]
     data = {"key_word": keyword, "page_num": page_num, "page_size": page_size}
     return (
@@ -342,18 +339,15 @@ async def search_cheese(
     page_num: int = 1,
     page_size: int = 30,
     order: OrderCheese = OrderCheese.RECOMMEND,
-):
+) -> dict:
     """
     搜索课程特用函数
 
     Args:
-        keyword   (str)        : 搜索关键词
-
-        page_num  (int)        : 页码. Defaults to 1.
-
-        page_size (int)        : 每一页的数据大小. Defaults to 30.
-
-        order     (OrderCheese): 排序方式. Defaults to OrderCheese.RECOMMEND
+        keyword (str): 搜索关键词
+        page_num (int, optional): 页码. Defaults to 1.
+        page_size (int, optional): 每一页的数据大小. Defaults to 30.
+        order (OrderCheese, optional): 排序方式. Defaults to OrderCheese.RECOMMEND.
 
     Returns:
         dict: 调用 API 返回的结果

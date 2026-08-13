@@ -16,17 +16,14 @@ bilibili_api.comment
 + 活动: {16279} `await get_activity_aid()`
 """
 
-import json
 from enum import Enum
-from typing import List, Union, Optional
-
-from bilibili_api import Picture
+import json
 
 from .dynamic import upload_image
-
-from .utils.utils import get_api
-from .utils.network import Api, Credential
 from .exceptions.ArgsException import ArgsException
+from .utils.network import Api, Credential
+from .utils.picture import Picture
+from .utils.utils import get_api
 
 API = get_api("common")
 
@@ -128,22 +125,25 @@ class Comment:
         oid: int,
         type_: CommentResourceType,
         rpid: int,
-        credential: Union[Credential, None] = None,
-    ):
+        credential: Credential | None = None,
+    ) -> None:
         """
         Args:
-            oid        (int)         : 评论所在资源 ID。
-
-            type_      (ResourceType): 评论所在资源类型枚举。
-
-            rpid       (int)         : 评论 ID。
-
-            credential (Credential)  : 凭据类. Defaults to None.
+            oid (int): 评论所在资源 ID。
+            type_ (CommentResourceType): 评论所在资源类型枚举。
+            rpid (int): 评论 ID。
+            credential (Credential | None, optional): 凭据类. Defaults to None.
         """
         self.__oid = oid
         self.__rpid = rpid
         self.__type = type_
-        self.credential: Credential = credential if credential else Credential()
+        self.credential: Credential = credential or Credential()
+
+    def __str__(self) -> str:
+        return f"Comment(oid={self.__oid}, type={self.__type})"
+
+    def __repr__(self) -> str:
+        return f"Comment(oid={self.__oid}, type={self.__type})"
 
     def __get_data(self, status: bool) -> dict:
         """
@@ -194,7 +194,7 @@ class Comment:
         点赞评论。
 
         Args:
-            status (bool, optional):  状态, Defaults to True.
+            status (bool, optional): 状态,. Defaults to True.
 
         Returns:
             dict: 调用 API 返回的结果
@@ -215,7 +215,7 @@ class Comment:
         点踩评论。
 
         Args:
-            status (bool, optional):  状态, Defaults to True.
+            status (bool, optional): 状态,. Defaults to True.
 
         Returns:
             dict: 调用 API 返回的结果
@@ -236,7 +236,7 @@ class Comment:
         置顶评论。
 
         Args:
-            status (bool, optional):  状态, Defaults to True.
+            status (bool, optional): 状态,. Defaults to True.
 
         Returns:
             dict: 调用 API 返回的结果
@@ -271,8 +271,8 @@ class Comment:
         获取子评论。即评论下的评论。
 
         Args:
-            page_index (int, optional):  页码索引，从 1 开始。Defaults to 1.
-            page_size (int, optional):  每页评论数。设置大于20的数值不会起作用。Defaults to 10.
+            page_index (int, optional): 页码索引，从 1 开始. Defaults to 1.
+            page_size (int, optional): 每页评论数。设置大于20的数值不会起作用. Defaults to 10.
 
         Returns:
             dict: 调用 API 返回的结果
@@ -294,15 +294,14 @@ class Comment:
         )
 
     async def report(
-        self, report_reason: ReportReason, content: Optional[str] = None
+        self, report_reason: ReportReason, content: str | None = None
     ) -> dict:
         """
         举报评论
 
         Args:
             report_reason (ReportReason): 举报类型枚举
-
-            content (str, optional): 其他举报备注内容仅 reason=ReportReason.OTHER 可用且不能为 None.
+            content (str | None, optional): 其他举报备注内容仅 reason=ReportReason.OTHER 可用且不能为 None. Defaults to None.
 
         Returns:
             dict: 调用 API 返回的结果
@@ -348,10 +347,10 @@ async def send_comment(
     text: str,
     oid: int,
     type_: CommentResourceType,
-    root: Union[int, None] = None,
-    parent: Union[int, None] = None,
-    credential: Union[None, Credential] = None,
-    pic: Union[Picture, List[Picture], None] = None,
+    root: int | None = None,
+    parent: int | None = None,
+    credential: Credential | None = None,
+    pic: Picture | list[Picture] | None = None,
 ) -> dict:
     """
     通用发送评论 API。
@@ -365,19 +364,13 @@ async def send_comment(
     当 root 为空时，parent 必须为空。
 
     Args:
-        text       (str)          : 评论内容。
-
-        oid        (str)          : 资源 ID。
-
-        type_      (CommentsResourceType) : 资源类型枚举。
-
-        root       (int, optional): 根评论 ID, Defaults to None.
-
-        parent     (int, optional): 父评论 ID, Defaults to None.
-
-        pic        (Union[Picture, List[Picture]], optional): 图片, Defaults to None.
-
-        credential (Credential)   : 凭据
+        text (str): 评论内容。
+        oid (int): 资源 ID。
+        type_ (CommentResourceType): 资源类型枚举。
+        root (int | None, optional): 根评论 ID,. Defaults to None.
+        parent (int | None, optional): 父评论 ID,. Defaults to None.
+        credential (Credential | None, optional): 凭据. Defaults to None.
+        pic (Picture | list[Picture] | None, optional): 图片,. Defaults to None.
 
     Returns:
         dict: 调用 API 返回的结果
@@ -437,7 +430,7 @@ async def get_comments(
     type_: CommentResourceType,
     page_index: int = 1,
     order: OrderType = OrderType.TIME,
-    credential: Union[Credential, None] = None,
+    credential: Credential | None = None,
 ) -> dict:
     """
     获取资源评论列表。
@@ -445,19 +438,16 @@ async def get_comments(
     第二页以及往后需要提供 `credential` 参数。
 
     Args:
-        oid        (int)                 : 资源 ID。
-
-        type_      (CommentsResourceType)        : 资源类枚举。
-
-        page_index (int, optional)       : 页码. Defaults to 1.
-
-        order      (OrderType, optional) : 排序方式枚举. Defaults to OrderType.TIME.
-
-        credential (Credential, optional): 凭据。Defaults to None.
+        oid (int): 资源 ID。
+        type_ (CommentResourceType): 资源类枚举。
+        page_index (int, optional): 页码. Defaults to 1.
+        order (OrderType, optional): 排序方式枚举. Defaults to OrderType.TIME.
+        credential (Credential | None, optional): 凭据. Defaults to None.
 
     Returns:
         dict: 调用 API 返回的结果
     """
+    credential = credential or Credential()
     if page_index <= 0:
         raise ArgsException("page_index 必须大于或等于 1")
 
@@ -471,7 +461,7 @@ async def get_comments_lazy(
     type_: CommentResourceType,
     offset: str = "",
     order: OrderType = OrderType.TIME,
-    credential: Union[Credential, None] = None,
+    credential: Credential | None = None,
 ) -> dict:
     """
     新版获取资源评论列表。
@@ -479,19 +469,16 @@ async def get_comments_lazy(
     第二次以及往后需要提供 `credential` 参数。
 
     Args:
-        oid        (int)                 : 资源 ID。
-
-        type_      (CommentsResourceType)        : 资源类枚举。
-
-        offset (str, optional)       : 偏移量。每次请求可获取下次请求对应的偏移量，类似单向链表。对应返回结果的 `["cursor"]["pagination_reply"]["next_offset"]`
-
-        order      (OrderType, optional) : 排序方式枚举. Defaults to OrderType.TIME.
-
-        credential (Credential, optional): 凭据。Defaults to None.
+        oid (int): 资源 ID。
+        type_ (CommentResourceType): 资源类枚举。
+        offset (str, optional): 偏移量。每次请求可获取下次请求对应的偏移量，类似单向链表。对应返回结果的 `["cursor"]["pagination_reply"]["next_offset"]`. Defaults to ''.
+        order (OrderType, optional): 排序方式枚举. Defaults to OrderType.TIME.
+        credential (Credential | None, optional): 凭据. Defaults to None.
 
     Returns:
         dict: 调用 API 返回的结果
     """
+    credential = credential or Credential()
     offset = offset.replace('"', '\\"')
     offset = '{"offset":"' + offset + '"}'
     old_to_new = {0: 2, 2: 3}

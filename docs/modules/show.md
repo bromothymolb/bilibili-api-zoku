@@ -23,9 +23,9 @@ from bilibili_api import show
 
 ---
 
-**@dataclasses.dataclass** 
-
 ## class BuyerInfo()
+
+> `@dataclasses.dataclass` 
 
 购买人信息
 
@@ -55,18 +55,18 @@ verify_status (int): 认证状态
 
 accountId (int): 用户 ID
 
-isBuyerInfoVerified (bool): 默认为 True
+isBuyerInfoVerified (bool): 信息是否确认。Defaults to True.
 
-isBuyerValid (bool): 默认为 True
+isBuyerValid (bool): 购买人是否合法。Defaults to True.
 
 
 
 
 ---
 
-**@dataclasses.dataclass** 
-
 ## class OrderTicket()
+
+> `@dataclasses.dataclass` 
 
 购票类
 
@@ -104,9 +104,9 @@ isBuyerValid (bool): 默认为 True
 
 ---
 
-**@dataclasses.dataclass** 
-
 ## class Session()
+
+> `@dataclasses.dataclass` 
 
 场次对象
 
@@ -123,9 +123,9 @@ ticket_list (list[Ticket]): 存放Ticket对象的list
 
 ---
 
-**@dataclasses.dataclass** 
-
 ## class Ticket()
+
+> `@dataclasses.dataclass` 
 
 票对象
 
@@ -169,7 +169,7 @@ sale_end (str): 开售结束时间
 | - | - | - |
 | `credential` | `Credential` | 登录凭证 |
 
-**Returns:** `list[BuyerInfo]`:  BuyerInfo对象列表
+**Returns:** `list[show.BuyerInfo]`:  BuyerInfo对象列表
 
 
 
@@ -185,7 +185,7 @@ sale_end (str): 开售结束时间
 | - | - | - |
 | `project_id` | `int` | 项目id |
 
-**Returns:** `list[Session]`:  存放场次对象的list
+**Returns:** `list[show.Session]`:  存放场次对象的list
 
 
 

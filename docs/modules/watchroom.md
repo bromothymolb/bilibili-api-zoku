@@ -48,7 +48,9 @@ from bilibili_api import watchroom
 ### def \_\_init\_\_()
 
 
-
+| name | type | description |
+| - | - | - |
+| `messages` | `watchroom.MessageSegment \| str` | 消息片段。请按 *args 传入。 |
 
 
 ---
@@ -67,14 +69,17 @@ from bilibili_api import watchroom
 ### def \_\_init\_\_()
 
 
-
+| name | type | description |
+| - | - | - |
+| `msg` | `str` | 信息 |
+| `is_emoji` | `bool, optional` | 是否为表情包. Defaults to False. |
 
 
 ---
 
 ## class MessageType()
 
-**Extend: enum.Enum**
+> Extend: `enum.Enum`
 
 消息类型
 
@@ -88,7 +93,7 @@ from bilibili_api import watchroom
 
 ## class SeasonType()
 
-**Extend: enum.Enum**
+> Extend: `enum.Enum`
 
 季度类型
 
@@ -116,8 +121,8 @@ from bilibili_api import watchroom
 
 | name | type | description |
 | - | - | - |
-| `credential` | `Credential` | 凭据类 (大部分用户操作都需要与之匹配的 buvid3 值，务必在 credential 传入) |
 | `room_id` | `int` | 放映室 id |
+| `credential` | `Credential \| None, optional` | 凭据类 (大部分用户操作都需要与之匹配的 buvid3 值，务必在 credential 传入). Defaults to None. |
 
 
 ### async def close()
@@ -180,7 +185,7 @@ from bilibili_api import watchroom
 
 | name | type | description |
 | - | - | - |
-| `token` | `str, Optional` | 邀请 Token |
+| `token` | `str, optional` | 邀请 Token. Defaults to ''. |
 
 **Returns:** `dict`:  调用 API 返回的结果
 
@@ -217,8 +222,8 @@ from bilibili_api import watchroom
 
 | name | type | description |
 | - | - | - |
-| `progress` | `int, None` | 进度，单位为秒 |
-| `status` | `bool, None` | 播放状态 1 播放中 0 暂停中 2 已结束 |
+| `progress` | `int \| None, optional` | 进度，单位为秒. Defaults to None. |
+| `status` | `int, optional` | 播放状态 1 播放中 0 暂停中 2 已结束. Defaults to 1. |
 
 
 
@@ -230,7 +235,7 @@ from bilibili_api import watchroom
 
 | name | type | description |
 | - | - | - |
-| `msg` | `Message` | 消息 |
+| `msg` | `watchroom.Message` | 消息 |
 
 **Returns:** `dict`:  调用 API 返回的结果
 
@@ -282,11 +287,11 @@ from bilibili_api import watchroom
 | name | type | description |
 | - | - | - |
 | `season_id` | `int` | 每季度的 ID |
-| `ep_id` | `int` | 剧集 ID |
-| `is_open` | `bool` | 是否公开 |
-| `credential` | `Credential` | 凭据 |
+| `episode_id` | `int` | 剧集 ID |
+| `is_open` | `bool, optional` | 是否公开. Defaults to False. |
+| `credential` | `Credential \| None, optional` | 凭据. Defaults to None. |
 
-**Returns:** `Watchroom`:  放映室
+**Returns:** `watchroom.WatchRoom`:  放映室
 
 
 
@@ -301,9 +306,10 @@ from bilibili_api import watchroom
 | name | type | description |
 | - | - | - |
 | `season_id` | `int` | 季度 ID |
-| `season_type` | `str` | 季度类型 |
+| `season_type` | `SeasonType, optional` | 季度类型. Defaults to SeasonType.ANIME. |
+| `credential` | `Credential \| None, optional` | 凭据类. Defaults to None. |
 
-**Returns:** `Watchroom`:  放映室
+**Returns:** `watchroom.WatchRoom`:  放映室
 
 
 

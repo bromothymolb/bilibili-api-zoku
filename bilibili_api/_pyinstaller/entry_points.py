@@ -1,6 +1,11 @@
+"""
+bilibili_api._pyinstaller.entry_points
+
+Pyinstaller hook support for bilibili_api.
+"""
+
 import os
-from typing import List
 
 
-def get_hook_dirs() -> List[str]:
+def get_hook_dirs() -> list[str]:
     return [os.path.abspath(os.path.dirname(__file__))]

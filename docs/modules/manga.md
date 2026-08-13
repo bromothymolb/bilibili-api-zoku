@@ -43,7 +43,7 @@ from bilibili_api import manga
 | name | type | description |
 | - | - | - |
 | `manga_id` | `int` | 漫画 id |
-| `credential` | `Credential \| None` | 凭据类. Defaults to None. |
+| `credential` | `Credential \| None, optional` | 凭据类. Defaults to None. |
 
 
 ### def get_manga_id()
@@ -68,7 +68,7 @@ from bilibili_api import manga
 
 ### class Area()
 
-**Extend: enum.Enum**
+> Extend: `enum.Enum`
 
 漫画索引筛选器的地区枚举类。
 
@@ -83,7 +83,7 @@ from bilibili_api import manga
 
 ### class Order()
 
-**Extend: enum.Enum**
+> Extend: `enum.Enum`
 
 漫画索引筛选器的排序枚举类。
 
@@ -96,7 +96,7 @@ from bilibili_api import manga
 
 ### class Payment()
 
-**Extend: enum.Enum**
+> Extend: `enum.Enum`
 
 漫画索引筛选器的付费枚举类。
 
@@ -110,7 +110,7 @@ from bilibili_api import manga
 
 ### class Status()
 
-**Extend: enum.Enum**
+> Extend: `enum.Enum`
 
 漫画索引筛选器的状态枚举类。
 
@@ -123,7 +123,7 @@ from bilibili_api import manga
 
 ### class Style()
 
-**Extend: enum.Enum**
+> Extend: `enum.Enum`
 
 漫画索引筛选器的风格枚举类。
 
@@ -152,7 +152,7 @@ from bilibili_api import manga
 
 ## class MangaOrderType()
 
-**Extend: enum.Enum**
+> Extend: `enum.Enum`
 
 漫画排序方式
 
@@ -173,12 +173,12 @@ from bilibili_api import manga
 
 | name | type | description |
 | - | - | - |
-| `pn` | `int` | 页码。Defaults to 1. |
-| `ps` | `int` | 每页数量。Defaults to 18. |
-| `order` | `MangaOrderType` | 排序方式。Defaults to MangaOrderType.FOLLOW. |
-| `credential` | `Credential` | 凭据类. |
+| `pn` | `int, optional` | 页码. Defaults to 1. |
+| `ps` | `int, optional` | 每页数量. Defaults to 15. |
+| `order` | `MangaOrderType, optional` | 排序方式. Defaults to MangaOrderType.FOLLOW. |
+| `credential` | `Credential \| None, optional` | 凭据类. Defaults to None. |
 
-**Returns:** `List[Manga]`:  追漫列表
+**Returns:** `list[manga.Manga]`:  追漫列表
 
 
 
@@ -192,11 +192,11 @@ from bilibili_api import manga
 
 | name | type | description |
 | - | - | - |
-| `pn` | `int` | 页码。Defaults to 1. |
-| `seed` | `Optional, str` | Unknown param，无需传入. |
-| `credential` | `Credential` | 凭据类. Defaults to None. |
+| `pn` | `int, optional` | 页码. Defaults to 1. |
+| `seed` | `str \| None, optional` | Unknown param，无需传入. Defaults to '0'. |
+| `credential` | `Credential \| None, optional` | 凭据类. Defaults to None. |
 
-**Returns:** `List[Manga]`:  漫画列表
+**Returns:** `list[manga.Manga]`:  漫画列表
 
 
 
@@ -210,12 +210,12 @@ from bilibili_api import manga
 
 | name | type | description |
 | - | - | - |
-| `date` | `Union[str, datetime.datetime]` | 日期，默认为今日。 |
-| `pn` | `int` | 页码。Defaults to 1. |
-| `ps` | `int` | 每页数量。Defaults to 8. |
-| `credential` | `Credential` | 凭据类. Defaults to None. |
+| `date` | `str \| datetime.date \| None, optional` | 日期。Defaults to None. |
+| `pn` | `int, optional` | 页码. Defaults to 1. |
+| `ps` | `int, optional` | 每页数量. Defaults to 8. |
+| `credential` | `Credential \| None, optional` | 凭据类. Defaults to None. |
 
-**Returns:** `List[Manga]`:  漫画列表
+**Returns:** `list[manga.Manga]`:  漫画列表
 
 
 
@@ -229,9 +229,11 @@ from bilibili_api import manga
 
 | name | type | description |
 | - | - | - |
-| `manga` | `Manga` | 漫画类。 |
-| `status` | `bool` | 设置是否追漫。是为 True，否为 False。Defaults to True. |
-| `credential` | `Credential` | 凭据类。 |
+| `manga` | `manga.Manga` | 漫画类。 |
+| `status` | `bool, optional` | 设置是否追漫。是为 True，否为 False. Defaults to True. |
+| `credential` | `Credential \| None, optional` | 凭据类. Defaults to None. |
+
+**Returns:** `dict`:  调用 API 返回的结果
 
 
 

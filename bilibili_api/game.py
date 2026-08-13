@@ -4,12 +4,10 @@ bilibili_api.game
 游戏相关
 """
 
-import json
-import re
 from enum import Enum
-from typing import Union
-from .exceptions import ApiException
+import re
 
+from .exceptions import ApiException
 from .utils.network import Api, Credential
 from .utils.utils import get_api
 
@@ -24,15 +22,20 @@ class Game:
         credential (Credential): 凭据类
     """
 
-    def __init__(self, game_id: int, credential: Union[None, Credential] = None):
+    def __init__(self, game_id: int, credential: Credential | None = None) -> None:
         """
         Args:
-            game_id    (int)       : 游戏 id
-
-            credential (Credential): 凭据类. Defaults to None.
+            game_id (int): 游戏 id
+            credential (Credential | None, optional): 凭据类. Defaults to None.
         """
         self.__game_id = game_id
-        self.credential: Credential = credential if credential else Credential()
+        self.credential: Credential = credential or Credential()
+
+    def __str__(self) -> str:
+        return f"Game(game_id={self.__game_id})"
+
+    def __repr__(self) -> str:
+        return f"Game(game_id={self.__game_id})"
 
     def get_game_id(self) -> int:
         """
@@ -225,9 +228,9 @@ async def game_name2id(game_name: str) -> str:
                 url=f"https://wiki.biligame.com/wiki/api.php?action=opensearch&format=json&formatversion=2&search={game_name}&namespace=0&limit=10",
                 method="GET",
             ).request(raw=True)
-        )[3][0].lstrip("https://wiki.biligame.com/wiki/")
-    except IndexError as e:
-        raise ApiException("未找到游戏")
+        )[3][0].removeprefix("https://wiki.biligame.com/wiki/")
+    except IndexError:
+        raise ApiException("未找到游戏") from None
     wiki_page_content = (
         await Api(
             url=f"https://wiki.biligame.com/wiki/api.php?action=query&prop=revisions&titles={wiki_page_title}&rvprop=content&format=json",
@@ -244,4 +247,5 @@ async def game_name2id(game_name: str) -> str:
     )
     for prop in wiki_page_template_content.split("|"):
         if prop.startswith("WIKI域名="):
-            return prop.lstrip("WIKI域名=").rstrip()
+            return prop.removeprefix("WIKI域名=").rstrip()
+    return ""

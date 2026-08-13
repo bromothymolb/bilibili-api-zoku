@@ -4,9 +4,8 @@ bilibili_api.utils.initial_state
 用于获取页码的初始化信息
 """
 
-import json
 from enum import Enum
-from typing import Tuple
+import json
 from urllib.parse import unquote
 
 from ..exceptions import InitialStateException
@@ -21,15 +20,22 @@ class InitialDataType(Enum):
     INITIAL_STATE = "window.__INITIAL_STATE__"
     NEXT_DATA = "__NEXT_DATA__"
     RENDER_DATA = "__RENDER_DATA__"
+    NONE = "None"
 
 
-def find_json(content: str) -> str:
+def find_json(content: str) -> tuple[int, InitialDataType]:
     patterns = [
         ("window.__INITIAL_STATE__=", InitialDataType.INITIAL_STATE),
         ('window.__initialState = JSON.parse("', InitialDataType.INITIAL_STATE),
         ("window.__initialState = ", InitialDataType.INITIAL_STATE),
-        ('<script id="__NEXT_DATA__" type="application/json">', InitialDataType.NEXT_DATA),
-        ('<script id="__RENDER_DATA__" type="application/json">', InitialDataType.RENDER_DATA),
+        (
+            '<script id="__NEXT_DATA__" type="application/json">',
+            InitialDataType.NEXT_DATA,
+        ),
+        (
+            '<script id="__RENDER_DATA__" type="application/json">',
+            InitialDataType.RENDER_DATA,
+        ),
         ("<script>window._render_data_ = ", InitialDataType.RENDER_DATA),
     ]
     for pattern, content_type in patterns:
@@ -37,7 +43,7 @@ def find_json(content: str) -> str:
         if pos != -1:
             pos += len(pattern)
             return pos, content_type
-    return -1, None
+    return -1, InitialDataType.NONE
 
 
 def _parse_detected_content(detected_content: str) -> dict:
@@ -45,21 +51,21 @@ def _parse_detected_content(detected_content: str) -> dict:
     解析检测出的 JSON 内容，兼容 percent-encoding 场景。
     """
     decoder = json.JSONDecoder()
-
-    # 常见场景：内容直接就是 JSON 或 JSON 后跟脚本标签。
     try:
         return decoder.raw_decode(detected_content)[0]
     except json.JSONDecodeError:
         pass
-
-    # fallback：部分页面会把 JSON 做 percent-encoding 后塞进 script 标签。
-    decoded_content = unquote(detected_content)
-    return decoder.raw_decode(decoded_content)[0]
+    # 部分页面存在 percent-encoding
+    try:
+        decoded_content = unquote(detected_content)
+        return decoder.raw_decode(decoded_content)[0]
+    except json.JSONDecodeError:
+        raise InitialStateException("JSON 信息解析错误") from None
 
 
 async def get_initial_state(
-    url: str, credential: Credential = Credential(), strict: bool = True
-) -> Tuple[dict, InitialDataType]:
+    url: str, credential: Credential | None = None, strict: bool = True
+) -> tuple[dict, InitialDataType]:
     """
     异步获取初始化信息
 
@@ -68,8 +74,9 @@ async def get_initial_state(
 
         credential (Credential, optional): 用户凭证. Defaults to Credential().
 
-        strict (bool): 无结果时报错。Defaults to True.
+        strict (bool, optional): 无结果时报错。Defaults to True.
     """
+    credential = credential or Credential()
     try:
         resp = await Api(
             url=url, method="GET", credential=credential, comment="[获取初始化信息]"
@@ -82,12 +89,11 @@ async def get_initial_state(
         if pos == -1:
             if strict:
                 raise InitialStateException("未找到相关信息")
-            return None, None
-        try:
-            detected_content = content[pos:].strip().strip("\n").strip("\r")
-            if detected_content.startswith("{\\\""): # 暂时都是字典
-                detected_content = detected_content.replace("\\\"", "\"") # 存在转义且不在正文内
-            content = _parse_detected_content(detected_content)
-        except json.JSONDecodeError as e:
-            raise InitialStateException("信息解析错误") from e
+            return {}, InitialDataType.NONE
+        detected_content = content[pos:].strip().strip("\n").strip("\r")
+        if detected_content.startswith('{\\"'):  # 暂时都是字典
+            detected_content = detected_content.replace(
+                '\\"', '"'
+            )  # 存在转义且不在正文内
+        content = _parse_detected_content(detected_content)
         return content, content_type

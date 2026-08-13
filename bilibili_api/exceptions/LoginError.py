@@ -9,7 +9,7 @@ from .ApiException import ApiException
 
 class LoginError(ApiException):
     """
-    参数错误。
+    登录错误。
     """
 
     def __init__(self, msg: str):

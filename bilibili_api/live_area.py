@@ -4,17 +4,13 @@ bilibili_api.live_area
 直播间分区相关操作。
 """
 
-import os
 import copy
-import json
-from enum import Enum
-from typing import Dict, List, Optional, Tuple, Union
 
-from .utils.utils import get_api
-from .utils.network import Api, Credential
-from .live import get_area_info
 from .exceptions import ApiException
+from .live import get_area_info
+from .utils.network import Api, Credential
 from .utils.user_render_data import get_webid
+from .utils.utils import get_api
 
 API = get_api("live-area")
 
@@ -34,7 +30,7 @@ async def fetch_live_area_data() -> None:
     live_area_data = await get_area_info()
 
 
-def get_area_info_by_id(id: int) -> Tuple[Union[dict, None], Union[dict, None]]:
+def get_area_info_by_id(id: int) -> tuple[dict | None, dict | None]:
     """
     根据 id 获取分区信息。
 
@@ -42,7 +38,7 @@ def get_area_info_by_id(id: int) -> Tuple[Union[dict, None], Union[dict, None]]:
         id (int): 分区的 id。
 
     Returns:
-        Tuple[dict | None, dict | None]: 第一个是主分区，第二个是子分区，没有时返回 None。
+        tuple[dict | None, dict | None]: 第一个是主分区，第二个是子分区，没有时返回 None。
     """
     global live_area_data
     if not live_area_data:
@@ -66,7 +62,7 @@ def get_area_info_by_id(id: int) -> Tuple[Union[dict, None], Union[dict, None]]:
         return None, None
 
 
-def get_area_info_by_name(name: str) -> Tuple[Union[dict, None], Union[dict, None]]:
+def get_area_info_by_name(name: str) -> tuple[dict | None, dict | None]:
     """
     根据频道名称获取频道信息。
 
@@ -74,7 +70,7 @@ def get_area_info_by_name(name: str) -> Tuple[Union[dict, None], Union[dict, Non
         name (str): 分区的名称。
 
     Returns:
-        Tuple[dict | None, dict | None]: 第一个是主分区，第二个是子分区，没有时返回 None。
+        tuple[dict | None, dict | None]: 第一个是主分区，第二个是子分区，没有时返回 None。
     """
     global live_area_data
     if not live_area_data:
@@ -92,12 +88,12 @@ def get_area_info_by_name(name: str) -> Tuple[Union[dict, None], Union[dict, Non
         return None, None
 
 
-def get_area_list() -> List[Dict]:
+def get_area_list() -> list[dict]:
     """
     获取所有分区的数据
 
     Returns:
-        List[dict]: 所有分区的数据
+        list[dict]: 所有分区的数据
     """
     global live_area_data
     if not live_area_data:
@@ -135,27 +131,24 @@ async def get_list_by_area(
     area_id: int,
     page: int = 1,
     order: str = "",
-    credential: Optional[Credential] = None,
+    credential: Credential | None = None,
 ) -> dict:
     """
     根据分区获取直播间列表
 
     Args:
-        area_id    (int)                 : 分区 id
-
-        page       (int)                 : 第几页. Defaults to 1.
-
-        order      (LiveRoomOrder)       : 直播间排序方式. 访问接口后查询 `new_tags` 字段对应 `sort_type`。Defaults to "" (综合).
-
-        credential (Credential, optional): 凭据类. Defaults to None.
+        area_id (int): 分区 id
+        page (int, optional): 第几页. Defaults to 1.
+        order (str, optional): 直播间排序方式. 访问接口后查询 `new_tags` 字段对应 `sort_type`. Defaults to ''.
+        credential (Credential | None, optional): 凭据类. Defaults to None.
 
     Returns:
         dict: 调用 API 返回的结果
     """
-    credential = credential if credential else Credential()
+    credential = credential or Credential()
     api = API["info"]["list"]
-    parent_area_id = get_area_info_by_id(area_id)[0]["id"]
-    area_id = 0 if (get_area_info_by_id(area_id)[1] == None) else area_id
+    parent_area_id = get_area_info_by_id(area_id)[0]["id"]  # type: ignore
+    area_id = 0 if (get_area_info_by_id(area_id)[1] is None) else area_id
     params = {
         "platform": "web",
         "parent_area_id": parent_area_id,

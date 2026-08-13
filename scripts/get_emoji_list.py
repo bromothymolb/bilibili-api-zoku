@@ -1,11 +1,9 @@
 import json
+import time
 
 import httpx
 
-from bilibili_api.utils.network import HEADERS
-from bilibili_api import Credential, sync, emoji
-
-import time
+from bilibili_api import Credential, emoji, sync
 
 PATH_TO_CREDENTIAL_JSON = "test1.json"
 

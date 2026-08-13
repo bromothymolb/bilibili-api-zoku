@@ -69,7 +69,7 @@ from bilibili_api import live
 
 ## class LiveCodec()
 
-**Extend: enum.Enum**
+> Extend: `enum.Enum`
 
 直播源视频编码
 
@@ -85,7 +85,7 @@ from bilibili_api import live
 
 ## class LiveDanmaku()
 
-**Extend: bilibili_api.utils.AsyncEvent.AsyncEvent**
+> Extend: `bilibili_api.utils.network.AsyncEvent`
 
 Websocket 实时获取直播弹幕
 
@@ -188,11 +188,11 @@ Events:
 | name | type | description |
 | - | - | - |
 | `room_display_id` | `int` | 房间展示 ID |
-| `debug` | `bool, optional` | 调试模式，将输出更多信息。. Defaults to False. |
+| `debug` | `bool, optional` | 调试模式，将输出更多信息. Defaults to False. |
 | `credential` | `Credential \| None, optional` | 凭据. Defaults to None. |
-| `max_retry` | `int, optional` | 连接出错后最大重试次数. Defaults to 5 |
-| `retry_after` | `int, optional` | 连接出错后重试间隔时间（秒）. Defaults to 1 |
-| `max_retry_for_credential` | `int, optional` | 获取用户信息最大重试次数. Defaults to 5 |
+| `max_retry` | `int, optional` | 连接出错后最大重试次数. Defaults to 5. |
+| `retry_after` | `float, optional` | 连接出错后重试间隔时间（秒）. Defaults to 1. |
+| `max_retry_for_credential` | `int, optional` | 获取用户信息最大重试次数. Defaults to 5. |
 
 
 ### async def connect()
@@ -219,7 +219,7 @@ Events:
 
 
 
-**Returns:** `LiveRoom`:  直播间对象
+**Returns:** `live.LiveRoom`:  直播间对象
 
 
 
@@ -239,7 +239,7 @@ Events:
 
 ## class LiveFormat()
 
-**Extend: enum.Enum**
+> Extend: `enum.Enum`
 
 直播源容器格式
 
@@ -256,7 +256,7 @@ Events:
 
 ## class LiveProtocol()
 
-**Extend: enum.Enum**
+> Extend: `enum.Enum`
 
 直播源流协议。
 
@@ -287,7 +287,7 @@ Events:
 | name | type | description |
 | - | - | - |
 | `room_display_id` | `int` | 房间展示 ID（即 URL 中的 ID） |
-| `credential` | `Credential, optional` | 凭据. Defaults to None. |
+| `credential` | `Credential \| None, optional` | 凭据. Defaults to None. |
 
 
 ### async def ban_user()
@@ -298,7 +298,7 @@ Events:
 | name | type | description |
 | - | - | - |
 | `uid` | `int` | 用户 UID |
-| `hour` | `int` | 禁言时长，-1为永久，0为直到本场结束 |
+| `hour` | `int, optional` | 禁言时长，-1为永久，0为直到本场结束. Defaults to -1. |
 
 **Returns:** `dict`:  调用 API 返回的结果
 
@@ -310,6 +310,9 @@ Events:
 获取黑名单列表
 
 
+| name | type | description |
+| - | - | - |
+| `page` | `int, optional` | 页码. Defaults to 1. |
 
 **Returns:** `dict`:  调用 API 返回的结果
 
@@ -363,9 +366,9 @@ Events:
 
 | name | type | description |
 | - | - | - |
-| `roomId` | `int, optional` | 指定房间，查询是否拥有此房间的粉丝牌 |
-| `target_id` | `int \| None, optional` | 指定返回一个主播的粉丝牌，留空就不返回 |
-| `page_num` | `int \| None, optional` | 粉丝牌列表，默认 1 |
+| `page_num` | `int, optional` | 粉丝牌列表，默认 1. Defaults to 1. |
+| `target_id` | `int \| None, optional` | 指定返回一个主播的粉丝牌，留空就不返回. Defaults to None. |
+| `roomId` | `int \| None, optional` | 指定房间，查询是否拥有此房间的粉丝牌. Defaults to None. |
 
 **Returns:** `dict`:  调用 API 返回的结果
 
@@ -390,7 +393,7 @@ Events:
 
 | name | type | description |
 | - | - | - |
-| `page` | `int, optional` | 页码. Defaults to 1 |
+| `page` | `int, optional` | 页码. Defaults to 1. |
 
 **Returns:** `dict`:  调用 API 返回的结果
 
@@ -404,7 +407,7 @@ Events:
 
 | name | type | description |
 | - | - | - |
-| `act_id` | `int, optional` | 未知，Defaults to 100061 |
+| `act_id` | `int, optional` | 未知，. Defaults to 100061. |
 
 **Returns:** `dict`:  调用 API 返回的结果
 
@@ -506,7 +509,7 @@ Events:
 
 | name | type | description |
 | - | - | - |
-| `screen_resolution` | `ScreenResolution, optional` | 清晰度. Defaults to ScreenResolution.ORIGINAL |
+| `screen_resolution` | `ScreenResolution, optional` | 清晰度. Defaults to ScreenResolution.ORIGINAL. |
 
 **Returns:** `dict`:  调用 API 返回的结果
 
@@ -553,7 +556,7 @@ Events:
 
 | name | type | description |
 | - | - | - |
-| `receive_type` | `int` | 领取类型，Defaults to 2. |
+| `receive_type` | `int, optional` | 领取类型，. Defaults to 2. |
 
 **Returns:** `dict`:  调用 API 返回的结果
 
@@ -568,7 +571,7 @@ Events:
 | name | type | description |
 | - | - | - |
 | `danmaku` | `Danmaku` | 弹幕类 |
-| `reply_mid` | `int, optional` | @的 UID. Defaults to None. |
+| `reply_mid` | `int \| None, optional` | @的 UID. Defaults to None. |
 
 **Returns:** `dict`:  调用 API 返回的结果
 
@@ -600,8 +603,8 @@ Events:
 | `bag_id` | `int` | 礼物背包 ID |
 | `gift_id` | `int` | 礼物 ID |
 | `gift_num` | `int` | 礼物数量 |
-| `storm_beat_id` | `int, optional` | 未知， Defaults to 0 |
-| `price` | `int, optional` | 礼物单价，Defaults to 0 |
+| `storm_beat_id` | `int, optional` | 未知，. Defaults to 0. |
+| `price` | `int, optional` | 礼物单价，. Defaults to 0. |
 
 **Returns:** `dict`:  调用 API 返回的结果
 
@@ -619,7 +622,7 @@ Events:
 | `gift_id` | `int` | 礼物 ID (可以通过 get_gift_common 或 get_gift_special 或 get_gift_config 获取) |
 | `gift_num` | `int` | 赠送礼物数量 |
 | `price` | `int` | 礼物单价 |
-| `storm_beat_id` | `int, Optional` | 未知，Defaults to 0 |
+| `storm_beat_id` | `int, optional` | 未知，. Defaults to 0. |
 
 **Returns:** `dict`:  调用 API 返回的结果
 
@@ -637,7 +640,7 @@ Events:
 | `gift_id` | `int` | 礼物 ID (可以通过 get_gift_common 或 get_gift_special 或 get_gift_config 获取) |
 | `gift_num` | `int` | 赠送礼物数量 |
 | `price` | `int` | 礼物单价 |
-| `storm_beat_id` | `int, Optional` | 未知, Defaults to 0 |
+| `storm_beat_id` | `int, optional` | 未知,. Defaults to 0. |
 
 **Returns:** `dict`:  调用 API 返回的结果
 
@@ -662,7 +665,7 @@ Events:
 
 | name | type | description |
 | - | - | - |
-| `task_id` | `int, optional` | 签到任务 ID. Defaults to 1447 |
+| `task_id` | `int, optional` | 签到任务 ID. Defaults to 1447. |
 
 **Returns:** `dict`:  调用 API 返回的结果
 
@@ -726,7 +729,7 @@ Events:
 
 ## class ScreenResolution()
 
-**Extend: enum.Enum**
+> Extend: `enum.Enum`
 
 直播源清晰度。
 
@@ -753,6 +756,7 @@ Events:
 | - | - | - |
 | `title` | `str` | 直播间标题 |
 | `start_time` | `int` | 开播时间戳 |
+| `credential` | `Credential` | 凭据类 |
 
 **Returns:** `dict`:  调用 API 返回的结果
 
@@ -785,9 +789,9 @@ Events:
 
 | name | type | description |
 | - | - | - |
-| `room_id` | `int, optional` | 房间显示 ID. Defaults to None. |
-| `area_id` | `int, optional` | 子分区 ID. Defaults to None. |
-| `area_parent_id` | `int, optional` | 父分区 ID. Defaults to None. |
+| `room_id` | `int \| None, optional` | 房间显示 ID. Defaults to None. |
+| `area_id` | `int \| None, optional` | 子分区 ID. Defaults to None. |
+| `area_parent_id` | `int \| None, optional` | 父分区 ID. Defaults to None. |
 
 **Returns:** `dict`:  调用 API 返回的结果
 
@@ -803,7 +807,8 @@ Events:
 
 | name | type | description |
 | - | - | - |
-| `need_recommend` | `bool, optional` | 是否接受推荐直播间，Defaults to True |
+| `need_recommend` | `bool, optional` | 是否接受推荐直播间，. Defaults to True. |
+| `credential` | `Credential \| None, optional` | 凭据类. Defaults to None. |
 
 **Returns:** `dict`:  调用 API 返回的结果
 
@@ -817,6 +822,9 @@ Events:
 获取自己的直播礼物包裹信息
 
 
+| name | type | description |
+| - | - | - |
+| `credential` | `Credential` | 凭据类。 |
 
 **Returns:** `dict`:  调用 API 返回的结果
 
@@ -834,6 +842,7 @@ Events:
 | - | - | - |
 | `page` | `int, optional` | 页数. Defaults to 1. |
 | `page_size` | `int, optional` | 每页数量. Defaults to 10. |
+| `credential` | `Credential \| None, optional` | 凭据类. Defaults to None. |
 
 **Returns:** `dict`:  调用 API 返回的结果
 
@@ -856,6 +865,9 @@ pages = math.ceil(info['data']['guards'] / 10)
 获取自己直播等级、排行等信息
 
 
+| name | type | description |
+| - | - | - |
+| `credential` | `Credential` | 凭据类 |
 
 **Returns:** `dict`:  调用 API 返回的结果
 
@@ -869,6 +881,9 @@ pages = math.ceil(info['data']['guards'] / 10)
 获取自己的粉丝牌、大航海等信息
 
 
+| name | type | description |
+| - | - | - |
+| `credential` | `Credential` | 凭据类 |
 
 **Returns:** `dict`:  调用 API 返回的结果
 
@@ -900,8 +915,9 @@ pages = math.ceil(info['data']['guards'] / 10)
 
 | name | type | description |
 | - | - | - |
-| `page` | `int, optional` | 页码, Defaults to 1. |
-| `page_size` | `int, optional` | 每页数量 Defaults to 30. |
+| `page` | `int, optional` | 页码,. Defaults to 1. |
+| `page_size` | `int, optional` | 每页数量. Defaults to 30. |
+| `credential` | `Credential \| None, optional` | 凭据类. Defaults to None. |
 
 **Returns:** `dict`:  调用 API 返回的结果
 

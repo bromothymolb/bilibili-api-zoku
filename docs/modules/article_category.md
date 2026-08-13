@@ -21,7 +21,7 @@ from bilibili_api import article_category
 
 ## class ArticleOrder()
 
-**Extend: enum.Enum**
+> Extend: `enum.Enum`
 
 专栏排序方式.
 
@@ -42,7 +42,7 @@ from bilibili_api import article_category
 
 
 
-**Returns:** `List[dict]`:  所有分区的数据
+**Returns:** `list[dict]`:  所有分区的数据
 
 
 
@@ -57,7 +57,7 @@ from bilibili_api import article_category
 
 
 
-**Returns:** `dict`:  所有分区的数据
+**Returns:** `list[dict]`:  所有分区的数据
 
 
 
@@ -73,7 +73,7 @@ from bilibili_api import article_category
 | - | - | - |
 | `id` | `int` | id |
 
-**Returns:** `Tuple[dict | None, dict | None]`:  第一个是主分区，第二个是字分区。没有找到则为 (None, None)
+**Returns:** `tuple[dict | None, dict | None]`:  第一个是主分区，第二个是字分区。没有找到则为 (None, None)
 
 
 
@@ -89,7 +89,7 @@ from bilibili_api import article_category
 | - | - | - |
 | `name` | `str` | 分类名 |
 
-**Returns:** `Tuple[dict | None, dict | None]`:  第一个是主分区，第二个是字分区。没有找到则为 (None, None)
+**Returns:** `tuple[dict | None, dict | None]`:  第一个是主分区，第二个是字分区。没有找到则为 (None, None)
 
 
 
@@ -103,10 +103,10 @@ from bilibili_api import article_category
 
 | name | type | description |
 | - | - | - |
-| `category_id` | `int` | 专栏分类的 id, 0 为全部. Defaults to 0. |
-| `order` | `ArticleOrder` | 排序方式. Defaults to ArticleOrder.DEFAULT. |
-| `page_num` | `int` | 页码. Defaults to 1. |
-| `page_size` | `int` | 每一页数据大小. Defaults to 20. |
+| `category_id` | `int, optional` | 专栏分类的 id, 0 为全部. Defaults to 0. |
+| `order` | `ArticleOrder, optional` | 排序方式. Defaults to ArticleOrder.DEFAULT. |
+| `page_num` | `int, optional` | 页码. Defaults to 1. |
+| `page_size` | `int, optional` | 每一页数据大小. Defaults to 20. |
 
 **Returns:** `dict`:  调用 API 返回的结果
 

@@ -4,13 +4,17 @@ bilibili_api.utils.utils
 通用工具库。
 """
 
+from datetime import datetime
 import json
 import os
 import random
-from typing import List, TypeVar
-from ..exceptions import StatementException
-from datetime import datetime
+import re
+from typing import TypeVar
 from urllib.parse import quote
+
+from ..exceptions import StatementException
+
+get_data_cache = {}
 
 
 def get_api(field: str, *args) -> dict:
@@ -38,6 +42,29 @@ def get_api(field: str, *args) -> dict:
         return {}
 
 
+def get_data(route: str) -> dict | list:
+    """
+    获取 data 目录下数据
+
+    Args:
+        route (str): 路径
+
+    Returns:
+        dict | list: 数据
+    """
+    global get_data_cache
+    if get_data_cache.get(route):
+        return get_data_cache[route]
+    path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data", route))
+    if os.path.exists(path):
+        with open(path, encoding="utf8") as f:
+            data = json.load(f)
+        get_data_cache[route] = data
+        return data
+    else:
+        return {}
+
+
 def crack_uid(crc32: str):
     """
     弹幕中的 CRC32 ID 转换成用户 UID。
@@ -59,39 +86,39 @@ def crack_uid(crc32: str):
     def __create_table():
         for i in range(256):
             crcreg = i
-            for j in range(8):
+            for _ in range(8):
                 if (crcreg & 1) != 0:
                     crcreg = __CRCPOLYNOMIAL ^ (crcreg >> 1)
                 else:
                     crcreg >>= 1
-            __crctable[i] = crcreg
+            __crctable[i] = crcreg  # type: ignore
 
     __create_table()
 
     def __crc32(input_):
-        if type(input_) != str:
+        if not isinstance(input_, str):
             input_ = str(input_)
         crcstart = 0xFFFFFFFF
         len_ = len(input_)
         for i in range(len_):
             index = (crcstart ^ ord(input_[i])) & 0xFF
-            crcstart = (crcstart >> 8) ^ __crctable[index]
+            crcstart = (crcstart >> 8) ^ __crctable[index]  # type: ignore
         return crcstart
 
     def __crc32lastindex(input_):
-        if type(input_) != str:
+        if not isinstance(input_, str):
             input_ = str(input_)
         crcstart = 0xFFFFFFFF
         len_ = len(input_)
         index = None
         for i in range(len_):
             index = (crcstart ^ ord(input_[i])) & 0xFF
-            crcstart = (crcstart >> 8) ^ __crctable[index]
+            crcstart = (crcstart >> 8) ^ __crctable[index]  # type: ignore
         return index
 
     def __getcrcindex(t):
         for i in range(256):
-            if __crctable[i] >> 24 == t:
+            if __crctable[i] >> 24 == t:  # type: ignore
                 return i
         return -1
 
@@ -122,9 +149,8 @@ def crack_uid(crc32: str):
     ht = int(crc32, 16) ^ 0xFFFFFFFF
     i = 3
     while i >= 0:
-        __index[3 - i] = __getcrcindex(ht >> (i * 8))
-        # pylint: disable=invalid-sequence-index
-        snum = __crctable[__index[3 - i]]
+        __index[3 - i] = __getcrcindex(ht >> (i * 8))  # type: ignore
+        snum = __crctable[__index[3 - i]]  # type: ignore
         ht ^= snum >> ((3 - i) * 8)
         i -= 1
     for i in range(10000000):
@@ -135,7 +161,7 @@ def crack_uid(crc32: str):
                 break
     if i == 10000000:
         return -1
-    return str(i) + deepCheckData[1]
+    return str(i) + deepCheckData[1]  # type: ignore
 
 
 def join(seperator: str, array: list):
@@ -150,13 +176,13 @@ def join(seperator: str, array: list):
     Returns:
         str: 连接结果
     """
-    return seperator.join(map(lambda x: str(x), array))
+    return seperator.join(str(x) for x in array)
 
 
-ChunkT = TypeVar("ChunkT", List, List)
+ChunkT = TypeVar("ChunkT", list, list)
 
 
-def chunk(arr: ChunkT, size: int) -> List[ChunkT]:
+def chunk(arr: ChunkT, size: int) -> list[ChunkT]:
     if size <= 0:
         raise Exception('Parameter "size" must greater than 0')
 
@@ -181,9 +207,9 @@ def get_deviceid(separator: str = "-", is_lowercase: bool = False) -> str:
     获取随机 deviceid (dev_id)
 
     Args:
-        separator (str)  : 分隔符 默认为 "-"
+        separator (str)  : 分隔符. Defaults to "-".
 
-        is_lowercase (bool) : 是否以小写形式 默认为False
+        is_lowercase (bool) : 是否以小写形式. Defaults to False.
 
     参考: https://github.com/SocialSisterYi/bilibili-API-collect/blob/master/docs/message/private_msg.md#发送私信web端
 
@@ -210,6 +236,18 @@ def get_deviceid(separator: str = "-", is_lowercase: bool = False) -> str:
 
 
 def raise_for_statement(statement: bool, msg: str = "未满足条件") -> None:
+    """
+    判断条件，不符合则抛出异常
+
+    极其类似 assert
+
+    Args:
+        statement (bool): 条件
+        msg (str, optional): 异常. Defaults to "未满足条件".
+
+    Raises:
+        StatementException: 条件未满足异常
+    """
     if not statement:
         raise StatementException(msg=msg)
 
@@ -217,7 +255,7 @@ def raise_for_statement(statement: bool, msg: str = "未满足条件") -> None:
 def to_form_urlencoded(data: dict) -> str:
     temp = []
     for [k, v] in data.items():
-        temp.append(f'{k}={quote(str(v)).replace("/", "%2F")}')
+        temp.append(f"{k}={quote(str(v), safe='')}")
 
     return "&".join(temp)
 
@@ -244,7 +282,7 @@ def to_timestamps(time_start, time_end):
         # 捕获日期格式错误或自定义错误消息
         raise ValueError(
             f"输入错误: {e}. 请确保使用 'YYYY-MM-DD' 格式，并且起始时间早于结束时间。"
-        )
+        ) from e
 
 
 def img_auto_scheme(url: str) -> str:
@@ -257,3 +295,24 @@ def img_auto_scheme(url: str) -> str:
     if url.startswith("//"):
         return "https://" + url
     return url
+
+
+def loguru_apply_anti_tag(event: str) -> str:
+    """
+    防止字符串中的 `<` `>` 被识别为颜色标识
+
+    Args:
+        event (str): 字符串
+
+    Returns:
+        str: 转义后的字符串
+    """
+    regex_tag = re.compile(r"(\\*)(</?(?:[fb]g\s)?[^<>\s]*>)")
+    add_slashes: dict[int, int] = {}
+    for match in list(regex_tag.finditer(event)):
+        add_slashes[match.start()] = len(match.group(1)) + 1
+    ret = ""
+    for pos, char in enumerate(list(event)):
+        ret += "\\" * add_slashes.get(pos, 0)
+        ret += char
+    return ret

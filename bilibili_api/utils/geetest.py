@@ -5,16 +5,18 @@ bilibili_api.utils.geetest
 """
 
 from dataclasses import dataclass
+import email.message
+import enum
+import http.server
 import os
 import select
 import threading
-import http.server
-import email.message
-import enum
+
+import anyio
 
 from ..exceptions import GeetestException
-from .utils import get_api
 from .network import Api
+from .utils import get_api
 
 API = get_api("login")
 
@@ -26,6 +28,7 @@ class GeetestType(enum.Enum):
     - LOGIN: 登录
     - VERIFY: 登录验证
     """
+
     LOGIN = "password"
     VERIFY = "safecenter"
 
@@ -41,8 +44,8 @@ class GeetestMeta:
     gt: str
     challenge: str
     token: str
-    seccode: str = ""
-    validate: str = ""
+    seccode: str | None = ""
+    validate: str | None = ""
 
 
 class DocHandler(http.server.BaseHTTPRequestHandler):
@@ -57,11 +60,11 @@ class DocHandler(http.server.BaseHTTPRequestHandler):
         else:
             content_type = "text/html"
         self.send_response(200)
-        self.send_header("Content-Type", "%s; charset=UTF-8" % content_type)
+        self.send_header("Content-Type", f"{content_type}; charset=UTF-8")
         self.end_headers()
         self.wfile.write(self.urlhandler(self.path, content_type).encode("utf-8"))  # type: ignore
 
-    def log_message(self, *args):
+    def log_message(self, *args):  # type: ignore
         # Don't log messages.
         pass
 
@@ -76,7 +79,7 @@ class DocServer(http.server.HTTPServer):
 
     def serve_until_quit(self):
         while not self.quit:
-            rd, wr, ex = select.select([self.socket.fileno()], [], [], 1)
+            rd, _wr, _ex = select.select([self.socket.fileno()], [], [], 1)
             if rd:
                 self.handle_request()
         self.server_close()
@@ -92,7 +95,7 @@ class ServerThread(threading.Thread):
         self.urlhandler = urlhandler
         self.host = host
         self.port = int(port)
-        threading.Thread.__init__(self)
+        threading.Thread.__init__(self, daemon=True)
         self.serving = False
         self.error = None
 
@@ -113,11 +116,11 @@ class ServerThread(threading.Thread):
         self.serving = True
         self.host = server.host
         self.port = server.server_port
-        self.url = "http://%s:%d/" % (self.host, self.port)
+        self.url = f"http://{self.host}:{self.port}/"
 
     def stop(self):
         """Stop the server and this thread nicely"""
-        if self.docserver != None:
+        if self.docserver is not None:
             self.docserver.quit = True
             self.join()
             # explicitly break a reference cycle: DocServer.callback
@@ -133,6 +136,8 @@ class Geetest:
     """
 
     def __init__(self) -> None:
+        """ """
+        # don't remove this empty docstring
         self.gt = ""
         self.validate = ""
         self.seccode = ""
@@ -141,13 +146,20 @@ class Geetest:
         self.thread = None
         self.done = False
         self.test_type = None
+        self.done_event = anyio.Event()
+
+    def __str__(self) -> str:
+        return f"Geetest(done={self.done}, gt='{self.gt}', validate='{self.validate}' seccode='{self.seccode}' challenge='{self.challenge}' key='{self.key}')"
+
+    def __repr__(self) -> str:
+        return f"Geetest(done={self.done}, gt='{self.gt}', validate='{self.validate}' seccode='{self.seccode}' challenge='{self.challenge}' key='{self.key}')"
 
     async def generate_test(self, type_: GeetestType = GeetestType.LOGIN) -> None:
         """
         创建验证码
 
         Args:
-            type_ (GeetestType): 极验验证码类型。登录为 LOGIN，登录验证为 VERIFY. Defaults to GeetestType.LOGIN.
+            type_ (GeetestType, optional): 极验验证码类型。登录为 LOGIN，登录验证为 VERIFY. Defaults to GeetestType.LOGIN.
         """
         api = API[type_.value]["captcha"]
         json_data = await Api(**api, no_csrf=True).result
@@ -162,6 +174,7 @@ class Geetest:
         self.validate = None
         self.seccode = None
         self.done = False
+        self.done_event = anyio.Event()
         self.test_type = type_
 
     def get_test_type(self) -> GeetestType:
@@ -173,7 +186,7 @@ class Geetest:
         """
         if not self.test_generated():
             raise GeetestException("未生成过测试。请调用 `generate_test`")
-        return self.test_type
+        return self.test_type  # type: ignore
 
     def test_generated(self) -> bool:
         """
@@ -182,7 +195,7 @@ class Geetest:
         Returns:
             bool: 是否有创建的测试
         """
-        return self.key != None
+        return self.key is not None
 
     def get_info(self) -> GeetestMeta:
         """
@@ -218,7 +231,9 @@ class Geetest:
                 seccode=self.seccode,
             )
         else:
-            raise GeetestException("未完成验证。请调用 `complete_test` 或来到 `get_geetest_server_url` 页面完成验证码。")
+            raise GeetestException(
+                "未完成验证。请调用 `complete_test` 或来到 `get_geetest_server_url` 页面完成验证码。"
+            )
 
     def complete_test(self, validate: str, seccode: str) -> None:
         """
@@ -226,11 +241,12 @@ class Geetest:
 
         Args:
             validate (str): 作答结果的 validate
-            seccode  (str): 作答结果的 seccode
+            seccode (str): 作答结果的 seccode
         """
         self.validate = validate
         self.seccode = seccode
         self.done = True
+        self.done_event.set()
 
     def _geetest_urlhandler(self, url: str, content_type: str) -> str:
         """
@@ -246,6 +262,7 @@ class Geetest:
                 elif data[:7] == "seccode":
                     self.seccode = data[8:].replace("%7C", "|")
                 self.done = True
+                self.done_event.set()
             with open(
                 os.path.abspath(
                     os.path.join(
@@ -297,12 +314,18 @@ class Geetest:
             str: 链接
         """
         if not self.thread:
-            return GeetestException("未创建验证码服务。请调用 `start_geetest_server`")
-        return self.thread.url
+            raise GeetestException("未创建验证码服务。请调用 `start_geetest_server`")
+        return self.thread.url  # type: ignore
+
+    async def wait_for_done(self) -> None:
+        """
+        等待极验验证码完成
+        """
+        await self.done_event.wait()
 
     def close_geetest_server(self) -> None:
         """
         关闭本地极验验证码服务
         """
-        self.thread.stop()
+        self.thread.stop()  # type: ignore
         self.thread = None

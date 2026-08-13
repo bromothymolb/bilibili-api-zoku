@@ -4,11 +4,8 @@ bilibili_api.audio
 音频相关
 """
 
-from enum import Enum
-from typing import Union, Optional
-
-from .utils.utils import get_api
 from .utils.network import Api, Credential
+from .utils.utils import get_api
 
 API = get_api("audio")
 
@@ -21,17 +18,22 @@ class Audio:
         credential (Credential): 凭据类
     """
 
-    def __init__(self, auid: int, credential: Union[Credential, None] = None):
+    def __init__(self, auid: int, credential: Credential | None = None) -> None:
         """
         Args:
-            auid       (int)                        : 音频 AU 号
-
-            credential (Credential | None, optional): 凭据. Defaults to None
+            auid (int): 音频 AU 号
+            credential (Credential | None, optional): 凭据. Defaults to None.
         """
         self.credential: Credential = (
             credential if credential is not None else Credential()
         )
         self.__auid = auid
+
+    def __str__(self) -> str:
+        return f"Audio(auid={self.__auid})"
+
+    def __repr__(self) -> str:
+        return f"Audio(auid={self.__auid})"
 
     def get_auid(self) -> int:
         """
@@ -87,7 +89,7 @@ class Audio:
         投币
 
         Args:
-            num (int, optional): 投币数量。Defaults to 2.
+            num (int, optional): 投币数量. Defaults to 2.
 
         Returns:
             dict: 调用 API 返回的结果
@@ -110,17 +112,22 @@ class AudioList:
         credential (Credential): 凭据类
     """
 
-    def __init__(self, amid: int, credential: Union[Credential, None] = None):
+    def __init__(self, amid: int, credential: Credential | None = None) -> None:
         """
         Args:
-            amid       (int)                        : 歌单 ID
-
+            amid (int): 歌单 ID
             credential (Credential | None, optional): 凭据. Defaults to None.
         """
         self.__amid = amid
         self.credential: Credential = (
             credential if credential is not None else Credential()
         )
+
+    def __str__(self) -> str:
+        return f"AudioList(amid={self.__amid})"
+
+    def __repr__(self) -> str:
+        return f"AudioList(amid={self.__amid})"
 
     def get_amid(self) -> int:
         """
@@ -164,7 +171,7 @@ class AudioList:
         获取歌单歌曲列表
 
         Args:
-            pn (int, optional): 页码. Defaults to 1
+            pn (int, optional): 页码. Defaults to 1.
 
         Returns:
             dict: 调用 API 返回的结果
@@ -179,14 +186,13 @@ class AudioList:
     # TODO: 歌单编辑
 
 
-async def get_user_stat(uid: int, credential: Union[Credential, None] = None) -> dict:
+async def get_user_stat(uid: int, credential: Credential | None = None) -> dict:
     """
     获取用户数据（收听数，粉丝数等）
 
     Args:
-        uid        (int)                        : 用户 UID
-
-        credential (Credential | None, optional): 凭据. Defaults to None
+        uid (int): 用户 UID
+        credential (Credential | None, optional): 凭据. Defaults to None.
 
     Returns:
         dict: 调用 API 返回的结果
@@ -197,16 +203,13 @@ async def get_user_stat(uid: int, credential: Union[Credential, None] = None) ->
     return await Api(**api, credential=credential).update_params(**params).result
 
 
-async def get_hot_song_list(
-    pn: int = 1, credential: Union[Credential, None] = None
-) -> dict:
+async def get_hot_song_list(pn: int = 1, credential: Credential | None = None) -> dict:
     """
     获取热门歌单
 
     Args:
-        pn(int, optional)                       : 页数. Defaults to 1
-
-        credential (Credential | None, optional): 凭据. Defaults to None
+        pn (int, optional): 页数. Defaults to 1.
+        credential (Credential | None, optional): 凭据. Defaults to None.
 
     Returns:
         dict: 调用 API 返回的结果

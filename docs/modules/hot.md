@@ -38,8 +38,8 @@ from bilibili_api import hot
 
 | name | type | description |
 | - | - | - |
-| `page_num` | `int` | 页码. Defaults to 1. |
-| `page_size` | `int` | 每一页的数据大小. Defaults to 20. |
+| `page_num` | `int, optional` | 页码. Defaults to 1. |
+| `page_size` | `int, optional` | 每一页的数据大小. Defaults to 20. |
 
 **Returns:** `dict`:  调用 API 返回的结果
 
@@ -55,8 +55,8 @@ from bilibili_api import hot
 
 | name | type | description |
 | - | - | - |
-| `pn` | `int` | 第几页. Default to 1. |
-| `ps` | `int` | 每页视频数. Default to 20. |
+| `pn` | `int, optional` | 第几页. Defaults to 1. |
+| `ps` | `int, optional` | 每页视频数. Defaults to 20. |
 
 **Returns:** `dict`:  调用 API 返回的结果
 
@@ -72,7 +72,7 @@ from bilibili_api import hot
 
 | name | type | description |
 | - | - | - |
-| `week` | `int` | 第几周. Default to 1. |
+| `week` | `int, optional` | 第几周. Defaults to 1. |
 
 **Returns:** `dict`:  调用 API 返回的结果
 

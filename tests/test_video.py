@@ -1,13 +1,13 @@
 # bilibili_api.video
 
-import time
 import asyncio
+import time
 from sqlite3 import DatabaseError
 
 from bilibili_api import exceptions
 from bilibili_api import video as video_m
-from bilibili_api.utils.danmaku import Danmaku
 from bilibili_api.exceptions.ResponseCodeException import ResponseCodeException
+from bilibili_api.utils.danmaku import Danmaku
 
 # 调试兼容
 try:
@@ -255,8 +255,10 @@ async def test_zj_get_relation():
 async def test_zk_get_online():
     return await video.get_online()
 
+
 async def test_zl_report_watch_history():
     return await video.report_watch_history()
+
 
 async def test_zm_report_start_watching():
     return await video.report_start_watching()

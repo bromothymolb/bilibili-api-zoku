@@ -5,13 +5,12 @@ bilibili_api.favorite_list
 """
 
 from enum import Enum
-from typing import List, Union, Optional
 
 from . import user
-from .video import Video
-from .utils.utils import join, get_api, raise_for_statement
-from .utils.network import Api, Credential
 from .exceptions.ArgsException import ArgsException
+from .utils.network import Api, Credential
+from .utils.utils import get_api, join, raise_for_statement
+from .video import Video
 
 API = get_api("favorite-list")
 
@@ -67,20 +66,28 @@ class FavoriteList:
     def __init__(
         self,
         type_: FavoriteListType = FavoriteListType.VIDEO,
-        media_id: Union[int, None] = None,
-        credential: Union[Credential, None] = None,
+        media_id: int | None = None,
+        credential: Credential | None = None,
     ) -> None:
         """
         Args:
-            type_      (FavoriteListType, optional): 收藏夹类型. Defaults to FavoriteListType.VIDEO.
-
-            media_id   (int, optional)             : 收藏夹号（仅为视频收藏夹时提供）. Defaults to None.
-
-            credential (Credential, optional)      : 凭据类. Defaults to Credential().
+            type_ (FavoriteListType, optional): 收藏夹类型. Defaults to FavoriteListType.VIDEO.
+            media_id (int | None, optional): 收藏夹号（仅为视频收藏夹时提供）. Defaults to None.
+            credential (Credential | None, optional): 凭据类. Defaults to None.
         """
         self.__type = type_
         self.__media_id = media_id
-        self.credential: Credential = credential if credential else Credential()
+        self.credential: Credential = credential or Credential()
+
+    def __str__(self) -> str:
+        return (
+            f"FavoriteList(type={self.__type}, media_id={self.__media_id or '[DNE]'})"
+        )
+
+    def __repr__(self) -> str:
+        return (
+            f"FavoriteList(type={self.__type}, media_id={self.__media_id or '[DNE]'})"
+        )
 
     def is_video_favorite_list(self) -> bool:
         """
@@ -91,12 +98,12 @@ class FavoriteList:
         """
         return self.__type == FavoriteListType.VIDEO
 
-    def get_media_id(self) -> Union[int, None]:
+    def get_media_id(self) -> int | None:
         """
         获取收藏夹 media_id，仅视频收藏夹存在此属性
 
         Returns:
-            Union[int, None]: media_id
+            int | None: media_id
         """
         return self.__media_id
 
@@ -109,14 +116,14 @@ class FavoriteList:
         """
         return self.__type
 
-    async def get_info(self):
+    async def get_info(self) -> dict:
         """
         获取收藏夹信息。
 
         Returns:
             dict: 调用 API 返回的结果
         """
-        raise_for_statement(self.__media_id != None, "视频收藏夹需要 media_id")
+        raise_for_statement(self.__media_id is not None, "视频收藏夹需要 media_id")
 
         api = API["info"]["info"]
         params = {"media_id": self.__media_id}
@@ -128,24 +135,20 @@ class FavoriteList:
     async def get_content_video(
         self,
         page: int = 1,
-        keyword: Union[str, None] = None,
+        keyword: str | None = None,
         order: FavoriteListContentOrder = FavoriteListContentOrder.MTIME,
         mode: SearchFavoriteListMode = SearchFavoriteListMode.ONLY,
-        tid=0,
+        tid: int = 0,
     ) -> dict:
         """
         获取视频收藏夹内容。
 
         Args:
-            page    (int, optional)                     : 页码. Defaults to 1.
-
-            keyword (str | None, optional)              : 搜索关键词. Defaults to None.
-
-            order   (FavoriteListContentOrder, optional): 排序方式. Defaults to FavoriteListContentOrder.MTIME.
-
-            mode    (SearchFavoriteListMode, optional)  : 搜索模式，默认仅当前收藏夹.
-
-            tid     (int, optional)                     : 分区 ID. Defaults to 0.
+            page (int, optional): 页码. Defaults to 1.
+            keyword (str | None, optional): 搜索关键词. Defaults to None.
+            order (FavoriteListContentOrder, optional): 排序方式. Defaults to FavoriteListContentOrder.MTIME.
+            mode (SearchFavoriteListMode, optional): 搜索模式，默认仅当前收藏夹. Defaults to SearchFavoriteListMode.ONLY.
+            tid (int, optional): 分区 ID. Defaults to 0.
 
         Returns:
             dict: 调用 API 返回的结果
@@ -153,10 +156,10 @@ class FavoriteList:
         raise_for_statement(
             self.__type == FavoriteListType.VIDEO, "此函数仅在收藏夹为视频收藏家时可用"
         )
-        raise_for_statement(self.__media_id != None, "视频收藏夹需要 media_id")
+        raise_for_statement(self.__media_id is not None, "视频收藏夹需要 media_id")
 
         return await get_video_favorite_list_content(
-            self.__media_id,
+            self.__media_id,  # type: ignore
             page=page,
             keyword=keyword,
             order=order,
@@ -180,9 +183,11 @@ class FavoriteList:
         elif self.__type == FavoriteListType.CHEESE:
             return await get_course_favorite_list(page, self.credential)
         elif self.__type == FavoriteListType.VIDEO:
-            raise_for_statement(self.__media_id != None, "视频收藏夹需要 media_id")
+            raise_for_statement(self.__media_id is not None, "视频收藏夹需要 media_id")
             return await get_video_favorite_list_content(
-                self.__media_id, page, credential=self.credential
+                self.__media_id,  # type: ignore
+                page,
+                credential=self.credential,
             )
         else:
             raise ArgsException("无法识别传入的类型")
@@ -196,7 +201,7 @@ class FavoriteList:
         Returns:
             dict: 调用 API 返回的结果
         """
-        raise_for_statement(self.__media_id != None, "视频收藏夹需要 media_id")
+        raise_for_statement(self.__media_id is not None, "视频收藏夹需要 media_id")
 
         api = API["info"]["list_content_id_list"]
         params = {
@@ -211,22 +216,21 @@ class FavoriteList:
 
 async def get_video_favorite_list(
     uid: int,
-    video: Union[Video, None] = None,
-    credential: Union[Credential, None] = None,
+    video: Video | None = None,
+    credential: Credential | None = None,
 ) -> dict:
     """
     获取视频收藏夹列表。
 
     Args:
-        uid        (int)                   : 用户 UID。
-
-        video      (Video | None, optional): 视频类。若提供该参数则结果会附带该收藏夹是否存在该视频。Defaults to None.
-
-        credential (Credential | None, optional)  : 凭据. Defaults to None.
+        uid (int): 用户 UID。
+        video (video.Video | None, optional): 视频类。若提供该参数则结果会附带该收藏夹是否存在该视频. Defaults to None.
+        credential (Credential | None, optional): 凭据. Defaults to None.
 
     Returns:
         dict: 调用 API 返回的结果
     """
+    credential = credential or Credential()
     api = API["info"]["list_list"]
     params = {"up_mid": uid, "type": 2, "web_location": "333.1387"}
 
@@ -239,11 +243,11 @@ async def get_video_favorite_list(
 async def get_video_favorite_list_content(
     media_id: int,
     page: int = 1,
-    keyword: Union[str, None] = None,
+    keyword: str | None = None,
     order: FavoriteListContentOrder = FavoriteListContentOrder.MTIME,
     tid: int = 0,
     mode: SearchFavoriteListMode = SearchFavoriteListMode.ONLY,
-    credential: Union[Credential, None] = None,
+    credential: Credential | None = None,
 ) -> dict:
     """
     获取视频收藏夹列表内容，也可用于搜索收藏夹内容。
@@ -251,23 +255,18 @@ async def get_video_favorite_list_content(
     mode 参数见 SearchFavoriteListMode 枚举。
 
     Args:
-        media_id   (int)                               : 收藏夹 ID。
-
-        page       (int, optional)                     : 页码. Defaults to 1.
-
-        keyword    (str, optional)                     : 搜索关键词. Defaults to None.
-
-        order      (FavoriteListContentOrder, optional): 排序方式. Defaults to FavoriteListContentOrder.MTIME.
-
-        tid        (int, optional)                     : 分区 ID. Defaults to 0.
-
-        mode       (SearchFavoriteListMode, optional)  : 搜索模式，默认仅当前收藏夹.
-
-        credential (Credential, optional)              : Credential. Defaults to None.
+        media_id (int): 收藏夹 ID。
+        page (int, optional): 页码. Defaults to 1.
+        keyword (str | None, optional): 搜索关键词. Defaults to None.
+        order (FavoriteListContentOrder, optional): 排序方式. Defaults to FavoriteListContentOrder.MTIME.
+        tid (int, optional): 分区 ID. Defaults to 0.
+        mode (SearchFavoriteListMode, optional): 搜索模式，默认仅当前收藏夹. Defaults to SearchFavoriteListMode.ONLY.
+        credential (Credential | None, optional): Credential. Defaults to None.
 
     Returns:
         dict: 调用 API 返回的结果
     """
+    credential = credential or Credential()
     api = API["info"]["list_content"]
     params = {
         "media_id": media_id,
@@ -287,15 +286,14 @@ async def get_video_favorite_list_content(
 
 
 async def get_topic_favorite_list(
-    page: int = 1, credential: Union[None, Credential] = None
+    page: int = 1, credential: Credential | None = None
 ) -> dict:
     """
     获取自己的话题收藏夹内容。
 
     Args:
-        page       (int, optional)              : 页码. Defaults to 1.
-
-        credential (Credential | None, optional): Credential
+        page (int, optional): 页码. Defaults to 1.
+        credential (Credential | None, optional): Credential. Defaults to None.
 
     Returns:
         dict: 调用 API 返回的结果
@@ -312,14 +310,13 @@ async def get_topic_favorite_list(
 
 
 async def get_article_favorite_list(
-    page: int = 1, credential: Union[None, Credential] = None
+    page: int = 1, credential: Credential | None = None
 ) -> dict:
     """
     获取自己的专栏收藏夹内容。
 
     Args:
-        page       (int, optional)              : 页码. Defaults to 1.
-
+        page (int, optional): 页码. Defaults to 1.
         credential (Credential | None, optional): Credential. Defaults to None.
 
     Returns:
@@ -337,14 +334,13 @@ async def get_article_favorite_list(
 
 
 async def get_course_favorite_list(
-    page: int = 1, credential: Union[None, Credential] = None
+    page: int = 1, credential: Credential | None = None
 ) -> dict:
     """
     获取自己的课程收藏夹内容。
 
     Args:
-        page       (int, optional)       : 页码. Defaults to 1.
-
+        page (int, optional): 页码. Defaults to 1.
         credential (Credential | None, optional): Credential. Defaults to None.
 
     Returns:
@@ -363,14 +359,13 @@ async def get_course_favorite_list(
 
 
 async def get_note_favorite_list(
-    page: int = 1, credential: Union[None, Credential] = None
+    page: int = 1, credential: Credential | None = None
 ) -> dict:
     """
     获取自己的笔记收藏夹内容。
 
     Args:
-        page       (int, optional)       : 页码. Defaults to 1.
-
+        page (int, optional): 页码. Defaults to 1.
         credential (Credential | None, optional): Credential. Defaults to None.
 
     Returns:
@@ -391,19 +386,16 @@ async def create_video_favorite_list(
     title: str,
     introduction: str = "",
     private: bool = False,
-    credential: Union[None, Credential] = None,
+    credential: Credential | None = None,
 ) -> dict:
     """
     新建视频收藏夹列表。
 
     Args:
-        title        (str)                 : 收藏夹名。
-
-        introduction (str, optional)       : 收藏夹简介. Defaults to ''.
-
-        private      (bool, optional)      : 是否为私有. Defaults to False.
-
-        credential   (Credential, optional): 凭据. Defaults to None.
+        title (str): 收藏夹名。
+        introduction (str, optional): 收藏夹简介. Defaults to ''.
+        private (bool, optional): 是否为私有. Defaults to False.
+        credential (Credential | None, optional): 凭据. Defaults to None.
 
     Returns:
         dict: 调用 API 返回的结果
@@ -430,21 +422,17 @@ async def modify_video_favorite_list(
     title: str,
     introduction: str = "",
     private: bool = False,
-    credential: Union[None, Credential] = None,
+    credential: Credential | None = None,
 ) -> dict:
     """
     修改视频收藏夹信息。
 
     Args:
-        media_id     (int)                 : 收藏夹 ID.
-
-        title        (str)                 : 收藏夹名。
-
-        introduction (str, optional)       : 收藏夹简介. Defaults to ''.
-
-        private      (bool, optional)      : 是否为私有. Defaults to False.
-
-        credential   (Credential, optional): Credential. Defaults to None.
+        media_id (int): 收藏夹 ID.
+        title (str): 收藏夹名。
+        introduction (str, optional): 收藏夹简介. Defaults to ''.
+        private (bool, optional): 是否为私有. Defaults to False.
+        credential (Credential | None, optional): Credential. Defaults to None.
 
     Returns:
         dict: 调用 API 返回的结果
@@ -469,14 +457,13 @@ async def modify_video_favorite_list(
 
 
 async def delete_video_favorite_list(
-    media_ids: List[int], credential: Credential
+    media_ids: list[int], credential: Credential
 ) -> dict:
     """
     删除视频收藏夹，可批量删除。
 
     Args:
-        media_ids  (List[int]) : 收藏夹 ID 列表。
-
+        media_ids (list[int]): 收藏夹 ID 列表。
         credential (Credential): Credential.
 
     Returns:
@@ -493,19 +480,16 @@ async def delete_video_favorite_list(
 
 
 async def copy_video_favorite_list_content(
-    media_id_from: int, media_id_to: int, aids: List[int], credential: Credential
+    media_id_from: int, media_id_to: int, aids: list[int], credential: Credential
 ) -> dict:
     """
     复制视频收藏夹内容
 
     Args:
-        media_id_from (int)       : 要复制的源收藏夹 ID。
-
-        media_id_to   (int)       : 目标收藏夹 ID。
-
-        aids          (List[int]) : 被复制的视频 ID 列表。
-
-        credential    (Credential): 凭据
+        media_id_from (int): 要复制的源收藏夹 ID。
+        media_id_to (int): 目标收藏夹 ID。
+        aids (list[int]): 被复制的视频 ID 列表。
+        credential (Credential): 凭据
 
     Returns:
         dict: 调用 API 返回的结果
@@ -520,26 +504,23 @@ async def copy_video_favorite_list_content(
         "src_media_id": media_id_from,
         "tar_media_id": media_id_to,
         "mid": self_info["mid"],
-        "resources": ",".join(map(lambda x: f"{str(x)}:2", aids)),
+        "resources": ",".join(f"{x!s}:2" for x in aids),
     }
 
     return await Api(**api, credential=credential).update_data(**data).result
 
 
 async def move_video_favorite_list_content(
-    media_id_from: int, media_id_to: int, aids: List[int], credential: Credential
+    media_id_from: int, media_id_to: int, aids: list[int], credential: Credential
 ) -> dict:
     """
     移动视频收藏夹内容
 
     Args:
-        media_id_from (int)       : 要移动的源收藏夹 ID。
-
-        media_id_to   (int)       : 目标收藏夹 ID。
-
-        aids          (List[int]) : 被移动的视频 ID 列表。
-
-        credential    (Credential): 凭据
+        media_id_from (int): 要移动的源收藏夹 ID。
+        media_id_to (int): 目标收藏夹 ID。
+        aids (list[int]): 被移动的视频 ID 列表。
+        credential (Credential): 凭据
 
     Returns:
         dict: 调用 API 返回的结果
@@ -551,23 +532,21 @@ async def move_video_favorite_list_content(
     data = {
         "src_media_id": media_id_from,
         "tar_media_id": media_id_to,
-        "resources": ",".join(map(lambda x: f"{str(x)}:2", aids)),
+        "resources": ",".join(f"{x!s}:2" for x in aids),
     }
 
     return await Api(**api, credential=credential).update_data(**data).result
 
 
 async def delete_video_favorite_list_content(
-    media_id: int, aids: List[int], credential: Credential
+    media_id: int, aids: list[int], credential: Credential
 ) -> dict:
     """
     删除视频收藏夹内容
 
     Args:
-        media_id   (int)       : 收藏夹 ID。
-
-        aids       (List[int]) : 被删除的视频 ID 列表。
-
+        media_id (int): 收藏夹 ID。
+        aids (list[int]): 被删除的视频 ID 列表。
         credential (Credential): 凭据
 
     Returns:
@@ -579,7 +558,7 @@ async def delete_video_favorite_list_content(
 
     data = {
         "media_id": media_id,
-        "resources": ",".join(map(lambda x: f"{str(x)}:2", aids)),
+        "resources": ",".join(f"{x!s}:2" for x in aids),
     }
 
     return await Api(**api, credential=credential).update_data(**data).result
@@ -592,8 +571,7 @@ async def clean_video_favorite_list_content(
     清除视频收藏夹失效内容
 
     Args:
-        media_id   (int)       : 收藏夹 ID
-
+        media_id (int): 收藏夹 ID
         credential (Credential): 凭据
 
     Returns:
@@ -612,20 +590,21 @@ async def get_favorite_collected(
     uid: int,
     pn: int = 1,
     ps: int = 20,
-    credential: Union[Credential, None] = None,
+    credential: Credential | None = None,
 ) -> dict:
     """
     获取收藏合集列表
 
     Args:
-        uid        (int)                               : 用户 UID。
+        uid (int): 用户 UID。
+        pn (int, optional): 页码. Defaults to 1.
+        ps (int, optional): 每页数据大小. Defaults to 20.
+        credential (Credential | None, optional): Credential. Defaults to None.
 
-        pn         (int, optional)                     : 页码. Defaults to 1.
-
-        ps         (int, optional)                     : 每页数据大小. Defaults to 20.
-
-        credential (Credential | None, optional)       : Credential. Defaults to None.
+    Returns:
+        dict: 调用 API 返回的结果。
     """
+    credential = credential or Credential()
     api = API["info"]["collected"]
     params = {"up_mid": uid, "platform": "web", "pn": pn, "ps": ps}
     return await Api(**api, credential=credential).update_params(**params).result

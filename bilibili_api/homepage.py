@@ -4,10 +4,8 @@ bilibili_api.homepage
 主页相关操作。
 """
 
-from typing import Union
-
-from .utils.utils import get_api
 from .utils.network import Api, Credential
+from .utils.utils import get_api
 
 API = get_api("homepage")
 
@@ -25,48 +23,63 @@ async def get_top_photo() -> dict:
     return await Api(**api).update_params(**params).result
 
 
-async def get_links(credential: Union[Credential, None] = None) -> dict:
+async def get_top_photo_v2() -> dict:
+    """
+    获取主页最上方的图像。
+
+    Returns:
+        dict: 调用 API 返回的结果。
+    """
+    api = API["info"]["top_photo_v2"]
+    params = {"category": 0, "web_location": "333.934"}
+    return await Api(**api).update_params(**params).result
+
+
+async def get_links(credential: Credential | None = None) -> dict:
     """
     获取主页左面的链接。
     可能和个人喜好有关。
 
     Args:
-        credential (Credential | None): 凭据类
+        credential (Credential | None, optional): 凭据类. Defaults to None.
 
     Returns:
         dict: 调用 API 返回的结果
     """
+    credential = credential or Credential()
     api = API["info"]["links"]
     params = {"pf": 0, "ids": 4694}
     return await Api(**api, credential=credential).update_params(**params).result
 
 
-async def get_popularize(credential: Union[Credential, None] = None) -> dict:
+async def get_popularize(credential: Credential | None = None) -> dict:
     """
     获取推广的项目。
     (有视频有广告)
 
     Args:
-        credential(Credential | None): 凭据类
+        credential (Credential | None, optional): 凭据类. Defaults to None.
 
     Returns:
         dict: 调用 API 返回的结果
     """
+    credential = credential or Credential()
     api = API["info"]["popularize"]
     params = {"pf": 0, "ids": 34}
     return await Api(**api, credential=credential).update_params(**params).result
 
 
-async def get_videos(credential: Union[Credential, None] = None) -> dict:
+async def get_videos(credential: Credential | None = None) -> dict:
     """
     获取首页推荐的视频。
 
     Args:
-        credential (Credential | None): 凭据类
+        credential (Credential | None, optional): 凭据类. Defaults to None.
 
     Returns:
         dict: 调用 API 返回的结果
     """
+    credential = credential or Credential()
     api = API["info"]["videos"]
     return await Api(**api, credential=credential).result
 
@@ -88,23 +101,22 @@ async def get_favorite_list_and_toview(credential: Credential) -> dict:
     return await Api(**api, credential=credential).result
 
 
-async def get_favorite_list_content(media_id: int, credential: Union[Credential, None] = None) -> dict:
+async def get_favorite_list_content(
+    media_id: int, credential: Credential | None = None
+) -> dict:
     """
     获取首页右上角视频相关列表（收藏夹+稍后再看）的具体内容
 
     稍后再看具体内容在 `get_favorite_list_and_toview` 接口
 
     Args:
-        media_id   (int)       : 收藏夹 id
-        credential (Credential): 凭据类
+        media_id (int): 收藏夹 id
+        credential (Credential | None, optional): 凭据类. Defaults to None.
 
     Returns:
         dict: 调用 API 返回的结果
     """
+    credential = credential or Credential()
     api = API["list"]["resource"]
-    params = {
-        "web_location": "333.1007",
-        "platform": "web",
-        "media_id": media_id
-    }
+    params = {"web_location": "333.1007", "platform": "web", "media_id": media_id}
     return await Api(**api, credential=credential).update_params(**params).result

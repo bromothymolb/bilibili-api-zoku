@@ -4,8 +4,8 @@ bilibili_api.hot
 热门相关 API
 """
 
-from .utils.utils import get_api
 from .utils.network import Api
+from .utils.utils import get_api
 
 API_rank = get_api("rank")
 API = get_api("hot")
@@ -16,9 +16,8 @@ async def get_hot_videos(pn: int = 1, ps: int = 20) -> dict:
     获取热门视频
 
     Args:
-        pn (int): 第几页. Default to 1.
-
-        ps (int): 每页视频数. Default to 20.
+        pn (int, optional): 第几页. Defaults to 1.
+        ps (int, optional): 每页视频数. Defaults to 20.
 
     Returns:
         dict: 调用 API 返回的结果
@@ -45,7 +44,7 @@ async def get_weekly_hot_videos(week: int = 1) -> dict:
     获取一周的每周必看视频列表
 
     Args:
-        week(int): 第几周. Default to 1.
+        week (int, optional): 第几周. Defaults to 1.
 
     Returns:
         dict: 调用 API 返回的结果
@@ -72,9 +71,8 @@ async def get_hot_buzzwords(page_num: int = 1, page_size: int = 20) -> dict:
     获取热词图鉴信息
 
     Args:
-        page_num  (int): 页码. Defaults to 1.
-
-        page_size (int): 每一页的数据大小. Defaults to 20.
+        page_num (int, optional): 页码. Defaults to 1.
+        page_size (int, optional): 每一页的数据大小. Defaults to 20.
 
     Returns:
         dict: 调用 API 返回的结果

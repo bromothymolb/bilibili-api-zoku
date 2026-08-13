@@ -8,7 +8,6 @@ from .utils.initial_state import get_initial_state
 from .utils.network import Api
 from .utils.utils import get_api
 
-
 API = get_api("activity")
 
 
@@ -41,7 +40,7 @@ async def get_activity_info(url: str) -> dict:
     return (await get_initial_state(url))[0]
 
 
-async def get_activity_aid(url: str) -> dict:
+async def get_activity_aid(url: str) -> int:
     """
     获取部分活动存在的 aid，可用于获取评论
 
@@ -52,4 +51,3 @@ async def get_activity_aid(url: str) -> dict:
         int: 活动 aid，若活动无 aid 返回 -1
     """
     return int((await get_activity_info(url))["BaseInfo"].get("aid", "0"))
-

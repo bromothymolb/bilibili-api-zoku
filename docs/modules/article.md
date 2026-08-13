@@ -164,7 +164,7 @@ from bilibili_api import article
 
 | name | type | description |
 | - | - | - |
-| `status` | `bool, optional` | 收藏状态. Defaults to True |
+| `status` | `bool, optional` | 收藏状态. Defaults to True. |
 
 **Returns:** `dict`:  调用 API 返回的结果
 
@@ -178,7 +178,7 @@ from bilibili_api import article
 
 | name | type | description |
 | - | - | - |
-| `status` | `bool, optional` | 点赞状态. Defaults to True |
+| `status` | `bool, optional` | 点赞状态. Defaults to True. |
 
 **Returns:** `dict`:  调用 API 返回的结果
 
@@ -195,7 +195,7 @@ from bilibili_api import article
 
 
 
-**Returns:** `Dynamic`:  动态实例
+**Returns:** `dynamic.Dynamic`:  动态实例
 
 
 
@@ -221,7 +221,7 @@ from bilibili_api import article
 
 
 
-**Returns:** `Opus`:  动态实例
+**Returns:** `opus.Opus`:  动态实例
 
 
 
@@ -273,7 +273,7 @@ from bilibili_api import article
 
 ## class ArticleRankingType()
 
-**Extend: enum.Enum**
+> Extend: `enum.Enum`
 
 专栏排行榜类型枚举。
 
@@ -294,7 +294,7 @@ from bilibili_api import article
 
 | name | type | description |
 | - | - | - |
-| `rank_type` | `ArticleRankingType` | 排行榜类别. Defaults to ArticleRankingType.YESTERDAY. |
+| `rank_type` | `ArticleRankingType, optional` | 排行榜类别. Defaults to ArticleRankingType.YESTERDAY. |
 
 **Returns:** `dict`:  调用 API 返回的结果
 

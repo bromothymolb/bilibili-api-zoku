@@ -1,5 +1,4 @@
 import json
-from typing import Dict
 
 from fastapi import FastAPI, Request, Response
 
@@ -36,7 +35,7 @@ async def bilibili_api_web(
     Returns:
         dict: 响应体
     """
-    vars: Dict[str, str] = dict(request.query_params)
+    vars: dict[str, str] = dict(request.query_params)
     max_age = vars.pop("max_age", None)
     if max_age is not None:
         response.headers["Cache-Control"] = f"max-age={max_age}"
@@ -68,7 +67,7 @@ async def bilibili_api_web(
                     "code": 4,
                     "error": f"参数 {key} 凭证验证出错: {format_error(e)}",
                 }
-        vars[key] = obj
+        vars[key] = obj  # type: ignore
     try:
         obj = await parse(path, vars)
     except ParseError as e:

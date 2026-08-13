@@ -4,11 +4,9 @@ bilibili_api.video_tag
 视频标签相关，部分的标签的 id 与同名的频道的 id 一模一样。
 """
 
-from typing import Optional
-
-from .exceptions import *
-from .utils.utils import get_api
+from .exceptions import ArgsException
 from .utils.network import Api, Credential
+from .utils.utils import get_api
 
 API = get_api("video_tag")
 API_video = get_api("video")
@@ -21,24 +19,26 @@ class Tag:
 
     def __init__(
         self,
-        tag_name: Optional[str] = None,
-        tag_id: Optional[int] = None,
-        credential: Optional[Credential] = None,
-    ):
+        tag_name: str | None = None,
+        tag_id: int | None = None,
+        credential: Credential | None = None,
+    ) -> None:
         """
         Args:
-            tag_name   (str | None): 标签名. Defaults to None.
-
-            tag_id     (int | None): 标签 id. Defaults to None.
-
-            credential (Credential): 凭据类. Defaults to None.
-
-        注意：tag_name 和 tag_id 任选一个传入即可。tag_id 优先。
+            tag_name (str | None, optional): 标签名. Defaults to None.
+            tag_id (int | None, optional): 标签 id. Defaults to None.
+            credential (Credential | None, optional): 凭据类. Defaults to None.
         """
         self.__tag_id = tag_id
         self.__tag_name = tag_name
-        credential = credential if credential else Credential()
+        credential = credential or Credential()
         self.credential: Credential = credential
+
+    def __str__(self) -> str:
+        return f"VideoTag(tag_id={self.__tag_id or '[UNKNOWN]'}, tag_name='{self.__tag_name or '[UNKNOWN]'}')"
+
+    def __repr__(self) -> str:
+        return f"VideoTag(tag_id={self.__tag_id or '[UNKNOWN]'}, tag_name='{self.__tag_name or '[UNKNOWN]'}')"
 
     async def get_tag_id(self) -> int:
         """
@@ -49,7 +49,7 @@ class Tag:
         """
         if not self.__tag_id:
             await self.get_tag_info()
-        return self.__tag_id
+        return self.__tag_id  # type: ignore
 
     async def get_tag_name(self) -> str:
         """
@@ -60,7 +60,7 @@ class Tag:
         """
         if not self.__tag_name:
             await self.get_tag_info()
-        return self.__tag_name
+        return self.__tag_name  # type: ignore
 
     async def get_tag_info(self) -> dict:
         """

@@ -22,8 +22,8 @@ from bilibili_api import login_v2
   - [async def check\_state()](#async-def-check\_state)
   - [async def generate\_qrcode()](#async-def-generate\_qrcode)
   - [def get\_credential()](#def-get\_credential)
-  - [def get\_qrcode\_picture()](#def-get\_qrcode\_picture)
-  - [def get\_qrcode\_terminal()](#def-get\_qrcode\_terminal)
+  - [async def get\_qrcode\_picture()](#async-def-get\_qrcode\_picture)
+  - [async def get\_qrcode\_terminal()](#async-def-get\_qrcode\_terminal)
   - [def has\_done()](#def-has\_done)
   - [def has\_qrcode()](#def-has\_qrcode)
 - [class QrCodeLoginChannel()](#class-QrCodeLoginChannel)
@@ -107,7 +107,7 @@ from bilibili_api import login_v2
 | name | type | description |
 | - | - | - |
 | `number` | `str` | 手机号 |
-| `country` | `str` | 地区/地区码，如 +86 |
+| `country` | `str \| int, optional` | 地区/地区码，如 +86. Defaults to '+86'. |
 
 
 ---
@@ -126,7 +126,7 @@ from bilibili_api import login_v2
 
 | name | type | description |
 | - | - | - |
-| `platform` | `QrCodeLoginChannel, optional` | 平台. (web/tv) Defaults to QrCodeLoginChannel.WEB. |
+| `platform` | `QrCodeLoginChannel, optional` | 平台. (web/tv). Defaults to QrCodeLoginChannel.WEB. |
 
 
 ### async def check_state()
@@ -146,6 +146,8 @@ from bilibili_api import login_v2
 
 
 
+**Returns:** `str`:  二维码链接
+
 
 
 
@@ -160,7 +162,7 @@ from bilibili_api import login_v2
 
 
 
-### def get_qrcode_picture()
+### async def get_qrcode_picture()
 
 获取二维码的 Picture 类
 
@@ -171,7 +173,7 @@ from bilibili_api import login_v2
 
 
 
-### def get_qrcode_terminal()
+### async def get_qrcode_terminal()
 
 获取二维码的终端字符串
 
@@ -208,7 +210,7 @@ from bilibili_api import login_v2
 
 ## class QrCodeLoginChannel()
 
-**Extend: enum.Enum**
+> Extend: `enum.Enum`
 
 二维码登录渠道
 
@@ -222,7 +224,7 @@ from bilibili_api import login_v2
 
 ## class QrCodeLoginEvents()
 
-**Extend: enum.Enum**
+> Extend: `enum.Enum`
 
 二维码登录状态枚举
 
@@ -258,7 +260,7 @@ from bilibili_api import login_v2
 
 
 
-**Returns:** `List[dict]`:  地区列表
+**Returns:** `list[dict]`:  地区列表
 
 
 
@@ -288,7 +290,7 @@ from bilibili_api import login_v2
 
 | name | type | description |
 | - | - | - |
-| `code` | `Union[str, int]` | 代码 |
+| `code` | `str \| int` | 代码 |
 
 **Returns:** `bool`:  是否存在
 
@@ -324,7 +326,7 @@ from bilibili_api import login_v2
 | `password` | `str` | 密码 |
 | `geetest` | `Geetest` | 极验验证码实例，须完成。验证码类型应为 `GeetestType.LOGIN` |
 
-**Returns:** `Union[Credential, LoginCheck]`:  如果需要验证，会返回 `LoginCheck` 类，否则返回 `Credential` 类。
+**Returns:** `Union[Credential, ForwardRef('LoginCheck')]`:  如果需要验证，会返回 `LoginCheck` 类，否则返回 `Credential` 类。
 
 
 
@@ -338,11 +340,11 @@ from bilibili_api import login_v2
 
 | name | type | description |
 | - | - | - |
-| `phonenumber` | `str` | 手机号类 |
+| `phonenumber` | `login_v2.PhoneNumber` | 手机号类 |
 | `code` | `str` | 验证码 |
 | `captcha_id` | `str` | captcha_id，为 `send_sms` 调用返回结果 |
 
-**Returns:** `Union[Credential, LoginCheck]`:  如果需要验证，会返回 `LoginCheck` 类，否则返回 `Credential` 类。
+**Returns:** `Union[Credential, ForwardRef('LoginCheck')]`:  如果需要验证，会返回 `LoginCheck` 类，否则返回 `Credential` 类。
 
 
 
@@ -358,7 +360,7 @@ from bilibili_api import login_v2
 | - | - | - |
 | `keyword` | `str` | 关键词 |
 
-**Returns:** `List[dict]`:  地区列表
+**Returns:** `list[dict]`:  地区列表
 
 
 
@@ -372,7 +374,7 @@ from bilibili_api import login_v2
 
 | name | type | description |
 | - | - | - |
-| `phonenumber` | `PhoneNumber` | 手机号类 |
+| `phonenumber` | `login_v2.PhoneNumber` | 手机号类 |
 | `geetest` | `Geetest` | 极验验证码实例，须完成。验证码类型应为 `GeetestType.LOGIN` |
 
 **Returns:** `str`:  captcha_id，需传入 `login_with_sms`

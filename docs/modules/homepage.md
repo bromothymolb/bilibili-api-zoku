@@ -15,6 +15,7 @@ from bilibili_api import homepage
 - [async def get\_links()](#async-def-get\_links)
 - [async def get\_popularize()](#async-def-get\_popularize)
 - [async def get\_top\_photo()](#async-def-get\_top\_photo)
+- [async def get\_top\_photo\_v2()](#async-def-get\_top\_photo\_v2)
 - [async def get\_videos()](#async-def-get\_videos)
 
 ---
@@ -47,7 +48,7 @@ from bilibili_api import homepage
 | name | type | description |
 | - | - | - |
 | `media_id` | `int` | 收藏夹 id |
-| `credential` | `Credential` | 凭据类 |
+| `credential` | `Credential \| None, optional` | 凭据类. Defaults to None. |
 
 **Returns:** `dict`:  调用 API 返回的结果
 
@@ -64,7 +65,7 @@ from bilibili_api import homepage
 
 | name | type | description |
 | - | - | - |
-| `credential` | `Credential \| None` | 凭据类 |
+| `credential` | `Credential \| None, optional` | 凭据类. Defaults to None. |
 
 **Returns:** `dict`:  调用 API 返回的结果
 
@@ -81,7 +82,7 @@ from bilibili_api import homepage
 
 | name | type | description |
 | - | - | - |
-| `credential` | `Credential \| None` | 凭据类 |
+| `credential` | `Credential \| None, optional` | 凭据类. Defaults to None. |
 
 **Returns:** `dict`:  调用 API 返回的结果
 
@@ -104,6 +105,19 @@ from bilibili_api import homepage
 
 ---
 
+## async def get_top_photo_v2()
+
+获取主页最上方的图像。
+
+
+
+**Returns:** `dict`:  调用 API 返回的结果。
+
+
+
+
+---
+
 ## async def get_videos()
 
 获取首页推荐的视频。
@@ -111,7 +125,7 @@ from bilibili_api import homepage
 
 | name | type | description |
 | - | - | - |
-| `credential` | `Credential \| None` | 凭据类 |
+| `credential` | `Credential \| None, optional` | 凭据类. Defaults to None. |
 
 **Returns:** `dict`:  调用 API 返回的结果
 

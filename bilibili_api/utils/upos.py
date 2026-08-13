@@ -2,14 +2,15 @@
 bilibili_api.utils.upos
 """
 
-import os
 import json
-import asyncio
-from asyncio.tasks import create_task
+import os
+from typing import Any
 
-from .network import get_client, BiliAPIClient
+import anyio
+
 from ..exceptions.NetworkException import NetworkException
 from ..exceptions.ResponseCodeException import ResponseCodeException
+from .network import BiliAPIClient, get_client
 
 
 class UposFile:
@@ -18,13 +19,12 @@ class UposFile:
     """
 
     path: str
-    size: int
 
     def __init__(self, path: str) -> None:
         self.path = path
-        self.size = self._get_size()
+        self.size = None
 
-    def _get_size(self) -> int:
+    async def get_size(self) -> int:
         """
         获取文件大小
 
@@ -32,18 +32,17 @@ class UposFile:
             int: 文件大小
         """
 
-        size: int = 0
-        stream = open(self.path, "rb")
-        while True:
-            s: bytes = stream.read(1024)
-
-            if not s:
-                break
-
-            size += len(s)
-
-        stream.close()
-        return size
+        if not self.size:
+            size: int = 0
+            stream = await anyio.open_file(self.path, "rb")
+            while True:
+                s: bytes = await stream.read(1024)
+                if not s:
+                    break
+                size += len(s)
+            await stream.aclose()
+            self.size = size
+        return self.size
 
 
 class UposFileUploader:
@@ -59,7 +58,7 @@ class UposFileUploader:
         self.file = file
         self.preupload = preupload
         self._upload_id = preupload["upload_id"]
-        self._upload_url = f'https:{preupload["endpoint"]}/{preupload["upos_uri"].removeprefix("upos://")}'
+        self._upload_url = f"https:{preupload['endpoint']}/{preupload['upos_uri'].removeprefix('upos://')}"
         self._session = get_client()
 
     async def upload(self) -> dict:
@@ -69,7 +68,7 @@ class UposFileUploader:
         Returns:
             dict: filename, cid
         """
-        page_size = self.file.size
+        page_size = await self.file.get_size()
         # 所有分块起始位置
         chunk_offset_list = list(range(0, page_size, self.preupload["chunk_size"]))
         # 分块总数
@@ -87,12 +86,15 @@ class UposFileUploader:
             chunk_number += 1
 
         while chunks_pending:
-            tasks = []
-
-            while len(tasks) < self.preupload["threads"] and len(chunks_pending) > 0:
-                tasks.append(create_task(chunks_pending.pop()))
-
-            result = await asyncio.gather(*tasks)
+            tasks: list[anyio.TaskHandle] = []
+            async with anyio.create_task_group() as tg:
+                while (
+                    len(tasks) < self.preupload["threads"] and len(chunks_pending) > 0
+                ):
+                    tasks.append(tg.create_task(chunks_pending.pop()))
+            result = []
+            for task in tasks:
+                result.append(task.return_value)
 
             for r in result:
                 if not r["ok"]:
@@ -120,25 +122,21 @@ class UposFileUploader:
 
         Args:
             offset (int): 分块起始位置
-
             chunk_number (int): 分块编号
-
             total_chunk_count (int): 总分块数
-
 
         Returns:
             dict: 上传结果和分块信息。
         """
-        chunk_event_callback_data = {
+        chunk_event_callback_data: dict[str, Any] = {
             "offset": offset,
             "chunk_number": chunk_number,
             "total_chunk_count": total_chunk_count,
         }
 
-        stream = open(self.file.path, "rb")
-        stream.seek(offset)
-        chunk = stream.read(self.preupload["chunk_size"])
-        stream.close()
+        async with await anyio.open_file(self.file.path, mode="rb") as stream:
+            await stream.seek(offset)
+            chunk = await stream.read(self.preupload["chunk_size"])
 
         err_return = {
             "ok": False,
@@ -156,7 +154,7 @@ class UposFileUploader:
             "size": str(real_chunk_size),
             "start": str(offset),
             "end": str(offset + real_chunk_size),
-            "total": self.file.size,
+            "total": await self.file.get_size(),
         }
 
         ok_return = {
@@ -201,9 +199,7 @@ class UposFileUploader:
         """
 
         data = {
-            "parts": list(
-                map(lambda x: {"partNumber": x, "eTag": "etag"}, range(1, chunks + 1))
-            )
+            "parts": [{"partNumber": x, "eTag": "etag"} for x in range(1, chunks + 1)]
         }
 
         params = {
@@ -231,5 +227,7 @@ class UposFileUploader:
         data = resp.json()
 
         if data["OK"] != 1:
-            err = ResponseCodeException(-1, f'提交分 P 失败，原因: {data["message"]}')
+            err = ResponseCodeException(-1, f"提交分 P 失败，原因: {data['message']}")
             raise err
+
+        return data

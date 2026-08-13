@@ -23,6 +23,10 @@ from bilibili_api import ...
 - [class AsyncEvent()](#class-AsyncEvent)
   - [def \_\_init\_\_()](#def-\_\_init\_\_)
   - [def add\_event\_listener()](#def-add\_event\_listener)
+  - [def async\_event\_cancel()](#def-async\_event\_cancel)
+  - [async def async\_event\_run()](#async-def-async\_event\_run)
+  - [def async\_event\_running()](#def-async\_event\_running)
+  - [async def async\_event\_start()](#async-def-async\_event\_start)
   - [def dispatch()](#def-dispatch)
   - [def ignore\_event()](#def-ignore\_event)
   - [def on()](#def-on)
@@ -31,24 +35,48 @@ from bilibili_api import ...
   - [def remove\_ignore\_events()](#def-remove\_ignore\_events)
 - [class BiliAPIClient()](#class-BiliAPIClient)
 - [class BiliAPIFile()](#class-BiliAPIFile)
+  - [async def open()](#async-def-open)
 - [class BiliAPIResponse()](#class-BiliAPIResponse)
   - [def json()](#def-json)
   - [def utf8\_text()](#def-utf8\_text)
+- [class BiliFilterArgs()](#class-BiliFilterArgs)
+  - [def get\_event\_loop()](#def-get\_event\_loop)
+  - [def get\_trio\_token()](#def-get\_trio\_token)
+- [class BiliFilterData()](#class-BiliFilterData)
+  - [def \_\_init\_\_()](#def-\_\_init\_\_)
+  - [def get\_data()](#def-get\_data)
+  - [def has\_data()](#def-has\_data)
+  - [def set\_data()](#def-set\_data)
+- [class BiliFilterFlags()](#class-BiliFilterFlags)
+- [class BiliFilterReturn()](#class-BiliFilterReturn)
+  - [def continue\_exec()](#def-continue\_exec)
+  - [def execute\_now()](#def-execute\_now)
+  - [def goto\_idx()](#def-goto\_idx)
+  - [def goto\_name()](#def-goto\_name)
+  - [def return\_now()](#def-return\_now)
+  - [def set\_params()](#def-set\_params)
+  - [def set\_return()](#def-set\_return)
 - [class BiliWsMsgType()](#class-BiliWsMsgType)
 - [class CookiesRefreshException()](#class-CookiesRefreshException)
 - [class Credential()](#class-Credential)
   - [def \_\_init\_\_()](#def-\_\_init\_\_)
+  - [def check\_blank()](#def-check\_blank)
   - [async def check\_refresh()](#async-def-check\_refresh)
   - [async def check\_valid()](#async-def-check\_valid)
+  - [def clear\_bili\_ticket()](#def-clear\_bili\_ticket)
+  - [def clear\_buvid()](#def-clear\_buvid)
+  - [def copy()](#def-copy)
   - [def from\_cookies()](#def-from\_cookies)
-  - [async def get\_buvid\_cookies()](#async-def-get\_buvid\_cookies)
-  - [def get\_cookies()](#def-get\_cookies)
+  - [async def get\_cookies()](#async-def-get\_cookies)
+  - [def get\_core\_cookies()](#def-get\_core\_cookies)
   - [def has\_ac\_time\_value()](#def-has\_ac\_time\_value)
   - [def has\_bili\_jct()](#def-has\_bili\_jct)
   - [def has\_buvid3()](#def-has\_buvid3)
   - [def has\_buvid4()](#def-has\_buvid4)
   - [def has\_dedeuserid()](#def-has\_dedeuserid)
   - [def has\_sessdata()](#def-has\_sessdata)
+  - [def is\_bili\_ticket\_valid()](#def-is\_bili\_ticket\_valid)
+  - [def is\_buvid\_generated()](#def-is\_buvid\_generated)
   - [def raise\_for\_no\_ac\_time\_value()](#def-raise\_for\_no\_ac\_time\_value)
   - [def raise\_for\_no\_bili\_jct()](#def-raise\_for\_no\_bili\_jct)
   - [def raise\_for\_no\_buvid3()](#def-raise\_for\_no\_buvid3)
@@ -56,6 +84,7 @@ from bilibili_api import ...
   - [def raise\_for\_no\_dedeuserid()](#def-raise\_for\_no\_dedeuserid)
   - [def raise\_for\_no\_sessdata()](#def-raise\_for\_no\_sessdata)
   - [async def refresh()](#async-def-refresh)
+  - [async def update()](#async-def-update)
 - [class CredentialNoAcTimeValueException()](#class-CredentialNoAcTimeValueException)
 - [class CredentialNoBiliJctException()](#class-CredentialNoBiliJctException)
 - [class CredentialNoBuvid3Exception()](#class-CredentialNoBuvid3Exception)
@@ -83,24 +112,46 @@ from bilibili_api import ...
   - [def has\_done()](#def-has\_done)
   - [def start\_geetest\_server()](#def-start\_geetest\_server)
   - [def test\_generated()](#def-test\_generated)
+  - [async def wait\_for\_done()](#async-def-wait\_for\_done)
 - [class GeetestException()](#class-GeetestException)
 - [class GeetestMeta()](#class-GeetestMeta)
 - [class GeetestType()](#class-GeetestType)
-- [var HEADERS](#var-HEADERS)
+- [class InitialStateException()](#class-InitialStateException)
 - [class LiveException()](#class-LiveException)
 - [class LoginError()](#class-LoginError)
 - [class NetworkException()](#class-NetworkException)
 - [class Picture()](#class-Picture)
-  - [def convert\_format()](#def-convert\_format)
+  - [async def content()](#async-def-content)
+  - [def copy()](#def-copy)
+  - [async def download()](#async-def-download)
   - [def from\_content()](#def-from\_content)
   - [def from\_file()](#def-from\_file)
+  - [async def image\_call()](#async-def-image\_call)
   - [async def load\_url()](#async-def-load\_url)
-  - [def resize()](#def-resize)
-  - [def to\_file()](#def-to\_file)
-  - [def to\_json()](#def-to\_json)
+  - [def set\_extension()](#def-set\_extension)
+  - [async def to\_biliapifile()](#async-def-to\_biliapifile)
   - [async def upload()](#async-def-upload)
   - [async def upload\_by\_note()](#async-def-upload\_by\_note)
   - [async def upload\_by\_session()](#async-def-upload\_by\_session)
+- [class RequestSettings()](#class-RequestSettings)
+  - [def \_\_init\_\_()](#def-\_\_init\_\_)
+  - [def all()](#def-all)
+  - [def defaults()](#def-defaults)
+  - [def get()](#def-get)
+  - [def get\_proxy()](#def-get\_proxy)
+  - [def get\_timeout()](#def-get\_timeout)
+  - [def get\_trust\_env()](#def-get\_trust\_env)
+  - [def get\_verify\_ssl()](#def-get\_verify\_ssl)
+  - [def gets()](#def-gets)
+  - [def has()](#def-has)
+  - [def set()](#def-set)
+  - [def set\_proxy()](#def-set\_proxy)
+  - [def set\_timeout()](#def-set\_timeout)
+  - [def set\_trust\_env()](#def-set\_trust\_env)
+  - [def set\_verify\_ssl()](#def-set\_verify\_ssl)
+  - [def sets()](#def-sets)
+  - [def unset()](#def-unset)
+  - [def unsets()](#def-unsets)
 - [class ResourceType()](#class-ResourceType)
 - [class ResponseCodeException()](#class-ResponseCodeException)
 - [class ResponseException()](#class-ResponseException)
@@ -110,23 +161,62 @@ from bilibili_api import ...
 - [class VideoUploadException()](#class-VideoUploadException)
 - [class WbiRetryTimesExceedException()](#class-WbiRetryTimesExceedException)
 - [def aid2bvid()](#def-aid2bvid)
+- [async def bili\_fast\_download()](#async-def-bili\_fast\_download)
+- [var bili\_settings](#var-bili\_settings)
+  - [def all()](#def-all)
+  - [def defaults()](#def-defaults)
+  - [def get()](#def-get)
+  - [def get\_enable\_auto\_buvid()](#def-get\_enable\_auto\_buvid)
+  - [def get\_enable\_bili\_ticket()](#def-get\_enable\_bili\_ticket)
+  - [def get\_enable\_bili\_ticket\_global\_persistence()](#def-get\_enable\_bili\_ticket\_global\_persistence)
+  - [def get\_enable\_buvid\_global\_persistence()](#def-get\_enable\_buvid\_global\_persistence)
+  - [def get\_enable\_fpgen()](#def-get\_enable\_fpgen)
+  - [def get\_fpgen\_args()](#def-get\_fpgen\_args)
+  - [def get\_wbi\_retry\_times()](#def-get\_wbi\_retry\_times)
+  - [def gets()](#def-gets)
+  - [def has()](#def-has)
+  - [def register()](#def-register)
+  - [def set()](#def-set)
+  - [def set\_enable\_auto\_buvid()](#def-set\_enable\_auto\_buvid)
+  - [def set\_enable\_bili\_ticket()](#def-set\_enable\_bili\_ticket)
+  - [def set\_enable\_bili\_ticket\_global\_persistence()](#def-set\_enable\_bili\_ticket\_global\_persistence)
+  - [def set\_enable\_buvid\_global\_persistence()](#def-set\_enable\_buvid\_global\_persistence)
+  - [def set\_enable\_fpgen()](#def-set\_enable\_fpgen)
+  - [def set\_fpgen\_args()](#def-set\_fpgen\_args)
+  - [def set\_wbi\_retry\_times()](#def-set\_wbi\_retry\_times)
+  - [def sets()](#def-sets)
 - [async def bili\_simple\_download()](#async-def-bili\_simple\_download)
 - [def bvid2aid()](#def-bvid2aid)
+- [async def clean\_session()](#async-def-clean\_session)
+- [def configure\_dynamic\_fingerprint()](#def-configure\_dynamic\_fingerprint)
+- [async def ensure\_bili\_ticket()](#async-def-ensure\_bili\_ticket)
+- [async def ensure\_buvid()](#async-def-ensure\_buvid)
 - [def get\_available\_settings()](#def-get\_available\_settings)
-- [async def get\_bili\_ticket()](#async-def-get\_bili\_ticket)
-- [async def get\_buvid()](#async-def-get\_buvid)
+- [def get\_bili\_headers()](#def-get\_bili\_headers)
 - [def get\_client()](#def-get\_client)
+- [def get\_exist\_instances()](#def-get\_exist\_instances)
+- [def get\_force\_settings()](#def-get\_force\_settings)
+- [def get\_instance\_settings()](#def-get\_instance\_settings)
+- [def get\_instances()](#def-get\_instances)
 - [async def get\_real\_url()](#async-def-get\_real\_url)
 - [def get\_registered\_available\_settings()](#def-get\_registered\_available\_settings)
 - [def get\_registered\_clients()](#def-get\_registered\_clients)
+- [def get\_registered\_filters()](#def-get\_registered\_filters)
 - [def get\_selected\_client()](#def-get\_selected\_client)
+- [def get\_selected\_instance()](#def-get\_selected\_instance)
 - [def get\_session()](#def-get\_session)
+- [def get\_settings()](#def-get\_settings)
+- [def new\_instance()](#def-new\_instance)
+- [async def obtain\_bili\_ticket()](#async-def-obtain\_bili\_ticket)
+- [async def obtain\_buvid()](#async-def-obtain\_buvid)
 - [async def parse\_link()](#async-def-parse\_link)
 - [def recalculate\_wbi()](#def-recalculate\_wbi)
-- [def refresh\_bili\_ticket()](#def-refresh\_bili\_ticket)
-- [def refresh\_buvid()](#def-refresh\_buvid)
 - [def register\_client()](#def-register\_client)
+- [def register\_post\_filter()](#def-register\_post\_filter)
+- [def register\_pre\_filter()](#def-register\_pre\_filter)
+- [def remove\_instance()](#def-remove\_instance)
 - [var request\_log](#var-request\_log)
+  - [def get\_all\_events()](#def-get\_all\_events)
   - [def get\_ignore\_events()](#def-get\_ignore\_events)
   - [def get\_on\_events()](#def-get\_on\_events)
   - [def is\_on()](#def-is\_on)
@@ -134,33 +224,19 @@ from bilibili_api import ...
   - [def set\_on()](#def-set\_on)
   - [def set\_on\_events()](#def-set\_on\_events)
 - [var request\_settings](#var-request\_settings)
-  - [def get()](#def-get)
-  - [def get\_all()](#def-get\_all)
-  - [def get\_enable\_auto\_buvid()](#def-get\_enable\_auto\_buvid)
-  - [def get\_enable\_bili\_ticket()](#def-get\_enable\_bili\_ticket)
-  - [def get\_proxy()](#def-get\_proxy)
-  - [def get\_timeout()](#def-get\_timeout)
-  - [def get\_trust\_env()](#def-get\_trust\_env)
-  - [def get\_verify\_ssl()](#def-get\_verify\_ssl)
-  - [def get\_wbi\_retry\_times()](#def-get\_wbi\_retry\_times)
-  - [def set()](#def-set)
-  - [def set\_enable\_auto\_buvid()](#def-set\_enable\_auto\_buvid)
-  - [def set\_enable\_bili\_ticket()](#def-set\_enable\_bili\_ticket)
-  - [def set\_proxy()](#def-set\_proxy)
-  - [def set\_timeout()](#def-set\_timeout)
-  - [def set\_trust\_env()](#def-set\_trust\_env)
-  - [def set\_verify\_ssl()](#def-set\_verify\_ssl)
-  - [def set\_wbi\_retry\_times()](#def-set\_wbi\_retry\_times)
 - [def select\_client()](#def-select\_client)
+- [def select\_instance()](#def-select\_instance)
 - [def set\_session()](#def-set\_session)
 - [def sync()](#def-sync)
 - [def unregister\_client()](#def-unregister\_client)
+- [def unregister\_filter()](#def-unregister\_filter)
+- [def unset\_session()](#def-unset\_session)
 
 ---
 
-**@dataclasses.dataclass** 
-
 ## class Api()
+
+> `@dataclasses.dataclass` 
 
 用于请求的 Api 类，几乎所有 http 请求皆由此发出。
 
@@ -177,10 +253,10 @@ from bilibili_api import ...
 | `json_body` | `bool, optional` | 是否使用 json 作为载荷. Defaults to False. |
 | `ignore_code` | `bool, optional` | 是否忽略返回值 code 的检验. Defaults to False. |
 | `sign` | `bool, optional` | 是否使用 APP 鉴权. Defaults to False. |
-| `data` | `Dict, optional` | 请求载荷. Defaults to {}. |
-| `params` | `Dict, optional` | 请求参数. Defaults to {}. |
-| `files` | `Dict[str, BiliAPIFile], optional` | 附带文件. Defaults to {}. |
-| `headers` | `Dict, optional` | 自定义的请求头. Defaults to {}. |
+| `data` | `dict, optional` | 请求载荷. Defaults to {}. |
+| `params` | `dict, optional` | 请求参数. Defaults to {}. |
+| `files` | `dict[str, BiliAPIFile], optional` | 附带文件. Defaults to {}. |
+| `headers` | `dict, optional` | 自定义的请求头. Defaults to {}. |
 | `credential` | `Credential, optional` | 凭据. Defaults to Credential(). |
 
 
@@ -191,8 +267,9 @@ from bilibili_api import ...
 
 | name | type | description |
 | - | - | - |
-| `raw` | `bool` | 是否不提取 data 或 result 字段。 Defaults to False. |
-| `byte` | `bool` | 是否直接返回字节数据。 Defaults to False. |
+| `raw` | `bool, optional` | 是否不提取 data 或 result 字段。 Defaults to False. |
+| `byte` | `bool, optional` | 是否直接返回字节数据。 Defaults to False. |
+| `bili_res` | `bool, optional` | 是否直接返回 BiliAPIResponse 对象。 Defaults to False. |
 
 **Returns:** `int | str | dict | bytes | None`:  接口未返回数据时，返回 None，否则返回该接口提供的 data 或 result 字段的数据。
 
@@ -247,7 +324,7 @@ from bilibili_api import ...
 
 ## class ApiException()
 
-**Extend: builtins.Exception**
+> Extend: `builtins.Exception`
 
 API 基类异常。
 
@@ -258,7 +335,7 @@ API 基类异常。
 
 ## class ArgsException()
 
-**Extend: bilibili_api.exceptions.ApiException.ApiException**
+> Extend: `bilibili_api.exceptions.ApiException.ApiException`
 
 参数错误。
 
@@ -271,9 +348,12 @@ API 基类异常。
 
 发布-订阅模式异步事件类支持。
 
-特殊事件：__ALL__ 所有事件均触发
+特殊事件：\_\_ALL\_\_ 所有事件均触发；\_\_TASK_EXCEPTION\_\_ 当订阅任务执行过程中抛出异常时发布的事件，不包含在 \_\_ALL\_\_ 中，订阅此事件的处理函数不再进行异常处理。
 
 
+| name | type | description |
+| - | - | - |
+| `task_group` | `anyio.abc.TaskGroup` | 可用于创建 Task 的 TaskGroup 实例。 |
 
 
 ### def \_\_init\_\_()
@@ -290,7 +370,59 @@ API 基类异常。
 | name | type | description |
 | - | - | - |
 | `name` | `str` | 事件名。 |
-| `handler` | `Union[Callable, Coroutine]` | 回调函数。 |
+| `handler` | `Callable \| Coroutine` | 回调函数。 |
+
+
+
+
+### def async_event_cancel()
+
+取消异步事件类主任务
+
+
+
+
+
+
+### async def async_event_run()
+
+> `@asynccontextmanager` 
+
+非阻塞启动异步事件类
+
+此函数将返回异步上下文管理器。
+
+
+| name | type | description |
+| - | - | - |
+| `start_coro` | `Coroutine[Any, Any, ~T]` | 主程序的阻塞启动协程 |
+
+**Returns:** `AsyncGenerator[anyio.TaskHandle[~T | None]]`:  运行主程序的 TaskHandle，若中途取消则返回 None
+
+
+
+
+### def async_event_running()
+
+判断异步事件类主任务是否正在运行
+
+
+
+**Returns:** `bool`:  异步事件类主任务是否正在运行
+
+
+
+
+### async def async_event_start()
+
+阻塞启动异步事件类
+
+
+| name | type | description |
+| - | - | - |
+| `coro` | `Coroutine[Any, Any, ~T]` | 主程序 |
+
+**Returns:** `~T | None`:  主程序返回值，若中途取消则返回 None
 
 
 
@@ -303,7 +435,8 @@ API 基类异常。
 | name | type | description |
 | - | - | - |
 | `name` | `str` | 事件名。 |
-| `*args, **kwargs` | `Any` | 要传递给函数的参数。 |
+| `args` | `Any` | 要传递给函数的参数。 *args 传递。 |
+| `kwargs` | `Any` | 要传递给函数的参数。 **kwargs 传递。 |
 
 
 
@@ -329,6 +462,8 @@ API 基类异常。
 | - | - | - |
 | `event_name` | `str` | 事件名。 |
 
+**Returns:** `Callable`:  装饰器。
+
 
 
 
@@ -349,7 +484,7 @@ API 基类异常。
 | name | type | description |
 | - | - | - |
 | `name` | `str` | 事件名。 |
-| `handler` | `Union[Callable, Coroutine]` | 要移除的函数。 |
+| `handler` | `Callable \| Coroutine` | 要移除的函数。 |
 
 **Returns:** `bool`:  是否移除成功。
 
@@ -369,7 +504,7 @@ API 基类异常。
 
 ## class BiliAPIClient()
 
-**Extend: abc.ABC**
+> Extend: `abc.ABC`
 
 
 请求客户端抽象类。通过对第三方模块请求客户端的封装令模块可对其进行调用。
@@ -379,7 +514,6 @@ class BiliAPIClient(ABC):
     """
     请求客户端抽象类。通过对第三方模块请求客户端的封装令模块可对其进行调用。
     """
-
     @abstractmethod
     def __init__(
         self,
@@ -387,7 +521,7 @@ class BiliAPIClient(ABC):
         timeout: float = 0.0,
         verify_ssl: bool = True,
         trust_env: bool = True,
-        session: Optional[object] = None,
+        session: object | None = None,
     ) -> None:
         """
         Args:
@@ -456,11 +590,11 @@ class BiliAPIClient(ABC):
         self,
         method: str = "",
         url: str = "",
-        params: dict = {},
-        data: Union[dict, str, bytes] = {},
-        files: Dict[str, BiliAPIFile] = {},
-        headers: dict = {},
-        cookies: dict = {},
+        params: dict | None = None,
+        data: dict | str | bytes | None = None,
+        files: dict[str, BiliAPIFile] | None = None,
+        headers: dict | None = None,
+        cookies: dict | None = None,
         allow_redirects: bool = True,
     ) -> BiliAPIResponse:
         """
@@ -469,11 +603,11 @@ class BiliAPIClient(ABC):
         Args:
             method (str, optional): 请求方法. Defaults to "".
             url (str, optional): 请求地址. Defaults to "".
-            params (dict, optional): 请求参数. Defaults to {}.
-            data (Union[dict, str, bytes], optional): 请求数据. Defaults to {}.
-            files (Dict[str, BiliAPIFile], optional): 请求文件. Defaults to {}.
-            headers (dict, optional): 请求头. Defaults to {}.
-            cookies (dict, optional): 请求 Cookies. Defaults to {}.
+            params (dict | None, optional): 请求参数. Defaults to None.
+            data (dict | str | bytes | None, optional): 请求数据. Defaults to None.
+            files (dict[str, BiliAPIFile] | None, optional): 请求文件. Defaults to None.
+            headers (dict | None, optional): 请求头. Defaults to None.
+            cookies (dict | None, optional): 请求 Cookies. Defaults to None.
             allow_redirects (bool, optional): 是否允许重定向. Defaults to True.
 
         Returns:
@@ -481,24 +615,32 @@ class BiliAPIClient(ABC):
 
         Note: 无需实现 data 为 str 且 files 不为空的情况。
         """
+        params = params or {}
+        data = data or {}
+        files = files or {}
+        headers = headers or {}
+        cookies = cookies or {}
         raise NotImplementedError
 
     @abstractmethod
     async def download_create(
         self,
         url: str = "",
-        headers: dict = {},
+        headers: dict | None = None,
+        chunk_size: int = 4096,
     ) -> int:
         """
         开始下载文件
 
         Args:
-            url     (str, optional) : 请求地址. Defaults to "".
-            headers (dict, optional): 请求头. Defaults to {}.
+            url        (str, optional)        : 请求地址. Defaults to "".
+            headers    (dict | None, optional): 请求头. Defaults to None.
+            chunk_size (int, optional)        : 单次迭代数据大小. Defaults to 4096.
 
         Returns:
             int: 下载编号，用于后续操作。
         """
+        headers = headers or {}
         raise NotImplementedError
 
     @abstractmethod
@@ -539,19 +681,21 @@ class BiliAPIClient(ABC):
 
     @abstractmethod
     async def ws_create(
-        self, url: str = "", params: dict = {}, headers: dict = {}
+        self, url: str = "", params: dict | None = None, headers: dict | None = None
     ) -> int:
         """
         创建 WebSocket 连接
 
         Args:
             url (str, optional): WebSocket 地址. Defaults to "".
-            params (dict, optional): WebSocket 参数. Defaults to {}.
-            headers (dict, optional): WebSocket 头. Defaults to {}.
+            params (dict | None, optional): WebSocket 参数. Defaults to None.
+            headers (dict | None, optional): WebSocket 头. Defaults to None.
 
         Returns:
             int: WebSocket 连接编号，用于后续操作。
         """
+        params = params or {}
+        headers = headers or {}
         raise NotImplementedError
 
     @abstractmethod
@@ -566,7 +710,7 @@ class BiliAPIClient(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def ws_recv(self, cnt: int) -> Tuple[bytes, BiliWsMsgType]:
+    async def ws_recv(self, cnt: int) -> tuple[bytes, BiliWsMsgType]:
         """
         接受 WebSocket 数据
 
@@ -591,7 +735,7 @@ class BiliAPIClient(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def close(self):
+    async def close(self) -> None:
         """
         关闭请求客户端，即关闭封装的第三方会话对象
         """
@@ -602,24 +746,39 @@ class BiliAPIClient(ABC):
 
 ---
 
-**@dataclasses.dataclass** 
-
 ## class BiliAPIFile()
+
+> `@dataclasses.dataclass` 
 
 上传文件类。
 
 
 | name | type | description |
 | - | - | - |
-| `path` | `str` | 文件地址 |
+| `name` | `str` | 文件名 |
+| `content` | `bytes` | 文件内容 |
 | `mime_type` | `str` | 文件类型 |
+
+
+### async def open()
+
+> `@staticmethod` 
+
+打开文件
+
+
+| name | type | description |
+| - | - | - |
+| `path` | `str` | 文件地址 |
+
+
 
 
 ---
 
-**@dataclasses.dataclass** 
-
 ## class BiliAPIResponse()
+
+> `@dataclasses.dataclass` 
 
 响应对象类。
 
@@ -627,8 +786,8 @@ class BiliAPIClient(ABC):
 | name | type | description |
 | - | - | - |
 | `code` | `int` | 响应码 |
-| `headers` | `Dict` | 响应头 |
-| `cookies` | `Dict` | 当前状态的 cookies |
+| `headers` | `dict[str, str]` | 响应头 |
+| `cookies` | `dict[str, str]` | 当前状态的 cookies |
 | `raw` | `bytes` | 响应数据 |
 | `url` | `str` | 当前 url |
 
@@ -639,7 +798,7 @@ class BiliAPIClient(ABC):
 
 
 
-**Returns:** `object`:  解析后的 json
+**Returns:** `dict[str, Any]`:  解析后的 json
 
 
 
@@ -657,9 +816,248 @@ class BiliAPIClient(ABC):
 
 ---
 
+## class BiliFilterArgs()
+
+> `@dataclasses.dataclass` 
+
+传入过滤器的参数，携带以下信息。
+
+
+| name | type | description |
+| - | - | - |
+| `client` | `str` | 当前选择的的客户端 |
+| `instance` | `str` | 请求所属的实例 |
+| `settings` | `dict` | 请求客户端相关设置 |
+| `event_loop_token` | `anyio.lowlevel.EventLoopToken` | 请求客户端的事件循环，对应模块内部编号 |
+| `sess` | `BiliAPIClient` | 调用的 BiliAPIClient 实例 |
+| `func` | `str` | 当前调用的函数 |
+| `params` | `dict` | 调用函数的参数 |
+| `ret` | `Any` | 函数运行返回结果 (可能存在) |
+| `filter_cnt` | `int` | 过滤器执行编号，一个编号对应一次函数调用 |
+| `filter_data` | `FilterData` | 用于数据交换的 FilterData 实例 |
+| `filter_index` | `int` | 过滤器在运行列表中的位置下标 |
+| `filter_locate` | `str` | 过滤器位置，前置为 `pre`，后置为 `post`。 |
+
+
+### def get_event_loop()
+
+获取事件循环 (asyncio.AbstractEventLoop)
+
+
+
+**Returns:** `asyncio.AbstractEventLoop`:  事件循环
+
+
+
+
+### def get_trio_token()
+
+获取 TrioToken
+
+
+
+**Returns:** `trio.lowlevel.TrioToken`:  TrioToken
+
+
+
+
+---
+
+## class BiliFilterData()
+
+过滤器存储交换数据使用的实例
+
+
+
+
+### def \_\_init\_\_()
+
+
+
+
+
+### def get_data()
+
+获取数据
+
+
+| name | type | description |
+| - | - | - |
+| `key` | `str` | 键 |
+
+**Returns:** `Any`:  值
+
+
+
+
+### def has_data()
+
+是否存在数据
+
+
+| name | type | description |
+| - | - | - |
+| `key` | `str` | 键 |
+
+**Returns:** `bool`:  是否存在数据
+
+
+
+
+### def set_data()
+
+设置数据
+
+
+| name | type | description |
+| - | - | - |
+| `key` | `str` | 键 |
+| `value` | `Any` | 值 |
+
+
+
+
+---
+
+## class BiliFilterFlags()
+
+> Extend: `enum.Enum`
+
+过滤器行为枚举
+
+返回过滤器行为可通过函数 `return` 返回或生成器 `yield` 抛出。
+
+`return` 只能返回一个行为， `yield` 可以抛出多个行为。
+
+- 【NOTE】以下过滤器建议配合 `yield` 使用。
+- SET_PARAMS: 设置函数的参数 (仅前置过滤器)
+- SET_RETURN: 设置返回值 (仅后置过滤器)
+- 【NOTE】以下过滤器需要配合 `yield` + `return` 使用。
+- CONTINUE: 继续下一个过滤器
+- EXECUTE_NOW: 直接运行函数 (仅前置过滤器)
+- RETURN_NOW: 直接作为函数返回值返回
+- GOTO: 跳到任意一个过滤器 需通过 `get_registered_filters` 查询对应过滤器的下标
+
+
+
+
+---
+
+## class BiliFilterReturn()
+
+用于结束过滤器返回结果的工具类
+
+
+
+
+### def continue_exec()
+
+> `@staticmethod` 
+
+继续过滤器执行
+
+
+
+**Returns:** `tuple[BiliFilterFlags, None]`:  过滤器函数返回值
+
+
+
+
+### def execute_now()
+
+> `@staticmethod` 
+
+直接运行函数 (仅前置过滤器)
+
+
+
+**Returns:** `tuple[BiliFilterFlags, None]`:  过滤器函数返回值
+
+
+
+
+### def goto_idx()
+
+> `@staticmethod` 
+
+跳到任意一个过滤器
+
+
+| name | type | description |
+| - | - | - |
+| `idx` | `int` | 对应过滤器的下标，可 `get_registered_(pre|post)_filters` 查询 |
+
+**Returns:** `tuple[BiliFilterFlags, int]`:  过滤器函数返回值
+
+
+
+
+### def goto_name()
+
+> `@staticmethod` 
+
+跳到任意一个过滤器
+
+
+| name | type | description |
+| - | - | - |
+| `name` | `str` | 对应过滤器名称 |
+
+**Returns:** `tuple[BiliFilterFlags, int]`:  过滤器函数返回值
+
+
+
+
+### def return_now()
+
+> `@staticmethod` 
+
+直接返回结果，作为待运行函数返回值
+
+
+
+**Returns:** `tuple[BiliFilterFlags, None]`:  过滤器函数返回值
+
+
+
+
+### def set_params()
+
+> `@staticmethod` 
+
+设置函数的参数 (仅前置过滤器)
+
+
+| name | type | description |
+| - | - | - |
+| `params` | `dict` | 参数 |
+
+**Returns:** `tuple[BiliFilterFlags, dict]`:  过滤器函数返回值
+
+
+
+
+### def set_return()
+
+> `@staticmethod` 
+
+设置函数的返回值 (仅后置过滤器)
+
+
+| name | type | description |
+| - | - | - |
+| `ret` | `Any` | 函数返回值 |
+
+**Returns:** `tuple[BiliFilterFlags, Any]`:  过滤器函数返回值
+
+
+
+
+---
+
 ## class BiliWsMsgType()
 
-**Extend: enum.Enum**
+> Extend: `enum.Enum`
 
 WebSocket 状态枚举
 
@@ -680,7 +1078,7 @@ WebSocket 状态枚举
 
 ## class CookiesRefreshException()
 
-**Extend: bilibili_api.exceptions.ApiException.ApiException**
+> Extend: `bilibili_api.exceptions.ApiException.ApiException`
 
 Cookies 刷新错误。
 
@@ -693,23 +1091,75 @@ Cookies 刷新错误。
 
 凭据类，用于各种请求操作的验证。
 
+以下字段获取方式见 https://bromothymolb.github.io/bilibili-api-zoku/#/docs/common/credential?id=获取-credential-类所需信息
+
+重要 cookies:
+ - `SESSDATA` (`sessdata`);
+ - `bili_jct`;
+ - `DedeUserId` (`dedeuserid`);
+ - `DedeUserId__ckMd5` (`dedeuserid_ckmd5`);
+ - `sid`
+
+本地生成 cookies:
+ - `b_nut`;
+ - `b_lsid`;
+ - `uuid_infoc`
+
+网络请求生成反爬 cookies:
+ - `buvid3`;
+ - `buvid4`;
+ - `buvid_fp`;
+ - `bili_ticket`;
+ - `bili_ticket_expires`
+
+非 cookies:
+ - `ac_time_value` (存储在 Local Storage 中)
+
+维护 buvid / bili_ticket 遵循以下规则：
+1. `global` 为模块初始化时定义的独一无二的凭据类。
+2. `blank` 为 `get_core_cookies` 字段全为 `None` 的凭据类，即 `Credential()`。可通过 `check_blank()` 检查凭据类是否为 `blank`。
+3. 其余凭据类均为 `normal`，即使传入 `sessdata="", bili_jct=""` 亦视为 `normal`。
+4. `get_xxx` 函数拆分为 `ensure_xxx` 和 `obtain_xxx`，接受凭据类传入。
+1. `ensure` 保证 `buvid` / `bili_ticket` 存在且可用，只有凭据类中的 `buvid` 和 `bili_ticket` 不可用才进行 `obtain`。`ensure` 在已有 cookies 情况下不会修改 cookies。
+2. `obtain` 总是发起网络请求获取新的 `buvid` / `bili_ticket`。
+5. `blank` 或在 `global_persistence` 下，凭据类进行 `ensure` 或 `obtain` 将先 `ensure global` 或 `obtain global`，再复制 `global` 相关字段，称此复制过程为同步。
+6. `get_cookies` 中直接调用 `ensure`，不会直接调用 `obtain`。在禁用 `buvid` 与 `bili_ticket` 自动获取时只同步不请求。
+7. `ensure` 与 `obtain` 若没有传入凭据类，将创建一个新的 `blank` 作为凭据类带入。因此获取 `global` 字段直接不带参调用 `ensure`，更新 `global` 字段直接不带参调用 `obtain`。
+
 
 
 
 ### def \_\_init\_\_()
 
-各字段获取方式查看：https://bromothymolb.github.io/bilibili-api-zoku/#/get-credential.md
+各字段获取方式查看：https://bromothymolb.github.io/bilibili-api-zoku/#/docs/common/credential.md
+
+buvid3 和 buvid4 建议配合食用，bili_ticket 和 bili_ticket_expires 亦建议配合食用。
 
 
 | name | type | description |
 | - | - | - |
 | `sessdata` | `str \| None, optional` | 浏览器 Cookies 中的 SESSDATA 字段值. Defaults to None. |
 | `bili_jct` | `str \| None, optional` | 浏览器 Cookies 中的 bili_jct 字段值. Defaults to None. |
-| `buvid3` | `str \| None, optional` | 浏览器 Cookies 中的 BUVID3 字段值. Defaults to None. |
-| `buvid4` | `str \| None, optional` | 浏览器 Cookies 中的 BUVID4 字段值. Defaults to None. |
+| `buvid3` | `str \| None, optional` | 浏览器 Cookies 中的 buvid3 字段值. Defaults to None. |
+| `buvid4` | `str \| None, optional` | 浏览器 Cookies 中的 buvid4 字段值. Defaults to None. |
 | `dedeuserid` | `str \| None, optional` | 浏览器 Cookies 中的 DedeUserID 字段值. Defaults to None. |
-| `ac_time_value` | `str \| None, optional` | 浏览器 Cookies 中的 ac_time_value 字段值. Defaults to None. |
-| `proxy` | `str \| None, optional` | 凭据类可选择携带的代理. Defaults to None. |
+| `dedeuserid_ckmd5` | `str \| None, optional` | 浏览器 Cookies 中的 DedeUserID__ckMd5 字段值. Defaults to None. |
+| `sid` | `str \| None, optional` | 浏览器 Cookies 中的 sid 字段值. Defaults to None. |
+| `bili_ticket` | `str \| None, optional` | 浏览器 Cookies 中的 bili_ticket 字段值. Defaults to None. |
+| `bili_ticket_expires` | `str \| None, optional` | 浏览器 Cookies 中的 bili_ticket_expires 字段值. Defaults to None. |
+| `ac_time_value` | `str \| None, optional` | 浏览器 localStorage 中的 ac_time_value 字段值. Defaults to None. |
+| `kwargs` | `Any` | 其他用户可自行添加的 cookies。通过 **kwargs 传入。 |
+
+
+### def check_blank()
+
+检查是否为空白凭据类 (`Credential()`)
+
+
+
+**Returns:** `bool`:  是否为空白凭据类
+
+
 
 
 ### async def check_refresh()
@@ -734,40 +1184,72 @@ Cookies 刷新错误。
 
 
 
-**@staticmethod** 
+### def clear_bili_ticket()
+
+清除 bili_ticket。若未开启全局可持久化则将生成新的 bili_ticket，否则将与全局 bili_ticket 同步。
+
+
+
+
+
+
+### def clear_buvid()
+
+清除 buvid。若未开启全局可持久化则将生成新的 buvid，否则将与全局 buvid 同步。
+
+
+
+
+
+
+### def copy()
+
+复制凭据类
+
+
+
+**Returns:** `Credential`:  复制后的凭据类
+
+
+
 
 ### def from_cookies()
+
+> `@classmethod` 
 
 从 cookies 新建 Credential
 
 
 | name | type | description |
 | - | - | - |
-| `cookies` | `Dict, optional` | Cookies. Defaults to {}. |
+| `cookies` | `dict` | Cookies. |
+| `ac_time_value` | `str, optional` | ac_time_value. |
 
 **Returns:** `Credential`:  凭据类
 
 
 
 
-### async def get_buvid_cookies()
+### async def get_cookies()
 
-获取请求 Cookies 字典，自动补充 buvid 字段
-
-
-
-**Returns:** `dict`:  请求 Cookies 字典
+获取请求 Cookies 字典，同时处理 buvid / bili_ticket。
 
 
 
-
-### def get_cookies()
-
-获取请求 Cookies 字典
+**Returns:** `dict[str, str]`:  请求 Cookies 字典
 
 
 
-**Returns:** `dict`:  请求 Cookies 字典
+
+### def get_core_cookies()
+
+返回部分核心 cookies，需要登录获取，可用于复制 Credential 对象
+
+包含 SESSDATA, bili_jct, sid, DedeUserID, ac_time_value
+
+
+
+**Returns:** `dic[str, str | None]`:  核心 cookies
 
 
 
@@ -838,6 +1320,28 @@ Cookies 刷新错误。
 
 
 
+### def is_bili_ticket_valid()
+
+bili_ticket 是否可用
+
+
+
+**Returns:** `bool`:  bili_ticket 是否可用
+
+
+
+
+### def is_buvid_generated()
+
+buvid3 / buvid4 是否已生成
+
+
+
+**Returns:** `bool`:  buvid3 / buvid4 是否已生成
+
+
+
+
 ### def raise_for_no_ac_time_value()
 
 没有提供 ac_time_value 时抛出异常。
@@ -867,7 +1371,7 @@ Cookies 刷新错误。
 
 ### def raise_for_no_buvid4()
 
-没有提供 buvid3 时抛出异常。
+没有提供 buvid4 时抛出异常。
 
 
 
@@ -901,11 +1405,20 @@ Cookies 刷新错误。
 
 
 
+### async def update()
+
+判断并更新 cookies
+
+
+
+
+
+
 ---
 
 ## class CredentialNoAcTimeValueException()
 
-**Extend: bilibili_api.exceptions.ApiException.ApiException**
+> Extend: `bilibili_api.exceptions.ApiException.ApiException`
 
 Credential 类未提供 ac_time_value 时的异常。
 
@@ -916,7 +1429,7 @@ Credential 类未提供 ac_time_value 时的异常。
 
 ## class CredentialNoBiliJctException()
 
-**Extend: bilibili_api.exceptions.ApiException.ApiException**
+> Extend: `bilibili_api.exceptions.ApiException.ApiException`
 
 Credential 类未提供 bili_jct 时的异常。
 
@@ -927,7 +1440,7 @@ Credential 类未提供 bili_jct 时的异常。
 
 ## class CredentialNoBuvid3Exception()
 
-**Extend: bilibili_api.exceptions.ApiException.ApiException**
+> Extend: `bilibili_api.exceptions.ApiException.ApiException`
 
 Credential 类未提供 buvid3 时的异常。
 
@@ -938,7 +1451,7 @@ Credential 类未提供 buvid3 时的异常。
 
 ## class CredentialNoBuvid4Exception()
 
-**Extend: bilibili_api.exceptions.ApiException.ApiException**
+> Extend: `bilibili_api.exceptions.ApiException.ApiException`
 
 Credential 类未提供 buvid4 时的异常。
 
@@ -949,7 +1462,7 @@ Credential 类未提供 buvid4 时的异常。
 
 ## class CredentialNoDedeUserIDException()
 
-**Extend: bilibili_api.exceptions.ApiException.ApiException**
+> Extend: `bilibili_api.exceptions.ApiException.ApiException`
 
 Credential 类未提供 DedeUserID 时的异常。
 
@@ -960,7 +1473,7 @@ Credential 类未提供 DedeUserID 时的异常。
 
 ## class CredentialNoSessdataException()
 
-**Extend: bilibili_api.exceptions.ApiException.ApiException**
+> Extend: `bilibili_api.exceptions.ApiException.ApiException`
 
 Credential 类未提供 sessdata 时的异常。
 
@@ -986,25 +1499,25 @@ Credential 类未提供 sessdata 时的异常。
 | name | type | description |
 | - | - | - |
 | `text` | `str` | 弹幕文本。 |
-| `dm_time` | `float, optional` | 弹幕在视频中的位置，单位为秒。Defaults to 0.0. |
-| `send_time` | `float, optional` | 弹幕发送的时间。Defaults to time.time(). |
-| `crc32_id` | `str, optional` | 弹幕发送者 UID 经 CRC32 算法取摘要后的值。Defaults to "". |
-| `color` | `str, optional` | 弹幕十六进制颜色。Defaults to "ffffff" (如果为大会员专属的颜色则为"special"). |
-| `weight` | `int, optional` | 弹幕在弹幕列表显示的权重。Defaults to -1. |
-| `id_` | `int, optional` | 弹幕 ID。Defaults to -1. |
-| `id_str` | `str, optional` | 弹幕字符串 ID。Defaults to "". |
-| `action` | `str, optional` | 暂不清楚。Defaults to "". |
-| `mode` | `Union[DmMode, int], optional` | 弹幕模式。Defaults to Mode.FLY. |
-| `font_size` | `Union[DmFontSize, int], optional` | 弹幕字体大小。Defaults to FontSize.NORMAL. |
-| `is_sub` | `bool, optional` | 是否为字幕弹幕。Defaults to False. |
-| `pool` | `int, optional` | 池。Defaults to 0. |
-| `attr` | `int, optional` | 暂不清楚。 Defaults to -1. |
-| `uid` | `int, optional` | 弹幕发送者 UID。Defaults to -1. |
+| `dm_time` | `float, optional` | 弹幕在视频中的位置，单位为秒. Defaults to 0.0. |
+| `send_time` | `float, optional` | 弹幕发送的时间. Defaults to 1766892400.431226. |
+| `crc32_id` | `str, optional` | 弹幕发送者 UID 经 CRC32 算法取摘要后的值. Defaults to ''. |
+| `color` | `str, optional` | 弹幕十六进制颜色. Defaults to 'ffffff'. |
+| `weight` | `int, optional` | 弹幕在弹幕列表显示的权重. Defaults to -1. |
+| `id_` | `int, optional` | 弹幕 ID. Defaults to -1. |
+| `id_str` | `str, optional` | 弹幕字符串 ID. Defaults to ''. |
+| `action` | `str, optional` | 暂不清楚. Defaults to ''. |
+| `mode` | `DmMode \| int, optional` | 弹幕模式. Defaults to DmMode.FLY. |
+| `font_size` | `DmFontSize \| int, optional` | 弹幕字体大小. Defaults to DmFontSize.NORMAL. |
+| `is_sub` | `bool, optional` | 是否为字幕弹幕. Defaults to False. |
+| `pool` | `int, optional` | 池. Defaults to 0. |
+| `attr` | `int, optional` | 暂不清楚. Defaults to -1. |
+| `uid` | `int, optional` | 弹幕发送者 UID. Defaults to -1. |
 
-
-**@staticmethod** 
 
 ### def crack_uid()
+
+> `@staticmethod` 
 
 (@staticmethod)
 
@@ -1037,7 +1550,7 @@ Credential 类未提供 sessdata 时的异常。
 
 ## class DanmakuClosedException()
 
-**Extend: bilibili_api.exceptions.ApiException.ApiException**
+> Extend: `bilibili_api.exceptions.ApiException.ApiException`
 
 视频弹幕被关闭错误。
 
@@ -1048,7 +1561,7 @@ Credential 类未提供 sessdata 时的异常。
 
 ## class DmFontSize()
 
-**Extend: enum.Enum**
+> Extend: `enum.Enum`
 
 字体大小枚举。
 
@@ -1067,7 +1580,7 @@ Credential 类未提供 sessdata 时的异常。
 
 ## class DmMode()
 
-**Extend: enum.Enum**
+> Extend: `enum.Enum`
 
 弹幕模式枚举。
 
@@ -1086,7 +1599,7 @@ Credential 类未提供 sessdata 时的异常。
 
 ## class DynamicExceedImagesException()
 
-**Extend: bilibili_api.exceptions.ApiException.ApiException**
+> Extend: `bilibili_api.exceptions.ApiException.ApiException`
 
 动态上传图片数量超过限制
 
@@ -1097,7 +1610,7 @@ Credential 类未提供 sessdata 时的异常。
 
 ## class ExClimbWuzhiException()
 
-**Extend: bilibili_api.exceptions.ApiException.ApiException**
+> Extend: `bilibili_api.exceptions.ApiException.ApiException`
 
 ExClimbWuzhi 失败异常
 
@@ -1148,7 +1661,7 @@ ExClimbWuzhi 失败异常
 
 | name | type | description |
 | - | - | - |
-| `type_` | `GeetestType` | 极验验证码类型。登录为 LOGIN，登录验证为 VERIFY. Defaults to GeetestType.LOGIN. |
+| `type_` | `GeetestType, optional` | 极验验证码类型。登录为 LOGIN，登录验证为 VERIFY. Defaults to GeetestType.LOGIN. |
 
 
 
@@ -1228,11 +1741,20 @@ ExClimbWuzhi 失败异常
 
 
 
+### async def wait_for_done()
+
+等待极验验证码完成
+
+
+
+
+
+
 ---
 
 ## class GeetestException()
 
-**Extend: bilibili_api.exceptions.ApiException.ApiException**
+> Extend: `bilibili_api.exceptions.ApiException.ApiException`
 
 未找到验证码服务器
 
@@ -1241,9 +1763,9 @@ ExClimbWuzhi 失败异常
 
 ---
 
-**@dataclasses.dataclass** 
-
 ## class GeetestMeta()
+
+> `@dataclasses.dataclass` 
 
 极验验证码完成信息
 
@@ -1256,7 +1778,7 @@ NOTE: `gt`, `challenge`, `token` 为验证码基本字段。`seccode`, `validate
 
 ## class GeetestType()
 
-**Extend: enum.Enum**
+> Extend: `enum.Enum`
 
 极验验证码类型
 
@@ -1268,14 +1790,22 @@ NOTE: `gt`, `challenge`, `token` 为验证码基本字段。`seccode`, `validate
 
 ---
 
-## var HEADERS
+## class InitialStateException()
+
+> Extend: `bilibili_api.exceptions.ApiException.ApiException`
+
+获取初始化信息错误。
+
+
+
 
 ---
 
 ## class LiveException()
 
-**Extend: bilibili_api.exceptions.ApiException.ApiException**
+> Extend: `bilibili_api.exceptions.ApiException.ApiException`
 
+直播异常。
 
 
 
@@ -1284,9 +1814,9 @@ NOTE: `gt`, `challenge`, `token` 为验证码基本字段。`seccode`, `validate
 
 ## class LoginError()
 
-**Extend: bilibili_api.exceptions.ApiException.ApiException**
+> Extend: `bilibili_api.exceptions.ApiException.ApiException`
 
-参数错误。
+登录错误。
 
 
 
@@ -1295,7 +1825,7 @@ NOTE: `gt`, `challenge`, `token` 为验证码基本字段。`seccode`, `validate
 
 ## class NetworkException()
 
-**Extend: bilibili_api.exceptions.ApiException.ApiException**
+> Extend: `bilibili_api.exceptions.ApiException.ApiException`
 
 网络错误。
 
@@ -1304,63 +1834,86 @@ NOTE: `gt`, `challenge`, `token` 为验证码基本字段。`seccode`, `validate
 
 ---
 
-**@dataclasses.dataclass** 
-
 ## class Picture()
+
+> `@dataclasses.dataclass` 
 
 (@dataclasses.dataclass)
 
 图片类，包含图片链接、尺寸以及下载操作。
 
-可以不实例化，用 `load_url`, `from_content` 或 `from_file` 加载图片。
+可以使用静态类方法 `load_url`, `from_content` 或 `from_file` 加载图片。
 
 
 | name | type | description |
 | - | - | - |
 | `height` | `int` | 高度 |
-| `imageType` | `str` | 格式，例如 |
-| `size` | `Any` | 大小。单位 KB |
-| `url` | `str` | 图片链接 |
 | `width` | `int` | 宽度 |
-| `content` | `bytes` | 图片内容 |
+| `url` | `str` | 图片链接 |
+| `extension` | `str` | 文件格式 |
+| `format` | `str` | 图片格式 |
+| `mime_type` | `str` | MIME 类型。 |
+| `image` | `PIL.Image.Image` | Image 实例 |
 
 
-### def convert_format()
+### async def content()
 
-将图片转换为另一种格式。
+获取图片内容
+
+
+
+**Returns:** `bytes`:  图片内容
+
+
+
+
+### def copy()
+
+复制 Picture 类
+
+
+
+**Returns:** `Picture`:  和 `self` 相同的新 Picture 类
+
+
+
+
+### async def download()
+
+下载图片至本地。支持自定义文件格式。
 
 
 | name | type | description |
 | - | - | - |
-| `new_format` | `str` | 新的格式。例：`png`, `ico`, `webp`. |
+| `path` | `str` | 下载地址。 |
 
 **Returns:** `Picture`:  `self`
 
 
 
 
-**@staticmethod** 
-
 ### def from_content()
+
+> `@staticmethod` 
 
 加载字节数据
 
 
 | name | type | description |
 | - | - | - |
-| `content` | `str` | 图片内容 |
-| `format` | `str` | 图片后缀名，如 `webp`, `jpg`, `ico` |
+| `content` | `bytes` | 图片内容 |
+| `extension` | `str` | 图片后缀名，如 `webp`, `jpg`, `ico` |
 
 **Returns:** `Picture`:  加载后的图片对象
 
 
 
 
-**@staticmethod** 
-
 ### def from_file()
 
-加载本地图片。
+> `@staticmethod` 
+
+加载本地图片
 
 
 | name | type | description |
@@ -1372,9 +1925,25 @@ NOTE: `gt`, `challenge`, `token` 为验证码基本字段。`seccode`, `validate
 
 
 
-**@staticmethod** 
+### async def image_call()
+
+调用 PIL.Image.Image 中的返回 Image 的操作函数
+
+
+| name | type | description |
+| - | - | - |
+| `func` | `str` | 调用的函数名。如 `resize` 调整大小，`filter` 添加滤镜。 |
+| `args` | `Any` | 要传递给函数的参数。 *args 传递。 |
+| `kwargs` | `Any` | 要传递给函数的参数。 **kwargs 传递。 |
+
+**Returns:** `Picture`:  `self`
+
+
+
 
 ### async def load_url()
+
+> `@staticmethod` 
 
 加载网络图片。(async 方法)
 
@@ -1388,42 +1957,27 @@ NOTE: `gt`, `challenge`, `token` 为验证码基本字段。`seccode`, `validate
 
 
 
-### def resize()
+### def set_extension()
 
-调整大小
+更改图片后缀名
 
 
 | name | type | description |
 | - | - | - |
-| `width` | `int` | 宽度 |
-| `height` | `int` | 高度 |
+| `extension` | `str` | 新后缀名 |
 
 **Returns:** `Picture`:  `self`
 
 
 
 
-### def to_file()
+### async def to_biliapifile()
 
-下载图片至本地。
-
-
-| name | type | description |
-| - | - | - |
-| `path` | `str` | 下载地址。 |
-
-**Returns:** `Picture`:  `self`
+将图片实例转换为 BiliAPIFile 实例
 
 
 
-
-### def to_json()
-
-转换为 bilibili api 中的 json 格式，提供图片链接/长宽/大小
-
-
-
-**Returns:** `dict`:  图片链接/长宽/大小
+**Returns:** `BiliAPIFile`:  BiliAPIFile 实例
 
 
 
@@ -1472,62 +2026,20 @@ NOTE: `gt`, `challenge`, `token` 为验证码基本字段。`seccode`, `validate
 
 ---
 
-## class ResourceType()
+## class RequestSettings()
 
-**Extend: enum.Enum**
+与请求客户端相关设置
 
-链接类型类。
+模块默认有 `proxy` `timeout` `verify_ssl` `trust_env` 四个设置。
 
-+ VIDEO: 视频
-+ BANGUMI: 番剧
-+ EPISODE: 番剧剧集
-+ FAVORITE_LIST: 视频收藏夹
-+ CHEESE: 课程
-+ CHEESE_VIDEO: 课程视频
-+ AUDIO: 音频
-+ AUDIO_LIST: 歌单
-+ ARTICLE: 专栏
-+ USER: 用户
-+ LIVE: 直播间
-+ CHANNEL_SERIES: 合集与列表
-+ BLACK_ROOM: 小黑屋
-+ GAME: 游戏
-+ TOPIC: 话题
-+ MANGA: 漫画
-+ NOTE: 笔记
-+ OPUS: 图文
-+ DLC: 收藏集
-+ FAILED: 错误
-
-
-
-
----
-
-## class ResponseCodeException()
-
-**Extend: bilibili_api.exceptions.ApiException.ApiException**
-
-API 返回 code 错误。
-
-
-
-
----
-
-## class ResponseException()
-
-**Extend: bilibili_api.exceptions.ApiException.ApiException**
-
-API 响应异常。
-
-
-
-
----
-
-## class SpecialDanmaku()
-
+| name | type | default | curl_cffi | aiohttp | httpx |
+| ---- | ---- | ------- | --------- | ------- | ----- |
+| proxy | str | ` ` |  ✅ | ✅ | ✅ |
+| timeout | float | `30.0` | ✅ | ✅ | ✅ |
+| verify_ssl | bool | `True` | ✅ | ✅ | ✅ |
+| trust_env | bool | `True` | ✅ | ✅ | ✅ |
+| http2 | bool | `False` | ✅ | ❌ | ✅ |
+| impersonate | str | ` ` | ✅ | ❌ | ❌ |
 
 
 
@@ -1535,435 +2047,12 @@ API 响应异常。
 ### def \_\_init\_\_()
 
 
-| name | type | description |
-| - | - | - |
-| `content` | `str` | 弹幕内容 |
-| `id_` | `int` | 弹幕 id. Defaults to -1. |
-| `id_str` | `str` | 弹幕 id (string 类型). Defaults to "". |
-| `mode` | `Union[DmMode, int]` | 弹幕类型. Defaults to DmMode.SPECIAL. |
-| `pool` | `int` | 弹幕池. Defaults to 2. |
 
 
----
 
-## class StatementException()
-
-**Extend: bilibili_api.exceptions.ApiException.ApiException**
-
-条件异常。
-
-
-
-
----
-
-## class VideoUploadException()
-
-**Extend: bilibili_api.exceptions.ApiException.ApiException**
-
-视频上传错误。
-
-
-
-
----
-
-## class WbiRetryTimesExceedException()
-
-**Extend: bilibili_api.exceptions.ApiException.ApiException**
-
-Wbi 重试达到最大次数
-
-
-
-
----
-
-## def aid2bvid()
-
-AV 号转 BV 号。
-
-| name | type | description |
-| - | - | - |
-| `aid` | `int` | AV 号。 |
-
-**Returns:** `str`:  BV 号。
-
-
-
-
----
-
-## async def bili_simple_download()
-
-适用于下载 bilibili 链接的简易终端下载函数
-
-默认会携带 HEADERS 访问链接，避免 403
-
-用途举例：下载 video.get_download_url 返回结果中的链接
-
-
-| name | type | description |
-| - | - | - |
-| `url` | `str` | 链接 |
-| `out` | `str` | 输出地址 |
-| `intro` | `str` | 下载简述 |
-
-
-
-
----
-
-## def bvid2aid()
-
-BV 号转 AV 号。
-
-| name | type | description |
-| - | - | - |
-| `bvid` | `str` | BV 号。 |
-
-**Returns:** `int`:  AV 号。
-
-
-
-
----
-
-## def get_available_settings()
-
-获取当前支持的设置项
-
-
-
-**Returns:** `List[str]`:  支持的设置项名称
-
-
-
-
----
-
-## async def get_bili_ticket()
-
-获取 bili_ticket
-
-
-| name | type | description |
-| - | - | - |
-| `credential` | `Credential, optional` | 凭据. Defaults to None. |
-
-**Returns:** `Tuple[str, str]`:  bili_ticket, bili_ticket_expires
-
-
-
-
----
-
-## async def get_buvid()
-
-获取 buvid3 和 buvid4
-
-
-
-**Returns:** `Tuple[str, str]`:  第 0 项为 buvid3，第 1 项为 buvid4。
-
-
-
-
----
-
-## def get_client()
-
-在当前事件循环下获取模块正在使用的请求客户端
-
-
-
-**Returns:** `BiliAPIClient`:  请求客户端
-
-
-
-
----
-
-## async def get_real_url()
-
-获取短链接跳转目标，以进行操作。
-
-
-| name | type | description |
-| - | - | - |
-| `short_url` | `str` | 短链接。 |
-| `credential` | `Credential \| None` | 凭据类。 |
-
-**Returns:** `str`:  目标链接（如果不是有效的链接会报错）
-
-
-
-
----
-
-## def get_registered_available_settings()
-
-获取所有注册过的 BiliAPIClient 所支持的设置项
-
-
-
-**Returns:** `Dict[str, List[str]]`:  所有注册过的 BiliAPIClient 所支持的设置项
-
-
-
-
----
-
-## def get_registered_clients()
-
-获取所有注册过的 BiliAPIClient
-
-
-
-**Returns:** `Dict[str, Type[BiliAPIClient]]`:  注册过的 BiliAPIClient
-
-
-
-
----
-
-## def get_selected_client()
-
-获取用户选择的请求客户端名称和对应的类
-
-
-
-**Returns:** `Tuple[str, Type[BiliAPIClient]]`:  第 0 项为客户端名称，第 1 项为对应的类
-
-
-
-
----
-
-## def get_session()
-
-在当前事件循环下获取请求客户端的会话对象。
-
-
-
-**Returns:** `object`:  会话对象
-
-
-
-
----
-
-## async def parse_link()
-
-调用 yarl 解析 bilibili url 的函数。
-
-
-| name | type | description |
-| - | - | - |
-| `url` | `str` | 链接 |
-| `credential` | `Credential` | 凭据类 |
-
-**Returns:** `Tuple[obj, ResourceType]`:  (对象，类型) 或 -1,-1 表示出错
-
-
-
-
----
-
-## def recalculate_wbi()
-
-重新计算 wbi 的参数
-
-
-
-
-
-
----
-
-## def refresh_bili_ticket()
-
-刷新 bili_ticket
-
-
-
-
-
-
----
-
-## def refresh_buvid()
-
-刷新模块自动生成的 buvid3 和 buvid4
-
-
-
-
-
-
----
-
-## def register_client()
-
-注册请求客户端并切换，可用于用户自定义请求客户端。
-
-
-| name | type | description |
-| - | - | - |
-| `name` | `str` | 请求客户端类型名称，用户自定义命名。 |
-| `cls` | `type` | 基于 BiliAPIClient 重写后的请求客户端类。 |
-| `settings` | `Dict` | 请求客户端在基础设置外的其他设置，键为设置名称，值为设置默认值。Defaults to {}. |
-
-
-
-
----
-
-## var request_log
-
-**Extend: AsyncEvent**
-
-
-请求日志支持，默认支持输出到指定 I/O 对象。
-
-可以添加更多监听器达到更多效果。
-
-Logger: request_log.logger
-
-Extends: AsyncEvent
-
-Events:
-
-- (模块自带 BiliAPIClient)
-- REQUEST:     HTTP 请求。
-- RESPONSE:    HTTP 响应。
-- WS_CREATE:   新建的 Websocket 请求。
-- WS_RECV:     获得到 WebSocket 请求。
-- WS_SEND:     发送了 WebSocket 请求。
-- WS_CLOSE:    关闭 WebSocket 请求。
-- DWN_CREATE:  新建下载。
-- DWN_PART:    部分下载。
-- DWN_CLOSE:   结束下载。
-- (Api)
-- API_REQUEST: Api 请求。
-- API_RESPONSE: Api 响应。
-- (反爬虫)
-- ANTI_SPIDER: 反爬虫相关信息。
-
-CallbackData: 描述 (str) 数据 (dict)
-
-示例：
-
-``` python
-@request_log.on("REQUEST")
-async def handle(desc: str, data: dict) -> None:
-    print(desc, data)
-```
-
-默认启用 Api 和 Anti-Spider 相关信息。
-
-
-
-### def get_ignore_events()
-
-获取日志输出排除的事件类型
-
-
-
-**Returns:** `List[str]`:  日志输出排除的事件类型
-
-
-
-
-### def get_on_events()
-
-获取日志输出支持的事件类型
-
-
-
-**Returns:** `List[str]`:  日志输出支持的事件类型
-
-
-
-
-### def is_on()
-
-获取日志输出是否启用
-
-
-
-**Returns:** `bool`:  是否启用
-
-
-
-
-### def set_ignore_events()
-
-设置日志输出排除的事件类型
-
-
-| name | type | description |
-| - | - | - |
-| `events` | `List[str]` | 日志输出排除的事件类型 |
-
-
-
-
-### def set_on()
-
-设置日志输出是否启用
-
-
-| name | type | description |
-| - | - | - |
-| `status` | `bool` | 是否启用 |
-
-
-
-
-### def set_on_events()
-
-设置日志输出支持的事件类型
-
-
-| name | type | description |
-| - | - | - |
-| `events` | `List[str]` | 日志输出支持的事件类型 |
-
-
-
-
----
-
-## var request_settings
-
-请求参数设置
-
-
-
-### def get()
-
-获取某项设置
-
-不可用于 `wbi_retry_times` `enable_auto_buvid` `enable_bili_ticket`
-
-默认设置名称：`proxy` `timeout` `verify_ssl` `trust_env`
-
-
-| name | type | description |
-| - | - | - |
-| `name` | `str` | 设置名称 |
-
-**Returns:** `Any`:  设置的值
-
-
-
-
-### def get_all()
+### def all()
 
 获取目前所有的设置项
-
-不可用于 `wbi_retry_times` `enable_auto_buvid` `enable_bili_ticket`
 
 
 
@@ -1972,24 +2061,27 @@ async def handle(desc: str, data: dict) -> None:
 
 
 
-### def get_enable_auto_buvid()
+### def defaults()
 
-获取设置的是否自动生成 buvid
-
-
-
-**Returns:** `bool`:  是否自动生成 buvid. Defaults to True.
+获取此设置项的默认设置。仅实例的基本设置存在默认值。
 
 
 
-
-### def get_enable_bili_ticket()
-
-获取设置的是否使用 bili_ticket
+**Returns:** `dict`:  默认设置
 
 
 
-**Returns:** `bool`:  是否使用 bili_ticket. Defaults to True.
+
+### def get()
+
+获取某项设置，字段未曾设置过时将返回 None.
+
+
+| name | type | description |
+| - | - | - |
+| `name` | `str` | 设置名称 |
+
+**Returns:** `Any`:  设置的值
 
 
 
@@ -2038,13 +2130,30 @@ async def handle(desc: str, data: dict) -> None:
 
 
 
-### def get_wbi_retry_times()
+### def gets()
 
-获取设置的 wbi 重试次数
+获取对应设置项的设置
+
+
+| name | type | description |
+| - | - | - |
+| `keys` | `list[str]` | 设置项 |
+
+**Returns:** `dict`:  对应设置项的设置
 
 
 
-**Returns:** `int`:  wbi 重试次数. Defaults to 3.
+
+### def has()
+
+判断是否存在某项设置
+
+
+| name | type | description |
+| - | - | - |
+| `name` | `str` | 设置名称 |
+
+**Returns:** `bool`:  是否存在某项设置
 
 
 
@@ -2053,39 +2162,11 @@ async def handle(desc: str, data: dict) -> None:
 
 设置某项设置
 
-不可用于 `wbi_retry_times` `enable_auto_buvid` `enable_bili_ticket`
-
-默认设置名称：`proxy` `timeout` `verify_ssl` `trust_env`
-
 
 | name | type | description |
 | - | - | - |
 | `name` | `str` | 设置名称 |
-| `value` | `str` | 设置的值 |
-
-
-
-
-### def set_enable_auto_buvid()
-
-设置是否自动生成 buvid
-
-
-| name | type | description |
-| - | - | - |
-| `enable_auto_buvid` | `bool` | 是否自动生成 buvid. |
-
-
-
-
-### def set_enable_bili_ticket()
-
-设置是否使用 bili_ticket
-
-
-| name | type | description |
-| - | - | - |
-| `enable_bili_ticket` | `bool` | 是否使用 bili_ticket. |
+| `value` | `Any` | 设置的值 |
 
 
 
@@ -2121,7 +2202,7 @@ async def handle(desc: str, data: dict) -> None:
 
 | name | type | description |
 | - | - | - |
-| `verify_ssl` | `bool` | `trust_env` |
+| `trust_env` | `bool` | `trust_env` |
 
 
 
@@ -2138,6 +2219,443 @@ async def handle(desc: str, data: dict) -> None:
 
 
 
+### def sets()
+
+设置传入的项目
+
+
+| name | type | description |
+| - | - | - |
+| `settings` | `dict` | 设置项，键为设置名称，值为设置值。 |
+
+
+
+
+### def unset()
+
+取消设置项
+
+
+| name | type | description |
+| - | - | - |
+| `name` | `str` | 设置项 |
+
+
+
+
+### def unsets()
+
+取消设置项
+
+
+| name | type | description |
+| - | - | - |
+| `name` | `str` | 设置项 |
+
+
+
+
+---
+
+## class ResourceType()
+
+> Extend: `enum.Enum`
+
+链接类型类。
+
++ VIDEO: 视频
++ BANGUMI: 番剧
++ EPISODE: 番剧剧集
++ FAVORITE_LIST: 视频收藏夹
++ CHEESE: 课程
++ CHEESE_VIDEO: 课程视频
++ AUDIO: 音频
++ AUDIO_LIST: 歌单
++ ARTICLE: 专栏
++ USER: 用户
++ LIVE: 直播间
++ CHANNEL_SERIES: 合集与列表
++ BLACK_ROOM: 小黑屋
++ GAME: 游戏
++ TOPIC: 话题
++ MANGA: 漫画
++ NOTE: 笔记
++ OPUS: 图文
++ DLC: 收藏集
++ FAILED: 错误
+
+
+
+
+---
+
+## class ResponseCodeException()
+
+> Extend: `bilibili_api.exceptions.ApiException.ApiException`
+
+API 返回 code 错误。
+
+
+
+
+---
+
+## class ResponseException()
+
+> Extend: `bilibili_api.exceptions.ApiException.ApiException`
+
+API 响应异常。
+
+
+
+
+---
+
+## class SpecialDanmaku()
+
+特殊弹幕，含 BAS / 代码弹幕等。
+
+
+
+
+### def \_\_init\_\_()
+
+
+| name | type | description |
+| - | - | - |
+| `content` | `str` | 弹幕内容 |
+| `id_` | `int, optional` | 弹幕 id. Defaults to -1. |
+| `id_str` | `str, optional` | 弹幕 id (string 类型). Defaults to ''. |
+| `mode` | `DmMode \| int, optional` | 弹幕类型. Defaults to DmMode.SPECIAL. |
+| `pool` | `int, optional` | 弹幕池. Defaults to 2. |
+
+
+---
+
+## class StatementException()
+
+> Extend: `bilibili_api.exceptions.ApiException.ApiException`
+
+条件异常。
+
+
+
+
+---
+
+## class VideoUploadException()
+
+> Extend: `bilibili_api.exceptions.ApiException.ApiException`
+
+视频上传错误。
+
+
+
+
+---
+
+## class WbiRetryTimesExceedException()
+
+> Extend: `bilibili_api.exceptions.ApiException.ApiException`
+
+Wbi 重试达到最大次数
+
+
+
+
+---
+
+## def aid2bvid()
+
+AV 号转 BV 号。
+
+
+| name | type | description |
+| - | - | - |
+| `aid` | `int` | AV 号。 |
+
+**Returns:** `str`:  BV 号。
+
+
+
+
+---
+
+## async def bili_fast_download()
+
+更快的 bili_simple_download
+
+
+| name | type | description |
+| - | - | - |
+| `url` | `str` | 链接 |
+| `out` | `str` | 输出地址 |
+| `intro` | `str, optional` | 下载简述. Defaults to 'bili-fast-download'. |
+| `chunk` | `int, optional` | 单次下载流拉取数据量. Defaults to 4096. |
+| `part_size` | `int, optional` | 单个文件分块大小. Defaults to 16\*1024\*1024. |
+| `part_max` | `int, optional` | 最大文件分块数. Defaults to 128. |
+
+
+
+
+---
+
+## var bili_settings
+
+模块通用设置
+
+| configuration | type | default | description |
+| ------------- | ---- | ------- | ----------- |
+| `wbi_retry_times` | `int` | `3` | WBI 重试次数 |
+| `enable_auto_buvid` | `bool` | `True` | 允许模块自动请求生成 buvid |
+| `enable_bili_ticket` | `bool` | `False` | 允许模块自动请求生成 bili_ticket |
+| `enable_buvid_global_persistence` | `bool` | `False` | 允许模块使用统一的全局 buvid |
+| `enable_bili_ticket_global_persistence` | `bool` | `False` | 允许模块使用统一的全局 bili_ticket |
+| `enable_fpgen` | `bool` | `False` | 是否启用 `fpgen` 进行指纹伪装 |
+| `fpgen_args` | `dict` | `{}` | 传入 `fpgen.generate` 的 keyword args 参数 |
+
+
+
+
+### def all()
+
+获取目前所有的设置项
+
+
+
+**Returns:** `dict`:  所有的设置项
+
+
+
+
+### def defaults()
+
+获取此设置项的默认设置。仅实例的基本设置存在默认值。
+
+
+
+**Returns:** `dict`:  默认设置
+
+
+
+
+### def get()
+
+获取某项设置，字段未曾设置过时将返回 None.
+
+
+| name | type | description |
+| - | - | - |
+| `name` | `str` | 设置名称 |
+
+**Returns:** `Any`:  设置的值
+
+
+
+
+### def get_enable_auto_buvid()
+
+获取设置的是否自动生成 buvid
+
+
+
+**Returns:** `bool`:  是否自动生成 buvid. Defaults to True.
+
+
+
+
+### def get_enable_bili_ticket()
+
+获取设置的是否使用 bili_ticket
+
+
+
+**Returns:** `bool`:  是否使用 bili_ticket. Defaults to False.
+
+
+
+
+### def get_enable_bili_ticket_global_persistence()
+
+获取设置的是否使用全局可持久化 bili_ticket
+
+
+
+**Returns:** `bool`:  是否使用全局可持久化 bili_ticket. Defaults to False.
+
+
+
+
+### def get_enable_buvid_global_persistence()
+
+获取设置的是否使用全局可持久化 buvid
+
+
+
+**Returns:** `bool`:  是否使用全局可持久化 buvid. Defaults to False.
+
+
+
+
+### def get_enable_fpgen()
+
+获取是否使用 fpgen
+
+
+
+**Returns:** `bool`:  是否使用 fpgen. Defaults to False.
+
+
+
+
+### def get_fpgen_args()
+
+获取调用 fpgen 的参数
+
+
+
+**Returns:** `dict`:  调用 fpgen 的参数
+
+
+
+
+### def get_wbi_retry_times()
+
+获取设置的 wbi 重试次数
+
+
+
+**Returns:** `int`:  wbi 重试次数. Defaults to 3.
+
+
+
+
+### def gets()
+
+获取对应设置项的设置
+
+
+| name | type | description |
+| - | - | - |
+| `keys` | `list[str]` | 设置项 |
+
+**Returns:** `dict`:  对应设置项的设置
+
+
+
+
+### def has()
+
+判断是否存在某项设置
+
+
+| name | type | description |
+| - | - | - |
+| `name` | `str` | 设置名称 |
+
+**Returns:** `bool`:  是否存在某项设置
+
+
+
+
+### def register()
+
+注册设置项
+
+
+| name | type | description |
+| - | - | - |
+| `name` | `str` | 设置项名称 |
+| `default` | `Any` | 设置项默认值 |
+
+
+
+
+### def set()
+
+设置某项设置
+
+
+| name | type | description |
+| - | - | - |
+| `name` | `str` | 设置名称 |
+| `value` | `Any` | 设置的值 |
+
+
+
+
+### def set_enable_auto_buvid()
+
+设置是否自动生成 buvid
+
+
+| name | type | description |
+| - | - | - |
+| `enable_auto_buvid` | `bool` | 是否自动生成 buvid. |
+
+
+
+
+### def set_enable_bili_ticket()
+
+设置是否使用 bili_ticket
+
+
+| name | type | description |
+| - | - | - |
+| `enable_bili_ticket` | `bool` | 是否使用 bili_ticket. |
+
+
+
+
+### def set_enable_bili_ticket_global_persistence()
+
+设置是否使用全局可持久化 buvid
+
+
+| name | type | description |
+| - | - | - |
+| `enable_bili_ticket_global_persistence` | `bool` | 是否使用全局可持久化 buvid. |
+
+
+
+
+### def set_enable_buvid_global_persistence()
+
+设置是否使用全局可持久化 buvid
+
+
+| name | type | description |
+| - | - | - |
+| `enable_buvid_global_persistence` | `bool` | 是否使用全局可持久化 buvid. |
+
+
+
+
+### def set_enable_fpgen()
+
+设置是否使用 fpgen
+
+
+| name | type | description |
+| - | - | - |
+| `enable_fpgen` | `bool` | 是否使用 fpgen |
+
+
+
+
+### def set_fpgen_args()
+
+设置调用 fpgen 的参数
+
+
+| name | type | description |
+| - | - | - |
+| `fpgen_args` | `dict` | 调用 fpgen 的参数 |
+
+
+
+
 ### def set_wbi_retry_times()
 
 修改设置的 wbi 重试次数
@@ -2146,6 +2664,649 @@ async def handle(desc: str, data: dict) -> None:
 | name | type | description |
 | - | - | - |
 | `wbi_retry_times` | `int` | wbi 重试次数. |
+
+
+
+
+### def sets()
+
+设置传入的项目
+
+
+| name | type | description |
+| - | - | - |
+| `settings` | `dict` | 设置项，键为设置名称，值为设置值。 |
+
+
+
+
+---
+
+## async def bili_simple_download()
+
+适用于下载 bilibili 链接的简易终端下载函数
+
+默认会携带 HEADERS 访问链接，避免 403
+
+用途举例：下载 video.get_download_url 返回结果中的链接
+
+
+| name | type | description |
+| - | - | - |
+| `url` | `str` | 链接 |
+| `out` | `str` | 输出地址 |
+| `intro` | `str, optional` | 下载简述. Defaults to 'bili-simple-download'. |
+| `chunk` | `int, optional` | 单次下载流拉取数据量. Defaults to 4096. |
+
+
+
+
+---
+
+## def bvid2aid()
+
+BV 号转 AV 号。
+
+
+| name | type | description |
+| - | - | - |
+| `bvid` | `str` | BV 号。 |
+
+**Returns:** `int`:  AV 号。
+
+
+
+
+---
+
+## async def clean_session()
+
+关闭所有请求客户端的会话对象。
+
+
+| name | type | description |
+| - | - | - |
+| `loop` | `asyncio.AbstractEventLoop \| trio.lowlevel.TrioToken \| None` | 事件循环，不提供则采用当前事件循环. Defaults to None. |
+| `token` | `anyio.lowlevel.EventLoopToken \| None, optional` | anyio 事件循环令牌，不提供则使用 loop 参数. Defaults to None. |
+
+
+
+
+---
+
+## def configure_dynamic_fingerprint()
+
+快速设置 curl_cffi + fpgen 浏览器模拟
+
+
+| name | type | description |
+| - | - | - |
+| `os` | `str` | 系统 |
+| `browser` | `str` | 浏览器 |
+| `version` | `int` | 浏览器版本 |
+
+
+
+
+---
+
+## async def ensure_bili_ticket()
+
+确保 bili_ticket 可用，自动刷新 bili_ticket，若提供凭据类将自动在 credential 中设置相关字段。
+
+若不提供凭据类则将返回全局生成的 bili_ticket。
+
+
+| name | type | description |
+| - | - | - |
+| `credential` | `Credential \| None, optional` | 凭据. Defaults to None. |
+
+**Returns:** `tuple[str, str]`:  bili_ticket, bili_ticket_expires
+
+
+
+
+---
+
+## async def ensure_buvid()
+
+确认凭据类的 buvid3 与 buvid4，若未提供则生成新 buvid3 与 buvid4 并设置相关字段。
+
+若不提供凭据类则将返回全局生成的 buvid3 与 buvid4。
+
+
+| name | type | description |
+| - | - | - |
+| `credential` | `Credential \| None, optional` | 凭据类. Defaults to None. |
+
+**Returns:** `tuple[str, str, str]`:  第 0 项为 buvid3，第 1 项为 buvid4，第 2 项为 buvid_fp。
+
+
+
+
+---
+
+## def get_available_settings()
+
+获取支持的设置项
+
+
+| name | type | description |
+| - | - | - |
+| `client` | `str \| None, optional` | 请求客户端类型. Defaults to None. |
+
+**Returns:** `list[str]`:  支持的设置项名称
+
+
+
+
+---
+
+## def get_bili_headers()
+
+获取可供访问 bilibili 链接的伪装请求头。
+
+部分请求头取自 fpgen 生成的浏览器指纹信息。
+
+
+| name | type | description |
+| - | - | - |
+| `fpgen_fp` | `bool, optional` | 是否使用 fpgen 生成的浏览器指纹信息. Defaults to True. |
+
+**Returns:** `dict`:  请求头
+
+
+
+
+---
+
+## def get_client()
+
+获取模块正在使用的请求客户端
+
+
+| name | type | description |
+| - | - | - |
+| `client` | `str \| None, optional` | 请求客户端类型. Defaults to None. |
+| `instance` | `str \| None, optional` | 请求客户端实例名称. Defaults to None. |
+| `loop` | `asyncio.AbstractEventLoop \| trio.lowlevel.TrioToken \| None` | 事件循环，不提供则采用当前事件循环. Defaults to None. |
+| `token` | `anyio.lowlevel.EventLoopToken \| None, optional` | anyio 事件循环令牌，不提供则使用 loop 参数. Defaults to None. |
+
+**Returns:** `BiliAPIClient`:  请求客户端
+
+
+
+
+---
+
+## def get_exist_instances()
+
+获取已创建的请求客户端实例
+
+
+
+**Returns:** `dict[str, list[str]]`:  请求客户端实例字典，
+
+
+
+
+---
+
+## def get_force_settings()
+
+获取模块正在使用的请求客户端的强制设置
+
+
+| name | type | description |
+| - | - | - |
+| `client` | `str \| None, optional` | 请求客户端类型. Defaults to None. |
+| `instance` | `str \| None, optional` | 请求客户端实例名称. Defaults to None. |
+
+**Returns:** `RequestSettings`:  设置类
+
+
+
+
+---
+
+## def get_instance_settings()
+
+获取模块正在使用的请求客户端的设置
+
+
+| name | type | description |
+| - | - | - |
+| `client` | `str \| None, optional` | 请求客户端类型. Defaults to None. |
+| `instance` | `str \| None, optional` | 请求客户端实例名称. Defaults to None. |
+
+**Returns:** `RequestSettings`:  设置类
+
+
+
+
+---
+
+## def get_instances()
+
+获取已创建的请求客户端实例
+
+
+| name | type | description |
+| - | - | - |
+| `client` | `str \| None, optional` | 请求客户端类型. Defaults to None. |
+
+**Returns:** `list[str]`:  请求客户端实例名称列表
+
+
+
+
+---
+
+## async def get_real_url()
+
+获取短链接跳转目标，以进行操作。
+
+
+| name | type | description |
+| - | - | - |
+| `short_url` | `str` | 短链接。 |
+| `credential` | `Credential \| None, optional` | 凭据类. Defaults to None. |
+
+**Returns:** `str`:  目标链接（如果不是有效的链接会报错）
+
+
+
+
+---
+
+## def get_registered_available_settings()
+
+获取所有注册过的 BiliAPIClient 所支持的设置项
+
+
+
+**Returns:** `dict[str, list[str]]`:  所有注册过的 BiliAPIClient 所支持的设置项
+
+
+
+
+---
+
+## def get_registered_clients()
+
+获取所有注册过的 BiliAPIClient
+
+
+
+**Returns:** `dict[str, type[BiliAPIClient]]`:  注册过的 BiliAPIClient
+
+
+
+
+---
+
+## def get_registered_filters()
+
+获取所有已注册的过滤器
+
+
+| name | type | description |
+| - | - | - |
+| `in_priority` | `bool, optional` | 是否排序. Defaults to True. |
+
+**Returns:** `list[dict]`:  已注册的前置过滤器
+
+
+
+
+---
+
+## def get_selected_client()
+
+获取用户选择的请求客户端名称和对应的类
+
+
+
+**Returns:** `tuple[str, type[BiliAPIClient]]`:  第 0 项为客户端名称，第 1 项为对应的类
+
+
+
+
+---
+
+## def get_selected_instance()
+
+获取选择的请求客户端实例
+
+
+
+**Returns:** `str`:  选择的请求客户端实例
+
+
+
+
+---
+
+## def get_session()
+
+在当前事件循环下获取请求客户端的会话对象。
+
+
+| name | type | description |
+| - | - | - |
+| `client` | `str \| None, optional` | 请求客户端类型. Defaults to None. |
+| `instance` | `str \| None, optional` | 请求客户端实例名称. Defaults to None. |
+| `loop` | `asyncio.AbstractEventLoop \| trio.lowlevel.TrioToken \| None` | 事件循环，不提供则采用当前事件循环. Defaults to None. |
+| `token` | `anyio.lowlevel.EventLoopToken \| None, optional` | anyio 事件循环令牌，不提供则使用 loop 参数. Defaults to None. |
+
+**Returns:** `object`:  会话对象
+
+
+
+
+---
+
+## def get_settings()
+
+获取模块设置对象，通过对此对象函数调用可以访问与设置相关设置项。
+
+
+
+**Returns:** `RequestSettings`:  设置类
+
+
+
+
+---
+
+## def new_instance()
+
+创建新的请求客户端实例并选择
+
+
+| name | type | description |
+| - | - | - |
+| `name` | `str` | 名称 |
+| `client` | `str \| None, optional` | BiliAPIClient 类型. Defaults to None. |
+
+
+
+
+---
+
+## async def obtain_bili_ticket()
+
+获取新的 bili_ticket，若已有将覆盖原有的 bili_ticket，若提供凭据类将自动在 credential 中设置相关字段。
+
+若不提供凭据类则将刷新全局 bili_ticket 并返回。
+
+
+| name | type | description |
+| - | - | - |
+| `credential` | `Credential \| None, optional` | 凭据. Defaults to None. |
+
+**Returns:** `tuple[str, str]`:  bili_ticket, bili_ticket_expires
+
+
+
+
+---
+
+## async def obtain_buvid()
+
+获取新的 buvid3 与 buvid4，若已有 buvid3 或 buvid4 则将覆盖原来的值。
+
+若不提供凭据类则将刷新全局 buvid3 与 buvid4 并返回。
+
+
+| name | type | description |
+| - | - | - |
+| `credential` | `Credential \| None, optional` | 凭据类. Defaults to None. |
+
+**Returns:** `tuple[str, str, str]`:  第 0 项为 buvid3，第 1 项为 buvid4，第 2 项为 buvid_fp。
+
+
+
+
+---
+
+## async def parse_link()
+
+调用 yarl 解析 bilibili url 的函数。
+
+
+| name | type | description |
+| - | - | - |
+| `url` | `str` | 链接 |
+| `credential` | `Credential \| None, optional` | 凭据类. Defaults to None. |
+
+**Returns:** `tuple[object, ResourceType]`:  (对象，类型) 或 -1,-1 表示出错
+
+
+
+
+---
+
+## def recalculate_wbi()
+
+重新计算 wbi 的参数
+
+
+
+
+
+
+---
+
+## def register_client()
+
+注册请求客户端并切换，可用于用户自定义请求客户端。
+
+
+| name | type | description |
+| - | - | - |
+| `name` | `str` | 请求客户端类型名称，用户自定义命名。 |
+| `cls` | `type` | 基于 BiliAPIClient 重写后的请求客户端类。 |
+| `settings` | `dict \| None, optional` | 请求客户端在基础设置外的其他设置，键为设置名称，值为设置默认值. Defaults to None. |
+
+
+
+
+---
+
+## def register_post_filter()
+
+注册/修改后置过滤器
+
+执行函数需返回一个元组，第一项为 BiliAPIFlags，第二项为配合 BiliAPIFlags 的值。
+
+所有当前函数执行的过滤器为 `ins.data[cnt]["post_filters"]`。
+
+
+| name | type | description |
+| - | - | - |
+| `name` | `str` | 名称，若重复则为修改对应过滤器。 |
+| `func` | `Callable \| None, optional` | 执行的函数，参数传入 `FilterArgs` 对象. Defaults to None. |
+| `priority` | `int, optional` | 优先级，数字越小越优先执行. Defaults to 0. |
+
+
+
+
+---
+
+## def register_pre_filter()
+
+注册/修改前置过滤器
+
+执行函数需返回一个元组，第一项为 BiliAPIFlags，第二项为配合 BiliAPIFlags 的值。
+
+所有当前函数执行的过滤器为 `ins.data[cnt]["pre_filters"]`。
+
+
+| name | type | description |
+| - | - | - |
+| `name` | `str` | 名称，若重复则为修改对应过滤器。 |
+| `func` | `Callable \| None, optional` | 执行的函数，参数传入 `FilterArgs` 对象. Defaults to None. |
+| `priority` | `int, optional` | 优先级，数字越小越优先执行. Defaults to 0. |
+
+
+
+
+---
+
+## def remove_instance()
+
+移除请求客户端实例
+
+
+| name | type | description |
+| - | - | - |
+| `name` | `str` | 名称 |
+| `client` | `str \| None, optional` | BiliAPIClient 类型. Defaults to None. |
+
+
+
+
+---
+
+## var request_log
+
+> Extend: `AsyncEvent`
+
+
+请求日志支持，默认支持输出到指定 I/O 对象。
+
+可以添加更多监听器达到更多效果。
+
+Logger: request_log.logger
+
+Extends: AsyncEvent
+
+Events:
+
+- (模块自带 BiliAPIClient)
+- REQUEST:     HTTP 请求。
+- RESPONSE:    HTTP 响应。
+- WS_CREATE:   新建的 Websocket 请求。
+- WS_RECV:     获得到 WebSocket 请求。
+- WS_SEND:     发送了 WebSocket 请求。
+- WS_CLOSE:    关闭 WebSocket 请求。
+- DWN_CREATE:  新建下载。
+- DWN_PART:    部分下载。
+- DWN_CLOSE:   结束下载。
+- CLOSE:       关闭会话。
+- (Api)
+- API_REQUEST: Api 请求。
+- API_RESPONSE: Api 响应。
+- (反爬虫)
+- ANTI_SPIDER: 反爬虫相关信息。
+- (过滤器)
+- DO_PRE_FILTER: 执行前置过滤器。
+- DO_POST_FILTER: 执行后置过滤器
+
+CallbackData: 描述 (str) 数据 (dict)
+
+示例：
+
+``` python
+@request_log.on("REQUEST")
+async def handle(desc: str, data: dict) -> None:
+    print(desc, data)
+```
+
+默认启用 Api 和 Anti-Spider 相关信息。
+
+
+
+### def get_all_events()
+
+获取日志支持的所有默认事件列表
+
+
+
+**Returns:** `list[str]`:  日志支持的所有默认事件列表
+
+
+
+
+### def get_ignore_events()
+
+获取日志输出排除的事件类型
+
+
+
+**Returns:** `list[str]`:  日志输出排除的事件类型
+
+
+
+
+### def get_on_events()
+
+获取日志输出支持的事件类型
+
+
+
+**Returns:** `list[str]`:  日志输出支持的事件类型
+
+
+
+
+### def is_on()
+
+获取日志输出是否启用
+
+
+
+**Returns:** `bool`:  是否启用
+
+
+
+
+### def set_ignore_events()
+
+设置日志输出排除的事件类型
+
+
+| name | type | description |
+| - | - | - |
+| `events` | `list[str]` | 日志输出排除的事件类型 |
+
+
+
+
+### def set_on()
+
+设置日志输出是否启用
+
+
+| name | type | description |
+| - | - | - |
+| `status` | `bool` | 是否启用 |
+
+
+
+
+### def set_on_events()
+
+设置日志输出支持的事件类型
+
+
+| name | type | description |
+| - | - | - |
+| `events` | `list[str]` | 日志输出支持的事件类型 |
+
+
+
+
+---
+
+## var request_settings
+
+模块请求客户端的全局设置实例，继承自 `RequestSettings`。
+
+亦可通过 `get_settings` 获取此实例。
+
+相关使用方法请参考 `RequestSettings` 类文档。
 
 
 
@@ -2160,6 +3321,22 @@ async def handle(desc: str, data: dict) -> None:
 | name | type | description |
 | - | - | - |
 | `name` | `str` | 请求客户端类型名称，用户自定义命名。 |
+| `local_context` | `bool` | 是否通过 `ContextVar` 仅在局部上下文设置。Defaults to False. |
+
+
+
+
+---
+
+## def select_instance()
+
+选择请求客户端实例
+
+
+| name | type | description |
+| - | - | - |
+| `name` | `str` | 名称 |
+| `local_context` | `bool` | 是否通过 `ContextVar` 仅在局部上下文设置。Defaults to False. |
 
 
 
@@ -2168,12 +3345,16 @@ async def handle(desc: str, data: dict) -> None:
 
 ## def set_session()
 
-在当前事件循环下设置请求客户端的会话对象。
+设置请求客户端的会话对象。
 
 
 | name | type | description |
 | - | - | - |
 | `session` | `object` | 会话对象 |
+| `client` | `str \| None, optional` | 请求客户端类型. Defaults to None. |
+| `instance` | `str \| None, optional` | 请求客户端实例名称. Defaults to None. |
+| `loop` | `asyncio.AbstractEventLoop \| trio.lowlevel.TrioToken \| None` | 事件循环，不提供则采用当前事件循环. Defaults to None. |
+| `token` | `anyio.lowlevel.EventLoopToken \| None, optional` | anyio 事件循环令牌，不提供则使用 loop 参数. Defaults to None. |
 
 
 
@@ -2182,14 +3363,15 @@ async def handle(desc: str, data: dict) -> None:
 
 ## def sync()
 
-同步执行异步函数，使用可参考 [同步执行异步代码](https://bromothymolb.github.io/bilibili-api-zoku/#/sync-executor)
+同步执行异步函数，使用可参考 [同步执行异步代码](https://bromothymolb.github.io/bilibili-api-zoku/#/docs/common/sync-executor)
 
 
 | name | type | description |
 | - | - | - |
-| `obj` | `Coroutine \| Future` | 异步函数 |
+| `coroutine` | `Coroutine[Any, Any, ~T] \| Future[~T]` | 异步函数 |
+| `backend` | `str, optional` | 异步框架，可选 asyncio / trio。Defaults to "asyncio". |
 
-**Returns:** `Any`:  该异步函数的返回值
+**Returns:** `~T`:  该异步函数的返回值
 
 
 
@@ -2204,6 +3386,37 @@ async def handle(desc: str, data: dict) -> None:
 | name | type | description |
 | - | - | - |
 | `name` | `str` | 请求客户端类型名称，用户自定义命名。 |
+
+
+
+
+---
+
+## def unregister_filter()
+
+取消注册前置过滤器
+
+
+| name | type | description |
+| - | - | - |
+| `name` | `str` | 过滤器名称 |
+
+
+
+
+---
+
+## def unset_session()
+
+取消设置请求客户端的会话对象。
+
+
+| name | type | description |
+| - | - | - |
+| `client` | `str \| None, optional` | 请求客户端类型. Defaults to None. |
+| `instance` | `str \| None, optional` | 请求客户端实例名称. Defaults to None. |
+| `loop` | `asyncio.AbstractEventLoop \| trio.lowlevel.TrioToken \| None` | 事件循环，不提供则采用当前事件循环. Defaults to None. |
+| `token` | `anyio.lowlevel.EventLoopToken \| None, optional` | anyio 事件循环令牌，不提供则使用 loop 参数. Defaults to None. |
 
 
 

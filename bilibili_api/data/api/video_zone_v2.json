@@ -1,0 +1,12 @@
+{
+  "feed_rcmd": {
+    "url": "https://api.bilibili.com/x/web-interface/region/feed/rcmd",
+    "method": "GET",
+    "verify": false,
+    "params": {
+      "request_cnt": "int: 请求数量",
+      "from_region": "int: 大分区 tid（如 1003）"
+    },
+    "comment": "获取新版分区推荐内容"
+  }
+}

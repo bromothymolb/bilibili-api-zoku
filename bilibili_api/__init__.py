@@ -6,78 +6,14 @@ bilibili_api
  (默认已导入所有子模块，例如 `bilibili_api.video`, `bilibili_api.user`)
 """
 
-from .utils.sync import sync
-from .utils.picture import Picture
-from .utils.short import get_real_url
-from .utils.parse_link import ResourceType, parse_link
-from .utils.aid_bvid_transformer import aid2bvid, bvid2aid
-from .utils.danmaku import DmMode, Danmaku, DmFontSize, SpecialDanmaku
-from .utils.network import (
-    # settings
-    request_settings,
-    # log
-    request_log,
-    # session
-    BiliAPIResponse,
-    BiliWsMsgType,
-    BiliAPIFile,
-    BiliAPIClient,
-    register_client,
-    unregister_client,
-    select_client,
-    get_selected_client,
-    get_available_settings,
-    get_registered_clients,
-    get_registered_available_settings,
-    get_client,
-    get_session,
-    set_session,
-    # anti spider
-    get_buvid,
-    get_bili_ticket,
-    recalculate_wbi,
-    refresh_buvid,
-    refresh_bili_ticket,
-    # credential
-    Credential,
-    # api
-    Api,
-    HEADERS,
-    bili_simple_download,
-)
-from .utils.AsyncEvent import AsyncEvent
-from .utils.geetest import Geetest, GeetestMeta, GeetestType
-from .exceptions import (
-    ApiException,
-    ArgsException,
-    CookiesRefreshException,
-    CredentialNoAcTimeValueException,
-    CredentialNoBiliJctException,
-    CredentialNoBuvid3Exception,
-    CredentialNoBuvid4Exception,
-    CredentialNoDedeUserIDException,
-    CredentialNoSessdataException,
-    DanmakuClosedException,
-    DynamicExceedImagesException,
-    ExClimbWuzhiException,
-    GeetestException,
-    LiveException,
-    LoginError,
-    NetworkException,
-    ResponseCodeException,
-    ResponseException,
-    StatementException,
-    VideoUploadException,
-    WbiRetryTimesExceedException,
-)
 from . import (
     activity,
     app,
-    article_category,
     article,
+    article_category,
     ass,
-    audio_uploader,
     audio,
+    audio_uploader,
     bangumi,
     black_room,
     channel_series,
@@ -94,8 +30,8 @@ from . import (
     homepage,
     hot,
     interactive_video,
-    live_area,
     live,
+    live_area,
     login_v2,
     manga,
     music,
@@ -107,30 +43,114 @@ from . import (
     show,
     topic,
     user,
+    video,
     video_tag,
     video_uploader,
     video_zone,
-    video,
+    video_zone_v2,
     vote,
     watchroom,
 )
+from .exceptions import (
+    ApiException,
+    ArgsException,
+    CookiesRefreshException,
+    CredentialNoAcTimeValueException,
+    CredentialNoBiliJctException,
+    CredentialNoBuvid3Exception,
+    CredentialNoBuvid4Exception,
+    CredentialNoDedeUserIDException,
+    CredentialNoSessdataException,
+    DanmakuClosedException,
+    DynamicExceedImagesException,
+    ExClimbWuzhiException,
+    GeetestException,
+    InitialStateException,
+    LiveException,
+    LoginError,
+    NetworkException,
+    ResponseCodeException,
+    ResponseException,
+    StatementException,
+    VideoUploadException,
+    WbiRetryTimesExceedException,
+)
+from .utils.aid_bvid_transformer import aid2bvid, bvid2aid
+from .utils.danmaku import Danmaku, DmFontSize, DmMode, SpecialDanmaku
+from .utils.geetest import Geetest, GeetestMeta, GeetestType
+from .utils.network import (
+    Api,
+    AsyncEvent,
+    BiliAPIClient,
+    BiliAPIFile,
+    BiliAPIResponse,
+    BiliFilterArgs,
+    BiliFilterData,
+    BiliFilterFlags,
+    BiliFilterReturn,
+    BiliWsMsgType,
+    Credential,
+    RequestSettings,
+    bili_fast_download,
+    bili_settings,
+    bili_simple_download,
+    clean_session,
+    configure_dynamic_fingerprint,
+    ensure_bili_ticket,
+    ensure_buvid,
+    get_available_settings,
+    get_bili_headers,
+    get_client,
+    get_exist_instances,
+    get_force_settings,
+    get_instance_settings,
+    get_instances,
+    get_registered_available_settings,
+    get_registered_clients,
+    get_registered_filters,
+    get_selected_client,
+    get_selected_instance,
+    get_session,
+    get_settings,
+    new_instance,
+    obtain_bili_ticket,
+    obtain_buvid,
+    recalculate_wbi,
+    register_client,
+    register_post_filter,
+    register_pre_filter,
+    remove_instance,
+    request_log,
+    request_settings,
+    select_client,
+    select_instance,
+    set_session,
+    unregister_client,
+    unregister_filter,
+    unset_session,
+)
+from .utils.parse_link import ResourceType, parse_link
+from .utils.picture import Picture
+from .utils.short import get_real_url
+from .utils.sync import sync
 
-
-BILIBILI_API_VERSION = "17.4.3"
+BILIBILI_API_VERSION = "18.0.0.b0"
 
 
 def __register_all_clients():
     import importlib
+
     from .clients import ALL_PROVIDED_CLIENTS
-    for module, client, settings in ALL_PROVIDED_CLIENTS[::-1]:
+
+    for module, client_name, settings in ALL_PROVIDED_CLIENTS[::-1]:
         try:
             importlib.import_module(module)
         except ModuleNotFoundError:
             continue
-        client_module = importlib.import_module(
-            name=f".clients.{client}", package="bilibili_api"
+        client_module = importlib.import_module(  # noqa: F841
+            name=f".clients.{client_name}", package="bilibili_api"
         )
-        client_class = eval(f"client_module.{client}")
+        client_class = eval(f"client_module.{client_name}")
         register_client(module, client_class, settings)
 
 
@@ -138,14 +158,18 @@ __register_all_clients()
 
 
 __all__ = [
+    "BILIBILI_API_VERSION",
     "Api",
     "ApiException",
-    "AsyncEvent",
     "ArgsException",
-    "BILIBILI_API_VERSION",
+    "AsyncEvent",
     "BiliAPIClient",
     "BiliAPIFile",
     "BiliAPIResponse",
+    "BiliFilterArgs",
+    "BiliFilterData",
+    "BiliFilterFlags",
+    "BiliFilterReturn",
     "BiliWsMsgType",
     "CookiesRefreshException",
     "Credential",
@@ -165,11 +189,12 @@ __all__ = [
     "GeetestException",
     "GeetestMeta",
     "GeetestType",
-    "HEADERS",
+    "InitialStateException",
     "LiveException",
     "LoginError",
     "NetworkException",
     "Picture",
+    "RequestSettings",
     "ResourceType",
     "ResponseCodeException",
     "ResponseException",
@@ -177,8 +202,8 @@ __all__ = [
     "StatementException",
     "VideoUploadException",
     "WbiRetryTimesExceedException",
-    "aid2bvid",
     "activity",
+    "aid2bvid",
     "app",
     "article",
     "article_category",
@@ -186,29 +211,41 @@ __all__ = [
     "audio",
     "audio_uploader",
     "bangumi",
+    "bili_fast_download",
+    "bili_settings",
     "bili_simple_download",
     "black_room",
     "bvid2aid",
     "channel_series",
     "cheese",
+    "clean_session",
     "client",
     "comment",
+    "configure_dynamic_fingerprint",
     "creative_center",
     "dynamic",
     "emoji",
+    "ensure_bili_ticket",
+    "ensure_buvid",
     "favorite_list",
     "festival",
     "game",
     "garb",
     "get_available_settings",
-    "get_bili_ticket",
-    "get_buvid",
+    "get_bili_headers",
     "get_client",
+    "get_exist_instances",
+    "get_force_settings",
+    "get_instance_settings",
+    "get_instances",
     "get_real_url",
     "get_registered_available_settings",
     "get_registered_clients",
+    "get_registered_filters",
     "get_selected_client",
+    "get_selected_instance",
     "get_session",
+    "get_settings",
     "homepage",
     "hot",
     "interactive_video",
@@ -217,29 +254,37 @@ __all__ = [
     "login_v2",
     "manga",
     "music",
+    "new_instance",
     "note",
+    "obtain_bili_ticket",
+    "obtain_buvid",
     "opus",
     "parse_link",
     "rank",
     "recalculate_wbi",
-    "refresh_bili_ticket",
-    "refresh_buvid",
     "register_client",
+    "register_post_filter",
+    "register_pre_filter",
+    "remove_instance",
     "request_log",
     "request_settings",
     "search",
     "select_client",
+    "select_instance",
     "session",
     "set_session",
     "show",
     "sync",
     "topic",
     "unregister_client",
+    "unregister_filter",
+    "unset_session",
     "user",
     "video",
     "video_tag",
     "video_uploader",
     "video_zone",
+    "video_zone_v2",
     "vote",
     "watchroom",
 ]

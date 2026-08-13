@@ -17,18 +17,19 @@ Environment:
     BILI_PASSWORD
     BILI_RATELIMIT
 """
+
+import asyncio
+import datetime
+import getopt
+import importlib
 import os
 import sys
 import time
-import getopt
-import asyncio
-import datetime
-import importlib
 import traceback
 
-from colorama import Fore, Style, init
+from colorama import Fore, init
 
-from bilibili_api import request_settings
+from bilibili_api import get_settings
 
 
 def collect_test_function(module):
@@ -39,11 +40,10 @@ def collect_test_function(module):
     return names
 
 
-RATELIMIT = (
-    float(os.getenv("BILI_RATELIMIT")) if os.getenv("BILI_RATELIMIT") is not None else 0
-)
+RATELIMIT = float(os.getenv("BILI_RATELIMIT") or 0)
 
-request_settings.set_timeout(100)
+get_settings().set_timeout(100)
+
 
 async def test(module):
     print(Fore.YELLOW + f"::group::=========== 开始测试 {module.__name__} ===========")
@@ -56,7 +56,7 @@ async def test(module):
         try:
             await module.before_all()
             result["passed"] += 1
-        except Exception as e:
+        except Exception:
             print(f"{Fore.RED} before_all() 报错：{Fore.RESET}")
             print(traceback.format_exc())
             result["failed_items"].append(f"{module.__name__}.before_all")
@@ -73,7 +73,7 @@ async def test(module):
                 Fore.GREEN
                 + "[PASSED]"
                 + Fore.YELLOW
-                + f" in {str(datetime.timedelta(seconds=time.time() - start_time))}s"
+                + f" in {datetime.timedelta(seconds=time.time() - start_time)!s}s"
             )
             if res is not None:
                 print(Fore.MAGENTA + str(res)[:100])
@@ -83,7 +83,7 @@ async def test(module):
                 Fore.RED
                 + "[FAILED]"
                 + Fore.YELLOW
-                + f" in {str(datetime.timedelta(seconds=time.time() - start_time))}s"
+                + f" in {datetime.timedelta(seconds=time.time() - start_time)!s}s"
             )
             print(Fore.BLUE)
             print(str(e))
@@ -98,14 +98,17 @@ async def test(module):
         try:
             await module.after_all()
             result["passed"] += 1
-        except Exception as e:
+        except Exception:
             print(f"{Fore.RED} after_all() 报错：{Fore.RESET}")
             print(traceback.format_exc())
             result["failed_items"].append(f"{module.__name__}.after_all")
             result["failed"] += 1
             return result
 
-    print(Fore.YELLOW + f"=========== 结束测试 {module.__name__} ===========\n::endgroup::")
+    print(
+        Fore.YELLOW
+        + f"=========== 结束测试 {module.__name__} ===========\n::endgroup::"
+    )
     return result
 
 
@@ -148,13 +151,13 @@ def get_should_test_module():
             try:
                 m = importlib.import_module("tests.test_" + name)
                 return m
-            except:
+            except Exception:
                 print(e)
                 print("找不到模块：" + name)
                 return None
 
     modules = []
-    opts, args = getopt.getopt(sys.argv[1:], "am:")
+    opts, _ = getopt.getopt(sys.argv[1:], "am:")
 
     for opt, arg in opts:
         if opt == "-a":

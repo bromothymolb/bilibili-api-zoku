@@ -4,11 +4,10 @@ bilibili_api.show
 展出相关
 """
 
+from dataclasses import dataclass, field
 import json
 import random
 import time
-from dataclasses import dataclass, field
-from typing import List
 
 from .utils.network import Api, Credential
 from .utils.utils import get_api, get_deviceid
@@ -56,7 +55,7 @@ class Session:
     id: int
     start_time: int
     formatted_time: str
-    ticket_list: List[Ticket] = field(default_factory=list)
+    ticket_list: list[Ticket] = field(default_factory=list)
 
 
 @dataclass
@@ -90,9 +89,9 @@ class BuyerInfo:
 
     accountId (int): 用户 ID
 
-    isBuyerInfoVerified (bool): 默认为 True
+    isBuyerInfoVerified (bool): 信息是否确认。Defaults to True.
 
-    isBuyerValid (bool): 默认为 True
+    isBuyerValid (bool): 购买人是否合法。Defaults to True.
     """
 
     id: int
@@ -126,7 +125,7 @@ async def get_project_info(project_id: int) -> dict:
     return await Api(**api).update_params(id=project_id).result
 
 
-async def get_available_sessions(project_id: int) -> List[Session]:
+async def get_available_sessions(project_id: int) -> list[Session]:
     """
     返回该项目的所有可用场次
 
@@ -134,7 +133,7 @@ async def get_available_sessions(project_id: int) -> List[Session]:
         project_id (int): 项目id
 
     Returns:
-        list[Session]: 存放场次对象的list
+        list[show.Session]: 存放场次对象的list
     """
     rtn_list = []
     project_info = await get_project_info(project_id)
@@ -171,7 +170,7 @@ async def get_all_buyer_info(credential: Credential) -> dict:
     return await Api(**api, credential=credential).result
 
 
-async def get_all_buyer_info_obj(credential: Credential) -> List[BuyerInfo]:
+async def get_all_buyer_info_obj(credential: Credential) -> list[BuyerInfo]:
     """
     以BuyerInfo对象返回账号的全部身份信息
 
@@ -179,7 +178,7 @@ async def get_all_buyer_info_obj(credential: Credential) -> List[BuyerInfo]:
         credential (Credential): 登录凭证
 
     Returns:
-        list[BuyerInfo]: BuyerInfo对象列表
+        list[show.BuyerInfo]: BuyerInfo对象列表
     """
     res = await get_all_buyer_info(credential)
     return [BuyerInfo(**v) for v in res["list"]]
@@ -264,7 +263,7 @@ class OrderTicket:
         )
         return header
 
-    async def get_token(self):
+    async def get_token(self) -> dict:
         """
         获取购票Token
 
@@ -284,7 +283,7 @@ class OrderTicket:
             await Api(**api, credential=self.credential).update_data(**payload).result
         )
 
-    async def create_order(self):
+    async def create_order(self) -> dict:
         """
         创建购买订单
 

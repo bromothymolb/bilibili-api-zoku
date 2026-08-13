@@ -10,28 +10,24 @@ bilibili_api.bangumi
 
 """
 
+from copy import copy
 import datetime
 from enum import Enum
-from typing import Any, List, Tuple, Union, Optional, Type
 
-from .video import Video
+from .exceptions import ApiException, ArgsException
+from .utils import cache_pool
 from .utils.aid_bvid_transformer import aid2bvid, bvid2aid
 from .utils.danmaku import Danmaku
-from .utils.utils import get_api, raise_for_statement
-from .utils.network import Api, Credential
 from .utils.initial_state import (
-    get_initial_state,
     InitialDataType,
+    get_initial_state,
 )
-from .exceptions import ApiException, ArgsException
+from .utils.network import Api, Credential
+from .utils.utils import get_api
+from .video import Video
 
 API = get_api("bangumi")
 API_video = get_api("video")
-
-
-episode_data_cache = {}
-bangumi_ss_to_md = {}
-bangumi_md_to_ss = {}
 
 
 class BangumiCommentOrder(Enum):
@@ -65,9 +61,12 @@ async def get_timeline(type_: BangumiType, before: int = 7, after: int = 0) -> d
     获取番剧时间线
 
     Args:
-        type_(BangumiType): 番剧类型
-        before(int)       : 几天前开始(0~7), defaults to 7
-        after(int)        : 几天后结束(0~7), defaults to 0
+        type_ (BangumiType): 番剧类型
+        before (int, optional): 几天前开始(0~7),. Defaults to 7.
+        after (int, optional): 几天后结束(0~7),. Defaults to 0.
+
+    Returns:
+        dict: 调用 API 返回的结果
     """
     api = API["info"]["timeline"]
     params = {"types": type_.value, "before": before, "after": after}
@@ -171,8 +170,8 @@ class IndexFilter:
 
     @staticmethod
     def make_time_filter(
-        start: Optional[Union[datetime.datetime, str, int]] = None,
-        end: Optional[Union[datetime.datetime, str, int]] = None,
+        start: datetime.datetime | str | int | None = None,
+        end: datetime.datetime | str | int | None = None,
         include_start: bool = True,
         include_end: bool = False,
     ) -> str:
@@ -186,13 +185,10 @@ class IndexFilter:
         start 或 end 为 None 时则表示不设置开始或结尾
 
         Args:
-            start (datetime, str, int): 开始时间. 如果是 None 则不设置开头.
-
-            end   (datetime, str, int): 结束时间. 如果是 None 则不设置结尾.
-
-            include_start (bool): 是否包含开始时间. 默认为 True.
-
-            include_end   (bool): 是否包含结束时间. 默认为 False.
+            start (datetime.datetime | str | int | None, optional): 开始时间. 如果是 None 则不设置开头. Defaults to None.
+            end (datetime.datetime | str | int | None, optional): 结束时间. 如果是 None 则不设置结尾. Defaults to None.
+            include_start (bool, optional): 是否包含开始时间. Defaults to True.
+            include_end (bool, optional): 是否包含结束时间. Defaults to False.
 
         Returns:
             str: 年代条件
@@ -200,12 +196,12 @@ class IndexFilter:
         start_str = ""
         end_str = ""
 
-        if start != None:
+        if start is not None:
             if isinstance(start, datetime.datetime):
                 start_str = start.strftime("%Y-%m-%d %H:%M:%S")
             else:
                 start_str = start
-        if end != None:
+        if end is not None:
             if isinstance(end, datetime.datetime):
                 end_str = end.strftime("%Y-%m-%d %H:%M:%S")
             else:
@@ -755,29 +751,22 @@ class IndexFilterMeta:
             copyright: IndexFilter.Copyright = IndexFilter.Copyright.ALL,
             payment: IndexFilter.Payment = IndexFilter.Payment.ALL,
             season: IndexFilter.Season = IndexFilter.Season.ALL,
-            year: str = -1,
+            year: str = "-1",
             style: IndexFilter.Style.Anime = IndexFilter.Style.Anime.ALL,
         ) -> None:
             """
             Anime Meta
+
             Args:
-                version (Index_Filter.Version): 类型，如正片、电影等
-
-                spoken_language (Index_Filter.Spoken_Language): 配音
-
-                area (Index_Filter.Area): 地区
-
-                finish_status (Index_Filter.Finish_Status): 是否完结
-
-                copyright (Index_Filter.Copryright): 版权
-
-                payment (Index_Filter.Payment): 付费门槛
-
-                season (Index_Filter.Season): 季度
-
-                year (str): 年份，调用 Index_Filter.make_time_filter() 传入年份 (int, str) 获取
-
-                style (Index_Filter.Style.Anime): 风格
+                version (Version, optional): 类型，如正片、电影等. Defaults to Version.ALL.
+                spoken_language (Spoken_Language, optional): 配音. Defaults to Spoken_Language.ALL.
+                area (Area, optional): 地区. Defaults to Area.ALL.
+                finish_status (Finish_Status, optional): 是否完结. Defaults to Finish_Status.ALL.
+                copyright (Copyright, optional): 版权. Defaults to Copyright.ALL.
+                payment (Payment, optional): 付费门槛. Defaults to Payment.ALL.
+                season (Season, optional): 季度. Defaults to Season.ALL.
+                year (str, optional): 年份，调用 Index_Filter.make_time_filter() 传入年份 (int, str) 获取. Defaults to '-1'.
+                style (Anime, optional): 风格. Defaults to Anime.ALL.
             """
             self.season_type = IndexFilter.Type.ANIME
             self.season_version = version
@@ -798,22 +787,18 @@ class IndexFilterMeta:
         def __init__(
             self,
             area: IndexFilter.Area = IndexFilter.Area.ALL,
-            release_date: str = -1,
+            release_date: str = "-1",
             style: IndexFilter.Style.Movie = IndexFilter.Style.Movie.ALL,
             payment: IndexFilter.Payment = IndexFilter.Payment.ALL,
         ) -> None:
             """
             Movie Meta
+
             Args:
-                area (Index_Filter.Area): 地区
-
-                payment (Index_Filter.Payment): 付费门槛
-
-                season (Index_Filter.Season): 季度
-
-                release_date (str): 上映时间，调用 Index_Filter.make_time_filter() 传入年份 (datetime.datetime) 获取
-
-                style (Index_Filter.Style.Movie): 风格
+                area (Area, optional): 地区. Defaults to Area.ALL.
+                release_date (str, optional): 上映时间，调用 Index_Filter.make_time_filter() 传入年份 (datetime.datetime) 获取. Defaults to '-1'.
+                style (Movie, optional): 风格. Defaults to Movie.ALL.
+                payment (Payment, optional): 付费门槛. Defaults to Payment.ALL.
             """
             self.season_type = IndexFilter.Type.MOVIE
             self.area = area
@@ -828,21 +813,19 @@ class IndexFilterMeta:
 
         def __init__(
             self,
-            release_date: str = -1,
+            release_date: str = "-1",
             style: IndexFilter.Style.Documentary = IndexFilter.Style.Documentary.ALL,
             payment: IndexFilter.Payment = IndexFilter.Payment.ALL,
             producer: IndexFilter.Producer = IndexFilter.Producer.ALL,
         ) -> None:
             """
             Documentary Meta
+
             Args:
-                area (Index_Filter.Area): 地区
-
-                release_date (str): 上映时间，调用 Index_Filter.make_time_filter() 传入年份 (datetime.datetime) 获取
-
-                style (Index_Filter.Style.Documentary): 风格
-
-                producer (Index_Filter.Producer): 制作方
+                release_date (str, optional): 上映时间，调用 Index_Filter.make_time_filter() 传入年份 (datetime.datetime) 获取. Defaults to '-1'.
+                style (Documentary, optional): 风格. Defaults to Documentary.ALL.
+                payment (Payment, optional): 观看条件. Defaults to Payment.ALL.
+                producer (Producer, optional): 制作方. Defaults to Producer.ALL.
             """
             self.season_type = IndexFilter.Type.DOCUMENTARY
             self.release_date = release_date
@@ -858,20 +841,18 @@ class IndexFilterMeta:
         def __init__(
             self,
             area: IndexFilter.Area = IndexFilter.Area.ALL,
-            release_date: str = -1,
+            release_date: str = "-1",
             style: IndexFilter.Style.TV = IndexFilter.Style.TV.ALL,
             payment: IndexFilter.Payment = IndexFilter.Payment.ALL,
         ) -> None:
             """
             TV Meta
+
             Args:
-                area (Index_Filter.Area): 地区
-
-                payment (Index_Filter.Payment): 付费门槛
-
-                release_date (str): 上映时间，调用 Index_Filter.make_time_filter() 传入年份 (datetime.datetime) 获取
-
-                style (Index_Filter.Style.TV): 风格
+                area (Area, optional): 地区. Defaults to Area.ALL.
+                release_date (str, optional): 上映时间，调用 Index_Filter.make_time_filter() 传入年份 (datetime.datetime) 获取. Defaults to '-1'.
+                style (TV, optional): 风格. Defaults to TV.ALL.
+                payment (Payment, optional): 付费门槛. Defaults to Payment.ALL.
             """
             self.season_type = IndexFilter.Type.TV
             self.area = area
@@ -890,23 +871,19 @@ class IndexFilterMeta:
             finish_status: IndexFilter.Finish_Status = IndexFilter.Finish_Status.ALL,
             copyright: IndexFilter.Copyright = IndexFilter.Copyright.ALL,
             payment: IndexFilter.Payment = IndexFilter.Payment.ALL,
-            year: str = -1,
+            year: str = "-1",
             style: IndexFilter.Style.GuoChuang = IndexFilter.Style.GuoChuang.ALL,
         ) -> None:
             """
             Guochuang Meta
+
             Args:
-                version (Index_Filter.VERSION): 类型，如正片、电影等
-
-                finish_status (Index_Filter.Finish_Status): 是否完结
-
-                copyright (Index_Filter.Copyright): 版权
-
-                payment (Index_Filter.Payment): 付费门槛
-
-                year (str): 年份，调用 Index_Filter.make_time_filter() 传入年份 (int, str) 获取
-
-                style (Index_Filter.Style.GuoChuang): 风格
+                version (Version, optional): 类型，如正片、电影等. Defaults to Version.ALL.
+                finish_status (Finish_Status, optional): 是否完结. Defaults to Finish_Status.ALL.
+                copyright (Copyright, optional): 版权. Defaults to Copyright.ALL.
+                payment (Payment, optional): 付费门槛. Defaults to Payment.ALL.
+                year (str, optional): 年份，调用 Index_Filter.make_time_filter() 传入年份 (int, str) 获取. Defaults to '-1'.
+                style (GuoChuang, optional): 风格. Defaults to GuoChuang.ALL.
             """
             self.season_type = IndexFilter.Type.GUOCHUANG
             self.season_version = version
@@ -928,10 +905,10 @@ class IndexFilterMeta:
         ) -> None:
             """
             Variety Meta
-            Args:
-                payment (Index_Filter.Payment): 付费门槛
 
-                style (Index_Filter.Style.Variety): 风格
+            Args:
+                style (Variety, optional): 风格. Defaults to Variety.ALL.
+                payment (Payment, optional): 付费门槛. Defaults to Payment.ALL.
             """
             self.season_type = IndexFilter.Type.VARIETY
             self.season_status = payment
@@ -939,7 +916,7 @@ class IndexFilterMeta:
 
 
 async def get_index_info(
-    filters: IndexFilterMeta = IndexFilterMeta.Anime(),
+    filters: object = IndexFilterMeta.Anime(),
     order: IndexFilter.Order = IndexFilter.Order.SCORE,
     sort: IndexFilter.Sort = IndexFilter.Sort.DESC,
     pn: int = 1,
@@ -951,14 +928,10 @@ async def get_index_info(
     请先通过 `IndexFilterMeta` 构造 filters
 
     Args:
-        filters (Index_Filter_Meta, optional): 筛选条件元数据. Defaults to Anime.
-
-        order (BANGUMI_INDEX.ORDER, optional): 排序字段. Defaults to SCORE.
-
-        sort (BANGUMI_INDEX.SORT, optional): 排序方式. Defaults to DESC.
-
+        filters (object, optional): 筛选条件元数据. Defaults to <bilibili_api.bangumi.IndexFilterMeta.Anime object at 0x105571160>.
+        order (Order, optional): 排序字段. Defaults to Order.SCORE.
+        sort (Sort, optional): 排序方式. Defaults to Sort.DESC.
         pn (int, optional): 页数. Defaults to 1.
-
         ps (int, optional): 每页数量. Defaults to 20.
 
     Returns:
@@ -1011,25 +984,19 @@ class Bangumi:
         ssid: int = -1,
         epid: int = -1,
         oversea: bool = False,
-        credential: Union[Credential, None] = None,
+        credential: Credential | None = None,
     ) -> None:
         """
         Args:
-            media_id   (int, optional)              : 番剧本身的 ID. Defaults to -1.
-
-            ssid       (int, optional)              : 每季度的 ID. Defaults to -1.
-
-            epid       (int, optional)              : 每集的 ID. Defaults to -1.
-
-            oversea    (bool, optional)             : 是否要采用兼容的港澳台Api,用于仅限港澳台地区番剧的信息请求. Defaults to False.
-
+            media_id (int, optional): 番剧本身的 ID. Defaults to -1.
+            ssid (int, optional): 每季度的 ID. Defaults to -1.
+            epid (int, optional): 每集的 ID. Defaults to -1.
+            oversea (bool, optional): 是否要采用兼容的港澳台Api,用于仅限港澳台地区番剧的信息请求. Defaults to False.
             credential (Credential | None, optional): 凭据类. Defaults to None.
         """
-        global bangumi_md_to_ss, bangumi_ss_to_md
-
         if media_id == -1 and ssid == -1 and epid == -1:
             raise ValueError("需要 Media_id 或 Season_id 或 epid 中的一个 !")
-        self.credential: Credential = credential if credential else Credential()
+        self.credential: Credential = credential or Credential()
         self.__media_id = media_id
         self.__ssid = ssid
         self.__epid = epid
@@ -1040,23 +1007,28 @@ class Bangumi:
         self.ep_item = None
 
         if self.__media_id != -1 and self.__ssid != -1:
-            bangumi_md_to_ss[self.__media_id] = self.__ssid
-            bangumi_ss_to_md[self.__ssid] = self.__media_id
+            cache_pool.bangumi_md_to_ss[self.__media_id] = self.__ssid
+            cache_pool.bangumi_ss_to_md[self.__ssid] = self.__media_id
         if (
             self.__media_id != -1
             and self.__ssid == -1
-            and self.__media_id in bangumi_md_to_ss.keys()
+            and self.__media_id in cache_pool.bangumi_md_to_ss.keys()
         ):
-            self.__ssid = bangumi_md_to_ss[self.__media_id]
+            self.__ssid = cache_pool.bangumi_md_to_ss[self.__media_id]
         if (
             self.__media_id == -1
             and self.__ssid != -1
-            and self.__ssid in bangumi_ss_to_md.keys()
+            and self.__ssid in cache_pool.bangumi_ss_to_md.keys()
         ):
-            self.__media_id = bangumi_ss_to_md[self.__ssid]
+            self.__media_id = cache_pool.bangumi_ss_to_md[self.__ssid]
+
+    def __str__(self) -> str:
+        return f"Bangumi(season_id={self.__ssid if self.__ssid != -1 else '[UNKNOWN]'}, media_id={self.__media_id if self.__media_id != -1 else '[UNKNOWN]'})"
+
+    def __repr__(self) -> str:
+        return f"Bangumi(season_id={self.__ssid if self.__ssid != -1 else '[UNKNOWN]'}, media_id={self.__media_id if self.__media_id != -1 else '[UNKNOWN]'})"
 
     async def __fetch_raw(self) -> None:
-        global bangumi_md_to_ss, bangumi_ss_to_md
         # 处理极端情况
         params = {}
         if self.__ssid == -1 and self.__epid == -1:
@@ -1089,8 +1061,8 @@ class Bangumi:
             self.__up_info = resp["up_info"]
         else:
             self.__up_info = {}
-        bangumi_md_to_ss[self.__media_id] = self.__ssid
-        bangumi_ss_to_md[self.__ssid] = self.__media_id
+        cache_pool.bangumi_md_to_ss[self.__media_id] = self.__ssid
+        cache_pool.bangumi_ss_to_md[self.__ssid] = self.__media_id
 
     async def get_media_id(self) -> int:
         """
@@ -1123,18 +1095,18 @@ class Bangumi:
         """
         if not self.__up_info:
             await self.__fetch_raw()
-        return self.__up_info
+        return copy(self.__up_info)  # type: ignore
 
-    async def get_raw(self) -> Tuple[dict, bool]:
+    async def get_raw(self) -> tuple[dict, bool]:
         """
         原始初始化数据
 
         Returns:
-            dict: Api 相关字段
+            tuple[dict, bool]: Api 相关字段
         """
         if not self.__raw:
             await self.__fetch_raw()
-        return self.__raw, self.oversea
+        return copy(self.__raw), self.oversea
 
     async def set_media_id(self, media_id: int) -> None:
         """
@@ -1172,15 +1144,14 @@ class Bangumi:
     async def get_short_comment_list(
         self,
         order: BangumiCommentOrder = BangumiCommentOrder.DEFAULT,
-        next: Union[str, None] = None,
+        next: str | None = None,
     ) -> dict:
         """
         获取短评列表
 
         Args:
-            order      (BangumiCommentOrder, optional): 排序方式。Defaults to BangumiCommentOrder.DEFAULT
-
-            next       (str | None, optional)         : 调用返回结果中的 next 键值，用于获取下一页数据。Defaults to None
+            order (BangumiCommentOrder, optional): 排序方式。Defaults to BangumiCommentOrder.DEFAULT.
+            next (str | None, optional): 调用返回结果中的 next 键值，用于获取下一页数据. Defaults to None.
 
         Returns:
             dict: 调用 API 返回的结果
@@ -1188,7 +1159,11 @@ class Bangumi:
         credential = self.credential if self.credential is not None else Credential()
 
         api = API["info"]["short_comment"]
-        params = {"media_id": await self.get_media_id(), "ps": 20, "sort": order.value}
+        params: dict[str, object] = {
+            "media_id": await self.get_media_id(),
+            "ps": 20,
+            "sort": order.value,
+        }
         if next is not None:
             params["cursor"] = next
 
@@ -1197,15 +1172,14 @@ class Bangumi:
     async def get_long_comment_list(
         self,
         order: BangumiCommentOrder = BangumiCommentOrder.DEFAULT,
-        next: Union[str, None] = None,
+        next: str | None = None,
     ) -> dict:
         """
         获取长评列表
 
         Args:
-            order      (BangumiCommentOrder, optional): 排序方式。Defaults to BangumiCommentOrder.DEFAULT
-
-            next       (str | None, optional)         : 调用返回结果中的 next 键值，用于获取下一页数据。Defaults to None
+            order (BangumiCommentOrder, optional): 排序方式。Defaults to BangumiCommentOrder.DEFAULT.
+            next (str | None, optional): 调用返回结果中的 next 键值，用于获取下一页数据. Defaults to None.
 
         Returns:
             dict: 调用 API 返回的结果
@@ -1213,7 +1187,11 @@ class Bangumi:
         credential = self.credential if self.credential is not None else Credential()
 
         api = API["info"]["long_comment"]
-        params = {"media_id": await self.get_media_id(), "ps": 20, "sort": order.value}
+        params: dict[str, object] = {
+            "media_id": await self.get_media_id(),
+            "ps": 20,
+            "sort": order.value,
+        }
         if next is not None:
             params["cursor"] = next
 
@@ -1260,18 +1238,20 @@ class Bangumi:
                 await Api(**api, credential=credential).update_params(**params).result
             )
 
-    async def get_episodes(self) -> List["Episode"]:
+    async def get_episodes(self) -> list["Episode"]:
         """
         获取番剧所有的剧集，自动生成类。
+
+        Returns:
+            list['Episode']: 剧集类列表
         """
-        global episode_data_cache
         episode_list = await self.get_episode_list()
         if len(episode_list["main_section"]["episodes"]) == 0:
             return []
 
         episodes = []
         for ep in episode_list["main_section"]["episodes"]:
-            episode_data_cache[ep["id"]] = {
+            cache_pool.episode_data_cache[ep["id"]] = {
                 "bangumi_meta": ep,
                 "bangumi_class": self,
             }
@@ -1308,16 +1288,14 @@ class Bangumi:
 
 
 async def set_follow(
-    bangumi: Bangumi, status: bool = True, credential: Union[Credential, None] = None
+    bangumi: Bangumi, status: bool = True, credential: Credential | None = None
 ) -> dict:
     """
     追番状态设置
 
     Args:
-        bangumi    (Bangumi)                    : 番剧类
-
-        status     (bool, optional)             : 追番状态. Defaults to True.
-
+        bangumi (bangumi.Bangumi): 番剧类
+        status (bool, optional): 追番状态. Defaults to True.
         credential (Credential | None, optional): 凭据. Defaults to None.
 
     Returns:
@@ -1332,17 +1310,16 @@ async def set_follow(
 
 
 async def update_follow_status(
-    bangumi: Bangumi, status: int, credential: Union[Credential, None] = None
+    bangumi: Bangumi, status: int, credential: Credential | None = None
 ) -> dict:
     """
     更新追番状态
 
     Args:
-        bangumi    (Bangumi)                    : 番剧类
-
+        bangumi (bangumi.Bangumi): 番剧类
+        status (int): 追番状态 1 想看 2 在看 3 已看
         credential (Credential | None, optional): 凭据. Defaults to None.
 
-        status     (int)                        : 追番状态 1 想看 2 在看 3 已看
     Returns:
         dict: 调用 API 返回的结果
     """
@@ -1360,25 +1337,21 @@ class Episode(Video):
 
     Attributes:
         credential  (Credential): 凭据类
-
         video_class (Video)     : 视频类
-
         bangumi     (Bangumi)   : 所属番剧
     """
 
     def __init__(
         self,
         epid: int,
-        credential: Union[Credential, None] = None,
-    ):
+        credential: Credential | None = None,
+    ) -> None:
         """
         Args:
-            epid       (int)                 : 番剧 epid
-
-            credential (Credential, optional): 凭据. Defaults to None.
+            epid (int): 番剧 epid
+            credential (Credential | None, optional): 凭据. Defaults to None.
         """
-        global episode_data_cache
-        self.credential: Credential = credential if credential else Credential()
+        self.credential: Credential = credential or Credential()
         self.__epid: int = epid
         self.bangumi = None
         self.__ep_aid = None
@@ -1386,21 +1359,27 @@ class Episode(Video):
         self.__ep_info_html = None
         self.__playurl = None
 
-        if epid in episode_data_cache.keys():
-            self.bangumi = episode_data_cache[epid]["bangumi_class"]
-            self.__ep_aid = episode_data_cache[epid]["bangumi_meta"]["aid"]
+        if epid in cache_pool.episode_data_cache.keys():
+            self.bangumi = cache_pool.episode_data_cache[epid]["bangumi_class"]
+            self.__ep_aid = cache_pool.episode_data_cache[epid]["bangumi_meta"]["aid"]
             self.__ep_bvid = aid2bvid(self.__ep_aid)
 
         super().__init__(bvid="BV1Am411y7iK", credential=self.credential)
-        self.set_aid = self.__set_aid_e
-        self.set_bvid = self.__set_bvid_e
+        self.set_aid = self.__set_aid_e  # type: ignore
+        self.set_bvid = self.__set_bvid_e  # type: ignore
+
+    def __str__(self) -> str:
+        return f"Episode(ep_id={self.__epid})"
+
+    def __repr__(self) -> str:
+        return f"Episode(ep_id={self.__epid})"
 
     async def turn_to_video(self) -> Video:
         """
         将番剧剧集对象转换为视频
 
         Returns:
-            Video: 视频对象
+            video.Video: 视频对象
         """
         return Video(aid=await self.get_aid(), credential=self.credential)
 
@@ -1413,7 +1392,7 @@ class Episode(Video):
         self.__ep_bvid = content["episode_info"]["bvid"]
         self.__ep_aid = bvid2aid(self.__ep_bvid)
 
-    async def get_bvid(self) -> str:
+    async def get_bvid(self) -> str:  # type: ignore
         """
         获取 BVID。
 
@@ -1422,18 +1401,18 @@ class Episode(Video):
         """
         if not self.__ep_bvid:
             await self.__fetch_bangumi()
-        return self.__ep_bvid
+        return self.__ep_bvid  # type: ignore
 
-    async def get_aid(self) -> str:
+    async def get_aid(self) -> int:  # type: ignore
         """
         获取 AID。
 
         Returns:
-            str: AID。
+            int: AID。
         """
         if not self.__ep_aid:
             await self.__fetch_bangumi()
-        return self.__ep_aid
+        return self.__ep_aid  # type: ignore
 
     async def __set_bvid_e(self) -> None:
         """
@@ -1450,10 +1429,13 @@ class Episode(Video):
     def get_epid(self) -> int:
         """
         获取 epid
+
+        Returns:
+            int: epid
         """
         return self.__epid
 
-    async def get_cid(self) -> int:
+    async def get_cid(self) -> int:  # type: ignore
         """
         获取稿件 cid
 
@@ -1483,15 +1465,15 @@ class Episode(Video):
         self.__init__(epid, self.credential)
         await self.__fetch_bangumi()
 
-    async def get_episode_info(self) -> Tuple[dict, InitialDataType]:
+    async def get_episode_info(self) -> tuple[dict, InitialDataType]:
         """
         获取番剧单集信息
 
         Returns:
-            Tuple[dict, InitialDataType]: 前半部分为数据，后半部分为数据类型（__INITIAL_STATE__ 或 __NEXT_DATA）
+            tuple[dict, utils.initial_state.InitialDataType]: 前半部分为数据，后半部分为数据类型（\\_\\_INITIAL_STATE\\_\\_ 或 \\_\\_NEXT_DATA\\_\\_）
         """
         if self.__ep_info_html:
-            return self.__ep_info_html
+            return copy(self.__ep_info_html)
         return await get_initial_state(
             url=f"https://www.bilibili.com/bangumi/play/ep{self.__epid}",
             credential=self.credential,
@@ -1506,22 +1488,25 @@ class Episode(Video):
         """
         if not self.bangumi:
             await self.__fetch_bangumi()
-        return self.bangumi
+        return self.bangumi  # type: ignore
 
     async def set_favorite(
-        self, add_media_ids: List[int] = [], del_media_ids: List[int] = []
+        self,
+        add_media_ids: list[int] | None = None,
+        del_media_ids: list[int] | None = None,
     ) -> dict:
         """
         设置视频收藏状况。
 
         Args:
-            add_media_ids (List[int], optional): 要添加到的收藏夹 ID. Defaults to [].
-
-            del_media_ids (List[int], optional): 要移出的收藏夹 ID. Defaults to [].
+            add_media_ids (list[int] | None, optional): 要添加到的收藏夹 ID. Defaults to None.
+            del_media_ids (list[int] | None, optional): 要移出的收藏夹 ID. Defaults to None.
 
         Returns:
             dict: 调用 API 返回结果。
         """
+        add_media_ids = add_media_ids or []
+        del_media_ids = del_media_ids or []
         if len(add_media_ids) + len(del_media_ids) == 0:
             raise ArgsException(
                 "对收藏夹无修改。请至少提供 add_media_ids 和 del_media_ids 中的其中一个。"
@@ -1534,12 +1519,12 @@ class Episode(Video):
         data = {
             "rid": await self.get_aid(),
             "type": 42,
-            "add_media_ids": ",".join(map(lambda x: str(x), add_media_ids)),
-            "del_media_ids": ",".join(map(lambda x: str(x), del_media_ids)),
+            "add_media_ids": ",".join(str(x) for x in add_media_ids),
+            "del_media_ids": ",".join(str(x) for x in del_media_ids),
         }
         return await Api(**api, credential=self.credential).update_data(**data).result
 
-    async def get_download_url(self) -> dict:
+    async def get_download_url(self) -> dict:  # type: ignore
         """
         获取番剧剧集下载信息。
 
@@ -1566,9 +1551,9 @@ class Episode(Video):
                 .update_params(**params)
                 .result
             )
-        return self.__playurl
+        return copy(self.__playurl)
 
-    async def get_danmaku_xml(self) -> str:
+    async def get_danmaku_xml(self) -> str:  # type: ignore
         """
         获取所有弹幕的 xml 源文件（非装填）
 
@@ -1579,7 +1564,7 @@ class Episode(Video):
         url = f"https://comment.bilibili.com/{cid}.xml"
         return (await Api(url=url, method="GET").request(byte=True)).decode("utf-8")
 
-    async def get_danmaku_view(self) -> dict:
+    async def get_danmaku_view(self) -> dict:  # type: ignore
         """
         获取弹幕设置、特殊弹幕、弹幕数量、弹幕分段等信息。
 
@@ -1588,66 +1573,64 @@ class Episode(Video):
         """
         return await super().get_danmaku_view(0)
 
-    async def get_danmakus(
+    async def get_danmakus(  # type: ignore
         self,
-        date: Union[datetime.date, None] = None,
-        from_seg: Union[int, None] = None,
-        to_seg: Union[int, None] = None,
-    ) -> List["Danmaku"]:
+        date: datetime.date | None = None,
+        from_seg: int | None = None,
+        to_seg: int | None = None,
+    ) -> list["Danmaku"]:
         """
         获取弹幕
 
         Args:
-            date (datetime.date | None, optional): 指定某一天查询弹幕. Defaults to None. (不指定某一天)
-
-            from_seg (int, optional): 从第几段开始(0 开始编号，None 为从第一段开始，一段 6 分钟). Defaults to None.
-
-            to_seg (int, optional): 到第几段结束(0 开始编号，None 为到最后一段，包含编号的段，一段 6 分钟). Defaults to None.
+            date (datetime.date | None, optional): 指定某一天查询弹幕.  (不指定某一天). Defaults to None.
+            from_seg (int | None, optional): 从第几段开始(0 开始编号，None 为从第一段开始，一段 6 分钟). Defaults to None.
+            to_seg (int | None, optional): 到第几段结束(0 开始编号，None 为到最后一段，包含编号的段，一段 6 分钟). Defaults to None.
 
         Returns:
-            dict[Danmaku]: 弹幕列表
+            list['Danmaku']: 弹幕列表
         """
         return await super().get_danmakus(0, date, from_seg=from_seg, to_seg=to_seg)
 
-    async def get_history_danmaku_index(
-        self, date: Union[datetime.date, None] = None
-    ) -> Union[None, List[str]]:
+    async def get_history_danmaku_index(  # type: ignore
+        self, date: datetime.date | None = None
+    ) -> list[str] | None:
         """
         获取特定月份存在历史弹幕的日期。
 
         Args:
-            date (datetime.date | None, optional): 精确到年月. Defaults to None。
+            date (datetime.date | None, optional): 精确到年月. Defaults to None.
 
         Returns:
-            None | List[str]: 调用 API 返回的结果。不存在时为 None。
+            list[str] | None: 调用 API 返回的结果。不存在时为 None。
         """
         return await super().get_history_danmaku_index(0, date)
 
-    async def send_danmaku(self, danmaku: Danmaku):
+    async def send_danmaku(self, danmaku: Danmaku) -> dict:  # type: ignore
         """
         发送弹幕。
 
         Args:
-            danmaku    (Danmaku | None)      : Danmaku 类。
+            danmaku (Danmaku): Danmaku 类。
 
         Returns:
             dict: 调用 API 返回的结果。
         """
         return await super().send_danmaku(0, danmaku)
 
-    async def recall_danmaku(self, dmid: int):
+    async def recall_danmaku(self, dmid: int) -> dict:  # type: ignore
         """
         撤回弹幕。
 
         Args:
-            dmid(int)      : 弹幕 id
+            dmid (int): 弹幕 id
 
         Returns:
             dict: 调用 API 返回的结果。
         """
         return await super().recall_danmaku(0, dmid)
 
-    async def get_player_info(self):
+    async def get_player_info(self) -> dict:  # type: ignore
         """
         获取视频上一次播放的记录，字幕和地区信息。需要分集的 cid, 返回数据中含有json字幕的链接
 
@@ -1656,16 +1639,18 @@ class Episode(Video):
         """
         return await super().get_player_info(await self.get_cid(), self.get_epid())
 
-    async def get_subtitle(self):
+    async def get_subtitle(self) -> dict:  # type: ignore
         """
         获取字幕信息
 
         Returns:
             dict: 调用 API 返回的结果
         """
-        return (await self.get_player_info()).get("subtitle")
+        return (await self.get_player_info()).get("subtitle")  # type: ignore
 
-    async def submit_subtitle(self, lan: str, data: dict, submit: bool, sign: bool):
+    async def submit_subtitle(  # type: ignore
+        self, lan: str, data: dict, submit: bool, sign: bool
+    ) -> dict:
         """
         上传字幕
 
@@ -1674,10 +1659,10 @@ class Episode(Video):
         ```json
         {
           "font_size": "float: 字体大小，默认 0.4",
-          "font_color": "str: 字体颜色，默认 \"#FFFFFF\"",
+          "font_color": "str: 字体颜色，默认 #FFFFFF",
           "background_alpha": "float: 背景不透明度，默认 0.5",
-          "background_color": "str: 背景颜色，默认 \"#9C27B0\"",
-          "Stroke": "str: 描边，目前作用未知，默认为 \"none\"",
+          "background_color": "str: 背景颜色，默认 #9C27B0",
+          "Stroke": "str: 描边，目前作用未知，默认为 none",
           "body": [
             {
               "from": "int: 字幕开始时间（秒）",
@@ -1690,20 +1675,17 @@ class Episode(Video):
         ```
 
         Args:
-            lan        (str)                 : 字幕语言代码，参考 https://s1.hdslb.com/bfs/subtitle/subtitle_lan.json
-
-            data       (dict)                : 字幕数据
-
-            submit     (bool)                : 是否提交，不提交为草稿
-
-            sign       (bool)                : 是否署名
+            lan (str): 字幕语言代码，参考 https
+            data (dict): 字幕数据
+            submit (bool): 是否提交，不提交为草稿
+            sign (bool): 是否署名
 
         Returns:
             dict: API 调用返回结果
         """
         return await super().submit_subtitle(lan, data, submit, sign, 0)
 
-    async def get_pbp(self):
+    async def get_pbp(self) -> dict:  # type: ignore
         """
         获取高能进度条
 
@@ -1712,12 +1694,12 @@ class Episode(Video):
         """
         return await super().get_pbp(0)
 
-    async def get_ai_conclusion(self, up_mid: int = None):
+    async def get_ai_conclusion(self, up_mid: int | None = None) -> dict:  # type: ignore
         """
         获取稿件 AI 总结结果。
 
         Args:
-            up_mid (Optional, int): up 主的 mid。
+            up_mid (int | None, optional): up 主的 mid. Defaults to None.
 
         Returns:
             dict: 调用 API 返回的结果。
