@@ -2395,7 +2395,8 @@ class _BiliAPIClient:
                     elif filt.get("function") or filt.get("async_function"):
                         try:
                             if filt.get("function"):
-                                results = run_filter(
+                                results = await to_thread.run_sync(
+                                    run_filter,
                                     filt["function"],
                                     BiliFilterArgs(
                                         **filter_args,
