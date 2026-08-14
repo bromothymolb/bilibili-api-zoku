@@ -97,6 +97,7 @@ ignored_funcs = [
     "parse_user_info",
     "gain_buvid",
     "parse_send_gift_v2",
+    "safe_eval",
 ]
 
 ignored_vars = [
@@ -505,6 +506,9 @@ with open("./docs/toc.md", "w+") as toc:
         "# API 文档目录\n\n此处为模块 API 文档的目录，通过网页查找可快速跳转至对应的类/函数。\n\n"
     )
 
+with open("./docs/toc.txt", "w+") as toc_txt:
+    toc_txt.write("")
+
 
 for module in all_funcs:
     if module[0][0] in ["_pyinstaller", "tools", "exceptions", "clients"]:
@@ -523,28 +527,31 @@ for module in all_funcs:
     print("GENERATING TOC")
     last_data_class = -114514
     with open("./docs/toc.md", "a+") as toc:
-        toc.write(f"- [{module[0][0]}](./modules/{module[0][0]})\n")
-        for idx, func in enumerate(module[1:]):
-            if idx == last_data_class + 1:
-                # don't show __init__ of dataclass and ApiException
-                continue
-            if (
-                func[3] == "@dataclasses.dataclass"
-                or func[1].count("exceptions") == 1
-                or func[0].startswith("request_log")
-                or func[0].startswith("bili_settings")
-            ):
-                last_data_class = idx
-            npy313 = func[0].replace("_", "\\_")
-            file.write(
-                "  " * (func[4] - 2)
-                + f"- [{func[2]} {npy313}{['()', ''][func[2] == 'var']}](#{func[2].replace(' ', '-')}-{npy313})\n"
-            )
-            toc.write(
-                "  " * (func[4] - 1)
-                + f"- [{func[2]} {npy313}{['()', ''][func[2] == 'var']}](./modules/{module[0][0]}.md#{func[2].replace(' ', '-')}-{npy313})\n"
-            )
-        file.write("\n")
+        with open("./docs/toc.txt", "a+") as toc_txt:
+            toc.write(f"- [{module[0][0]}](./modules/{module[0][0]})\n")
+            toc_txt.write(module[0][0] + "\n")
+            for idx, func in enumerate(module[1:]):
+                if idx == last_data_class + 1:
+                    # don't show __init__ of dataclass and ApiException
+                    continue
+                if (
+                    func[3] == "@dataclasses.dataclass"
+                    or func[1].count("exceptions") == 1
+                    or func[0].startswith("request_log")
+                    or func[0].startswith("bili_settings")
+                ):
+                    last_data_class = idx
+                npy313 = func[0].replace("_", "\\_")
+                file.write(
+                    "  " * (func[4] - 2)
+                    + f"- [{func[2]} {npy313}{['()', ''][func[2] == 'var']}](#{func[2].replace(' ', '-')}-{npy313})\n"
+                )
+                toc.write(
+                    "  " * (func[4] - 1)
+                    + f"- [{func[2]} {npy313}{['()', ''][func[2] == 'var']}](./modules/{module[0][0]}.md#{func[2].replace(' ', '-')}-{npy313})\n"
+                )
+                toc_txt.write(" " * (func[4] - 1) + func[0] + "\n")
+            file.write("\n")
     last_data_class = -114514
     for idx, func in enumerate(module[1:]):
         if idx == last_data_class + 1:

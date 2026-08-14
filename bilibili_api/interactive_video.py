@@ -32,6 +32,18 @@ from .video import Video, VideoDownloadURLDataDetecter
 API = get_api("interactive_video")
 
 
+def safe_eval(statement: str) -> int | float:
+    for char in statement:
+        if ord(char) not in list(range(48, 58)) + [
+            ord(x) for x in ".+-*/&|( )[=]{!}<%>"
+        ]:
+            raise ArgsException("suspicious statement: " + statement)
+    statement = statement.replace("&&", " and ")
+    statement = statement.replace("||", " or ")
+    statement = statement.replace("!", " not ")
+    return eval(statement)
+
+
 class InteractiveButtonAlign(enum.Enum):
     """
     按钮的文字在按钮中的位置
@@ -304,14 +316,11 @@ class InteractiveJumpingCondition:
             var_name = var.get_id()
             var_value = var.get_value()
             command = command.replace(var_name, str(var_value))
-        command = command.replace("&&", " and ")
-        command = command.replace("||", " or ")
-        command = command.replace("!", " not ")
         command = command.replace("===", "==")
         command = command.replace("!==", "!=")
-        command = command.replace("true", "True")
-        command = command.replace("false", "False")
-        return eval(command)
+        command = command.replace("true", "1")
+        command = command.replace("false", "0")
+        return bool(safe_eval(command))
 
 
 class InteractiveJumpingCommand:
@@ -383,7 +392,7 @@ class InteractiveJumpingCommand:
                 var_name = var.get_id()
                 var_value = var.get_value()
                 var_new_value = var_new_value.replace(var_name, str(var_value))
-            var_new_value_calc = eval(var_new_value)
+            var_new_value_calc = safe_eval(var_new_value)
             for idx, var in enumerate(self.__vars):
                 if var.get_id() == changed_var:
                     self.__vars[idx] = InteractiveVariable(
