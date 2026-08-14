@@ -1308,8 +1308,6 @@ request_settings.__doc__ = """
 相关使用方法请参考 `RequestSettings` 类文档。
 """
 
-DEFAULT_SETTINGS = {"proxy": "", "timeout": 30.0, "verify_ssl": True, "trust_env": True}
-
 
 ################################################## END Settings ##################################################
 
@@ -2478,7 +2476,7 @@ class _BiliAPIClientGroup:
         self.__session_pool: dict[EventLoopToken, "_BiliAPIClient"] = {}
         self.__set_session_pool: dict[EventLoopToken, "_BiliAPIClient"] = {}
         self.__base_settings = RequestSettings()
-        self.__base_settings._set_base(DEFAULT_SETTINGS | optional_settings[client])
+        self.__base_settings._set_base(client_defaults[client])
         self.__force_settings = RequestSettings()
         self.__client__ = client
         self.__instance__ = name
@@ -2571,7 +2569,7 @@ class _BiliAPIClientGroup:
 
 sessions: dict[str, type["BiliAPIClient"]] = {}  # client -> BiliAPIClient class
 client_settings: dict[str, list] = {}  # client -> settings
-optional_settings: dict[str, dict] = {}  # client -> optional settings
+client_defaults: dict[str, dict] = {}
 client_groups: dict[str, dict[str, _BiliAPIClientGroup]] = {}  # client -> instance
 selected_client = ""
 selected_instance = ""
@@ -2590,7 +2588,7 @@ def register_client(name: str, cls: type, settings: dict | None = None) -> None:
     Args:
         name (str): 请求客户端类型名称，用户自定义命名。
         cls (type): 基于 BiliAPIClient 重写后的请求客户端类。
-        settings (dict | None, optional): 请求客户端在基础设置外的其他设置，键为设置名称，值为设置默认值. Defaults to None.
+        settings (dict | None, optional): 请求客户端支持的所有设置，键为设置名称，值为设置默认值. Defaults to None.
     """
     global sessions, client_groups
     raise_for_statement(
@@ -2601,10 +2599,9 @@ def register_client(name: str, cls: type, settings: dict | None = None) -> None:
     sessions[name] = cls
     client_groups[name] = {}
     select_client(name)
-    client_settings[name] = list(DEFAULT_SETTINGS.keys())
     settings = settings or {}
-    client_settings[name] += list(settings.keys())
-    optional_settings[name] = settings
+    client_settings[name] = list(settings.keys())
+    client_defaults[name] = settings
     new_instance("default", name)
 
 
