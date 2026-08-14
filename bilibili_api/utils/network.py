@@ -1230,6 +1230,42 @@ class RequestSettings:
         """
         self.set("trust_env", trust_env)
 
+    def get_http2(self) -> bool:
+        """
+        获取设置的 `http2`
+
+        Returns:
+            bool: `http2`. Defaults to False.
+        """
+        return self.get("http2")
+
+    def set_http2(self, http2: bool) -> None:
+        """
+        修改设置的 `http2`
+
+        Args:
+            http2 (bool): `http2`
+        """
+        self.set("http2", http2)
+
+    def get_impersonate(self) -> str:
+        """
+        获取设置的 `impersonate`
+
+        Returns:
+            str: `impersonate`. Defaults to "".
+        """
+        return self.get("impersonate")
+
+    def set_impersonate(self, impersonate: str) -> None:
+        """
+        修改设置的 `impersonate`
+
+        Args:
+            impersonate (str): `impersonate`
+        """
+        self.set("impersonate", impersonate)
+
     def gets(self, keys: list[str]) -> dict:
         """
         获取对应设置项的设置

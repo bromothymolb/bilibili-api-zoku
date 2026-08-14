@@ -138,6 +138,8 @@ from bilibili_api import ...
   - [def all()](#def-all)
   - [def defaults()](#def-defaults)
   - [def get()](#def-get)
+  - [def get\_http2()](#def-get\_http2)
+  - [def get\_impersonate()](#def-get\_impersonate)
   - [def get\_proxy()](#def-get\_proxy)
   - [def get\_timeout()](#def-get\_timeout)
   - [def get\_trust\_env()](#def-get\_trust\_env)
@@ -145,6 +147,8 @@ from bilibili_api import ...
   - [def gets()](#def-gets)
   - [def has()](#def-has)
   - [def set()](#def-set)
+  - [def set\_http2()](#def-set\_http2)
+  - [def set\_impersonate()](#def-set\_impersonate)
   - [def set\_proxy()](#def-set\_proxy)
   - [def set\_timeout()](#def-set\_timeout)
   - [def set\_trust\_env()](#def-set\_trust\_env)
@@ -2086,6 +2090,28 @@ NOTE: `gt`, `challenge`, `token` 为验证码基本字段。`seccode`, `validate
 
 
 
+### def get_http2()
+
+获取设置的 `http2`
+
+
+
+**Returns:** `bool`:  `http2`. Defaults to False.
+
+
+
+
+### def get_impersonate()
+
+获取设置的 `impersonate`
+
+
+
+**Returns:** `str`:  `impersonate`. Defaults to "".
+
+
+
+
 ### def get_proxy()
 
 获取设置的代理
@@ -2167,6 +2193,30 @@ NOTE: `gt`, `challenge`, `token` 为验证码基本字段。`seccode`, `validate
 | - | - | - |
 | `name` | `str` | 设置名称 |
 | `value` | `Any` | 设置的值 |
+
+
+
+
+### def set_http2()
+
+修改设置的 `http2`
+
+
+| name | type | description |
+| - | - | - |
+| `http2` | `bool` | `http2` |
+
+
+
+
+### def set_impersonate()
+
+修改设置的 `impersonate`
+
+
+| name | type | description |
+| - | - | - |
+| `impersonate` | `str` | `impersonate` |
 
 
 
@@ -3107,7 +3157,7 @@ BV 号转 AV 号。
 | - | - | - |
 | `name` | `str` | 请求客户端类型名称，用户自定义命名。 |
 | `cls` | `type` | 基于 BiliAPIClient 重写后的请求客户端类。 |
-| `settings` | `dict \| None, optional` | 请求客户端在基础设置外的其他设置，键为设置名称，值为设置默认值. Defaults to None. |
+| `settings` | `dict \| None, optional` | 请求客户端支持的所有设置，键为设置名称，值为设置默认值. Defaults to None. |
 
 
 
