@@ -1,8 +1,8 @@
 # 下载视频
 
-最后，我们将尝试下载视频，通过文档的搜索可以发现，模块提供 `Video.get_download_url` 函数。此函数接受两个参数，任选其一即可，一个是分 P 数，一个是 cid。分 P 此处不再过多解释，cid 实际上一一对应了每个视频的每一个分 P，每一个 cid 都对应了一个视频一个分 P 的视频流地址、弹幕池、字幕、播放记录，等等。cid 可以通过 `Video.get_cid` 异步通过视频和分 P 获取，当然此处传入分 P 数即可。
+最后，我们将尝试下载视频。通过搜索文档可以发现，模块提供了 `Video.get_download_url` 函数。该函数接受两个参数，任选其一即可：一个是分 P 数，一个是 cid。分 P 此处不再赘述；cid 与视频的每个分 P 一一对应，每个 cid 都对应某一视频某一分 P 的视频流地址、弹幕池、字幕、播放记录等信息。cid 可以通过 `Video.get_cid` 异步地根据视频和分 P 获取，当然，此处直接传入分 P 数即可。
 
-事实上，所有接口支持的参数仅有 cid，模块对分 P 的支持建立在 `get_cid` 上，这个函数规定，分 P 数从 0 开始计数，使用时需注意。
+事实上，接口本身只支持 cid 参数，模块对分 P 的支持正是建立在 `get_cid` 之上的。该函数规定分 P 数从 0 开始计数，使用时需注意。
 
 ``` python
 from bilibili_api import sync, video
@@ -17,7 +17,7 @@ async def main() -> None:
 sync(main())
 ```
 
-运行代码可以得到很长一串返回字典，视频下载 url 就在其中。以下是返回字典格式化输出结果（部分）：
+运行代码可以得到很长一串返回字典，视频下载 url 就在其中。以下是返回字典格式化输出后的结果（节选）：
 
 ``` python
 {
@@ -94,9 +94,9 @@ sync(main())
 }
 ```
 
-可以发现，返回结果 `["dash"]["video"]` 和 `["dash"]["audio"]` 两个列表中的字典对象存储了不同的音视频流，对象 `baseUrl` `backup_url` 等键提供了音视频流链接。与此同时，对象 `codecs` 键给出了其格式。深入探究后可以发现，`id` 键的值对应了音视频流的品质。此处 `id = 32` 对应 480P 的视频清晰度，`id = 30216` 对应 64K 的音频清晰度。模块提供 `video.VideoQuality` 和 `video.AudioQuality` 两个枚举类，举个例子，`VideoQuality._480P = 32`，`AudioQuality._64K = 30216`。
+可以发现，`["dash"]["video"]` 和 `["dash"]["audio"]` 两个列表中的字典对象分别描述了不同的音视频流：其中 `baseUrl`、`backup_url` 等键提供了音视频流的链接，`codecs` 键给出了其编码格式。进一步探究可以发现，`id` 键的值对应着音视频流的品质——此处 `id = 32` 对应 480P 的视频清晰度，`id = 30216` 对应 64K 的音频清晰度。模块提供了 `video.VideoQuality` 和 `video.AudioQuality` 两个枚举类，例如 `VideoQuality._480P = 32`、`AudioQuality._64K = 30216`。
 
-针对下载视频，模块同时提供了一个工具类，专门用于处理视频下载地址字典，即 `video.VideoDownloadURLDataDetecter`。其提供 `detect` 和 `detect_best_streams` 方法，这里我们只需要一对清晰度最好的音视频流，使用 `detect_best_streams` 即可。
+针对视频下载，模块还提供了一个专门处理下载地址字典的工具类——`video.VideoDownloadURLDataDetecter`。它提供 `detect` 和 `detect_best_streams` 两个方法。这里我们只需要清晰度最好的一对音视频流，使用 `detect_best_streams` 即可。
 
 ``` python
 from bilibili_api import sync, video
@@ -113,9 +113,9 @@ async def main() -> None:
 sync(main())
 ```
 
-同时，`detect` `detect_best_streams` 函数支持一系列参数，例如 `video_min_quality` 用于限制视频最低清晰度，传入参数为 `video.VideoQuality` 类型，`no_dolby` 可过滤掉杜比视界。`detect_best_streams` 通常情况下返回两个流，一个是视频流，一个是音频流，分别是 `video.VideoStreamDownloadURL` 和 `video.AudioStreamDownloadURL` 实例，通过这些实例我们可以获取有关视频音频流的更多信息，但此处我们只需要 url。
+同时，`detect` 与 `detect_best_streams` 还支持一系列参数，例如 `video_min_quality` 用于限制视频的最低清晰度（传入 `video.VideoQuality` 类型），`no_dolby` 可以过滤掉杜比视界。`detect_best_streams` 通常返回两个流——一个视频流和一个音频流，分别是 `video.VideoStreamDownloadURL` 与 `video.AudioStreamDownloadURL` 的实例。通过这些实例可以获取音视频流的更多信息，不过此处我们只需要 url。
 
-有了 url 就可以下载了。下载的方式不少，从 `curl` 到 `aria2c` 均可。但是，此处的 url 需要加上特定请求头访问，否则会 403。一般只需要加上 `User-Agent` 和 `Referer` 即可正常访问，以下是模块内部使用的请求头：
+有了 url 就可以开始下载了。下载方式多种多样，从 `curl` 到 `aria2c` 均可。但需要注意的是，这里的 url 必须携带特定请求头才能访问，否则会返回 403。一般只需加上 `User-Agent` 和 `Referer` 即可正常访问，以下是模块内部使用的请求头：
 
 ``` python
 HEADERS = {
@@ -124,7 +124,7 @@ HEADERS = {
 }
 ```
 
-下载逻辑不光可以在外部程序实现，也可以在原来的 python 代码上追加。这里介绍一种特殊的方式，即调用模块内部使用的会话进行下载。模块并未原生实现网络请求功能，也需要第三方库提供会话，然后调用会话的函数请求。模块使用的会话实例可以通过 `get_session` 函数获取。
+下载逻辑既可以在外部程序中实现，也可以直接追加到原来的 Python 代码里。这里介绍一种特殊的方式——借助模块内部使用的会话进行下载。模块本身并未原生实现网络请求功能，而是由第三方库提供会话，再调用会话的相应函数发起请求。模块当前使用的会话实例可以通过 `get_session` 函数获取。
 
 ``` python
 from bilibili_api import get_session, get_selected_client
@@ -139,13 +139,13 @@ async def main() -> None:
 sync(main())
 ```
 
-`get_session` 返回的会话是未经处理的第三方库的会话对象（例如 `curl_cffi.requests.AsyncSession` `aiohttp.ClientSession` `httpx.AsyncClient`），需要看模块此时选择的是哪一个第三方库。这可以通过 `get_selected_client` 查询。模块在允许的条件下，按照 `curl_cffi` `aiohttp` `httpx` 的优先级选择第三方请求库。如果想要指定请求库，可以利用 `select_client` 进行切换。以下是选择 `curl_cffi` 时，上述代码的输出：
+`get_session` 返回的是未经处理的第三方库会话对象（例如 `curl_cffi.requests.AsyncSession`、`aiohttp.ClientSession`、`httpx.AsyncClient`），具体类型取决于模块当前选择的是哪一个第三方库，可通过 `get_selected_client` 查询。在条件允许的情况下，模块会按照 `curl_cffi`、`aiohttp`、`httpx` 的优先级选择第三方请求库；如需指定请求库，可以利用 `select_client` 进行切换。以下是在选择 `curl_cffi` 时，上述代码的输出：
 
 ``` plaintext
 ('curl_cffi', <class 'bilibili_api.clients.CurlCFFIClient.CurlCFFIClient'>) <curl_cffi.requests.session.AsyncSession object at 0x120284980>
 ```
 
-为方便对这些会话实例的调用，模块对不同第三方库的会话进行了统一封装，即使用抽象类 `bilibili_api.BiliAPIClient` 封装需要的网络请求功能。此时调用会话就可以采用统一的一套函数，而不用一一适配兼容了。只需要调用 `get_client` 即可获取 `BiliAPIClient` 实例。借此，我们可以实现以下的简易下载函数。
+为方便调用这些会话实例，模块对不同第三方库的会话进行了统一封装，即通过抽象类 `bilibili_api.BiliAPIClient` 抽象出所需的网络请求功能。这样一来，调用会话时就可以使用统一的一套函数，而无需逐一适配。只需调用 `get_client` 即可获取 `BiliAPIClient` 实例。借此，我们可以实现下面这个简易的下载函数：
 
 ``` python
 import anyio
@@ -167,13 +167,13 @@ async def download(url: str, out: str):
     print()
 ```
 
-此处代码使用 `\r` 操作符刷新输出行，打印下载进度。`get_bili_headers` 是模块提供的获取一整套请求头的函数，包括我们需要的 `User-Agent` 和 `Referer`。此处使用了 AnyIO 库进行异步文件 IO，AnyIO 也是模块的依赖之一。
+代码中使用 `\r` 回车符刷新当前输出行，以打印下载进度。`get_bili_headers` 是模块提供的获取整套请求头的函数，其中就包括所需的 `User-Agent` 和 `Referer`。这里还使用了 AnyIO 库进行异步文件 IO，AnyIO 也是模块的依赖之一。
 
-然后就是对 `BiliAPIClient` 函数的具体介绍，虽然这边未使用到，但其最重要的函数是 `request` 函数，用于发起一般网络请求，详情可翻阅文档。此处使用了四个函数，`download_create` 用于创建流式下载的响应，`download_content_length` 用于获取下载文件的长度，`download_chunk` 用于片段下载，`download_close` 用于下载完成后关闭响应。实际上，`BiliAPIClient` 是模块进行网络请求的核心，所有的请求均从这个类中通过，无论是正常的网络请求，还是与服务器连接的 WebSocket，亦或是此处的基本下载功能。
+这里再具体介绍一下 `BiliAPIClient` 的接口。虽然上面的代码没有用到，但其最重要的函数是 `request`，用于发起一般网络请求，详情可查阅文档。此处用到了四个函数：`download_create` 用于创建流式下载响应，`download_content_length` 用于获取下载文件的长度，`download_chunk` 用于分片下载，`download_close` 用于在下载完成后关闭响应。实际上，`BiliAPIClient` 是模块进行网络请求的核心，所有请求都经由该类发出——无论是普通的网络请求、与服务器连接的 WebSocket，还是这里的基础下载功能。
 
 模块已经将以上的下载函数封装为了 `bilibili_api.bili_simple_download`，供日常使用。下面将直接调用此函数。
 
-终于，此处我们使用 `bili_simple_download` 完成了视频下载，接下来到混流了。此处混流直接使用 FFMpeg。这里为防止同步任务堵塞异步事件循环/进程，使用了 `anyio.to_thread.run_sync` 运行 `os.system`，虽然在目前的简单场景下没有这种必要，而且 FFMpeg 没有那么慢，但是，毕竟快速上手不能坏了代码规范。
+终于，我们借助 `bili_simple_download` 完成了视频下载，接下来就是混流了。此处直接使用 FFMpeg 进行混流。为防止同步任务阻塞异步事件循环/进程，这里使用 `anyio.to_thread.run_sync` 来运行 `os.system`——虽然在此简单场景下并无必要（FFMpeg 也没有那么慢），但快速上手总不能坏了代码规范。
 
 ``` python
 import os
@@ -199,4 +199,4 @@ async def main() -> None:
 sync(main())
 ```
 
-运行后，在运行目录下即有下载完成视频 `video.mp4`。
+运行结束后，当前目录下即可看到下载完成的视频 `video.mp4`。

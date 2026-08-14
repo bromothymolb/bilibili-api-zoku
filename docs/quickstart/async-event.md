@@ -1,16 +1,16 @@
 # 使用 `AsyncEvent`
 
-`AsyncEvent` 是模块提供的一个基础类，主要实现了发布-订阅模式的异步事件类。其常作用于长过程的异步操作中，例如上传视频、连接直播间以及消息监听。在这些异步过程中，模块将通过 `AsyncEvent` 类的方法发布事件，例如收到弹幕后发布弹幕事件、上传视频汇报进度也可以发布事件。发布事件后，`AsyncEvent` 类将调用用户提供的回调函数，用户即可实现对事件的订阅。回调函数支持同步函数与异步函数，但建议使用异步函数作为回调函数，或是不阻塞的同步函数作为回调函数。
+`AsyncEvent` 是模块提供的一个基础类，实现了发布-订阅模式的异步事件机制，常用于长时间运行的异步操作中，例如上传视频、连接直播间以及消息监听。在这些异步过程中，模块会通过 `AsyncEvent` 的方法发布事件——例如收到弹幕后发布弹幕事件，上传视频时汇报进度也可以发布事件。事件发布后，`AsyncEvent` 会调用用户提供的回调函数，从而实现事件的订阅。回调函数既可以是同步函数，也可以是异步函数，但建议使用异步函数，或至少是不阻塞的同步函数。
 
 接下来将用模块中的两个典型 `AsyncEvent` 类作演示，分别是 `live.LiveDanmaku` 和 `session.Session`。
 
 ## 1. `live.LiveDanmaku`
 
-众所周知，哔哩哔哩网页端通过 WebSocket 和直播服务器连接，`live.LiveDanmaku` 核心功能即调用模块的 WebSocket 连接功能，完成和直播间的交互。交互分发送消息和接收消息，此处发送的消息主要是心跳包，模块会自动发送心跳包，因此使用 `live.LiveDanmaku` 时，只需要关注 WebSocket 收到的消息即可。
+众所周知，哔哩哔哩网页端通过 WebSocket 与直播服务器连接。`live.LiveDanmaku` 的核心功能，就是调用模块的 WebSocket 连接能力完成与直播间的交互。交互分为发送消息与接收消息：这里发送的消息主要是心跳包，模块会自动发送，因此使用 `live.LiveDanmaku` 时，只需关注 WebSocket 收到的消息即可。
 
-收到消息后，模块会对消息进行解码，一般解码后会得到 JSON 格式的数据。约 2025 年 7 月时，直播间发送消息中出现 protobuf 格式数据，此时 `live.LiveDanmaku` 将自动把 protobuf 数据转换为 JSON 格式。总之，最后回调函数拿到的数据，一般是一个 JSON 反序列化后的字典对象，和通过 HTTP 调用 API 接口返回的数据不会有太大差别。
+收到消息后，模块会对其进行解码，一般会得到 JSON 格式的数据。大约从 2025 年 7 月起，直播间消息中开始出现 protobuf 格式的数据，此时 `live.LiveDanmaku` 会自动将 protobuf 数据转换为 JSON 格式。总之，最终回调函数拿到的数据，一般是一个 JSON 反序列化后的字典对象，与通过 HTTP 调用 API 接口返回的数据不会有太大差别。
 
-对 `LiveDanmaku` 类来说，回调函数仅需提供一个 `dict` 类型参数即可。为了绑定回调函数，可以使用 `add_event_listener` 方法，亦可使用 `on` 装饰器，如下：
+对于 `LiveDanmaku` 类，回调函数只需接收一个 `dict` 类型参数即可。绑定回调函数既可以使用 `add_event_listener` 方法，也可以使用 `on` 装饰器，如下：
 
 ``` python
 @dm.on("DANMU_MSG")
@@ -18,11 +18,11 @@ async def handle_dm_msg(data: dict) -> None:
     pass
 ```
 
-通过上述方式即可完成对事件回调的绑定，此操作应该在异步过程启动之前执行。绑定完回调后，即可启动异步过程，对 `live.LiveDanmaku` 来说，即开始连接直播间。
+通过上述方式即可完成事件回调的绑定，该操作应在异步过程启动之前执行。绑定完回调后，即可启动异步过程；对 `live.LiveDanmaku` 来说，就是开始连接直播间。
 
-我们使用 `connect` 方法连接直播间，此方法会开始运行连接直播间的主程序，连接完直播间后仍需要持续接收信息，因此该方法是阻塞的，直到主程序结束后才会停止。直播间理论上可以无限地连接，因此主程序需要手动结束，不然程序永远无法退出，可以使用 `disconnect` 方法关闭对直播间的连接。
+使用 `connect` 方法即可连接直播间，该方法会运行连接直播间的主程序。连接建立后仍需持续接收信息，因此该方法是阻塞的，只有主程序结束后才会返回。直播间理论上可以无限期保持连接，因此主程序需要手动结束，否则程序永远无法退出。可以使用 `disconnect` 方法关闭直播间的连接。
 
-此处优先考虑终端环境下的演示，故使用 `Ctrl + C` 作为终止信号，只需要加入对 `KeyboardInterrupt` 的异常捕获即可优雅地用 `Ctrl + C` 结束程序。理论上取消直播间连接会在 `await dm.connect()` 处收到 `asyncio.CancelledError`，但模块所有的 `AsyncEvent` 类运行过程中均会主动捕获此异常，此处就不用再捕捉了。
+这里以终端环境下的演示为主，因此使用 `Ctrl + C` 作为终止信号，只需捕获 `KeyboardInterrupt` 异常，即可优雅地结束程序。理论上，取消直播间连接会在 `await dm.connect()` 处抛出 `asyncio.CancelledError`，但模块中所有 `AsyncEvent` 类在运行过程中都会主动捕获该异常，因此这里无需再处理。
 
 ``` python
 dm = live.LiveDanmaku(room_display_id=33989, credential=credential)
@@ -33,7 +33,7 @@ except KeyboardInterrupt:
     await dm.disconnect()
 ```
 
-可以先尝试不绑定任何回调，运行以上代码，可以发现终端出现了部分日志信息，因为模块在 `live.LiveDanmaku` 中配置了日志，用于输出直播间连接过程中的信息，包括正在连接服务器、认证成功、正在关闭连接等。稍等片刻，不出意外的话，模块将成功连接上服务器，将会显示“认证成功”，此处可以按下 `Ctrl + C`，程序就能优雅地退出了。
+可以先尝试不绑定任何回调直接运行以上代码，会发现终端输出了一些日志信息。这是因为模块在 `live.LiveDanmaku` 中配置了日志，用于输出直播间连接过程中的状态，例如正在连接服务器、认证成功、正在关闭连接等。稍等片刻，如果一切顺利，模块将成功连上服务器并显示「认证成功」。此时按下 `Ctrl + C`，程序就能优雅地退出了。
 
 ```shell
 python3 test-trio.py
@@ -43,7 +43,7 @@ python3 test-trio.py
 ^C%
 ```
 
-在确认可以正常连接直播间后，即可正式绑定回调函数，开始获取信息（主要是弹幕）。这边假设我们对传入数据结构一无所知，于是在回调函数中，我们只打印传入的数据：
+确认可以正常连接直播间后，就可以正式绑定回调函数，开始获取信息（主要是弹幕）。这里我们假设对传入数据的结构一无所知，于是先在回调函数中把数据原样打印出来：
 
 ``` python
 @dm.on("DANMU_MSG")
@@ -51,7 +51,7 @@ def dm_msg(data: dict) -> None:
     print(data)
 ```
 
-`@dm.on` 的括号中是事件名称，`DANMU_MSG` 即对应了单条弹幕，这些字符串可以在 `live.LiveDanmaku` 的 docstring 中找到，或者，可以翻阅 `live.LiveDanmaku` 类的文档查看。
+`@dm.on` 的括号中是事件名称，`DANMU_MSG` 对应单条弹幕。这些事件名称可以在 `live.LiveDanmaku` 的 docstring 中查到，也可以翻阅 `live.LiveDanmaku` 类的文档查看。
 
 运行程序，就会发现输出了许多字典对象，此处节选一条弹幕的信息：
 
@@ -173,7 +173,7 @@ def dm_msg(data: dict) -> None:
 }
 ```
 
-这坨数据显然也需要进一步处理，此处省略过程，最后可以通过以下键值，获取到单条弹幕的各种信息：
+这堆数据显然还需要进一步处理，此处省略处理过程，最后可以通过以下键值获取单条弹幕的各种信息：
 
 ``` python
 text = data["data"]["info"][1]  # 弹幕文字
@@ -187,7 +187,7 @@ except Exception:
     print(f"{user_name} : {text}")  # 没有粉丝牌
 ```
 
-其实前文代码中的 `try-catch` 可以省去，但程序仍然会正常运行，不会报错（~~可以试试~~），但异常仍然是会有的，只不过模块内部会捕获这个异常。这个异常最终也会抛出，但抛出的方式比较温柔，它们会通过 `__TASK_EXCEPTION__` 事件被发布出来。
+其实，前文代码中的 `try-catch` 可以省去，程序依旧能正常运行、不会中断（~~可以试试~~）。异常仍然是会出现的，只不过会被模块内部捕获——它们最终也会被抛出，但抛出的方式比较温柔：通过 `__TASK_EXCEPTION__` 事件发布出来。
 
 ``` python
 @dm.on("__TASK_EXCEPTION__")
@@ -199,7 +199,7 @@ def raise_exception(e: Exception) -> None:
 # 显然，在这个回调函数中再有错误抛出，模块就不会再发布 __TASK_EXCEPTION__ 了，而是直接抛出异常。
 ```
 
-因此若有调试需求，例如此处在报错后，最后的 `print` 不会执行，就会有漏弹幕的情况，就可以考虑对 `__TASK_EXCEPTION__` 进行监听了。
+因此，如果有调试需求——例如这里报错后最后的 `print` 不会执行，导致漏掉弹幕——就可以考虑监听 `__TASK_EXCEPTION__` 事件。
 
 应用上述代码，一个简易的终端弹幕姬就完成了，来看看实战效果：
 
@@ -224,9 +224,9 @@ SoucreFimp_YZ : 就在今天
 [15 泛团] 皇珈鬼武士 : 太成人了
 ```
 
-看着有些单调，终端下弹幕一行行打印出来总有些既不弹又不幕还不姬的感觉。这边就勉为其难多实现一个功能吧，我们尝试复刻用户进入直播间的效果：只需要在监听到进入直播间消息后，在终端进行打印，随后不换行，将光标移到行首 (`\r`)，这样多个人进入直播间后，就会有种“进入直播间那一行在滚动”的感觉，就这么办。
+这样看着有些单调：终端下弹幕一行行打印出来，总有种既不弹、又不幕、还不姬的感觉。那就勉为其难再多实现一个功能吧——尝试复刻用户进入直播间的效果。做法是：监听到进入直播间的消息后，在终端打印，随后不换行，而是将光标移回行首（`\r`）。这样当多个人陆续进入直播间时，就会有种「进入直播间那一行在滚动」的感觉。就这么办。
 
-我们再使用打印大法获取一个用户进入直播间消息的示例，这个消息对应的名称为 `INTERACT_WORD_V2`。
+我们再用「打印大法」获取一条用户进入直播间的消息示例，该消息对应的事件名称为 `INTERACT_WORD_V2`。
 
 ``` python
 @dm.on("INTERACT_WORD_V2")
@@ -249,7 +249,7 @@ def enter(data: dict) -> None:
 }
 ```
 
-可以说，前面弹幕获取到的数据结构乱，但至少许多字段都看得懂，而这边进入直播间获取到的数据……已经进化到字节数据了（这边服务端已对字节进行了 base64 加密），可谓是一点给人理解的可能性都没有。
+可以说，前面弹幕的数据结构虽然杂乱，但至少很多字段还能看懂；而进入直播间获取到的数据……已经「进化」成了字节数据（服务端已对字节进行了 base64 加密），简直不给人留下任何理解的可能。
 
 其实这就是前文曾经提到过的 protobuf 数据。
 
@@ -324,7 +324,7 @@ def enter(data: dict) -> None:
 }
 ```
 
-可以看到已经把 protobuf 数据解密了，变成正常的 JSON 格式了。接下来的处理也就简单了：
+可以看到，protobuf 数据已经被解码成正常的 JSON 格式，接下来的处理也就简单了：
 
 ``` python
 user_info = data["data"]["data"]["pb_decoded"]
@@ -372,9 +372,9 @@ sync(main())
 
 ![艹艹艹艹艹艹艹艹艹艹艹艹艹艹艹艹艹艹艹](../img/live-demonstration.gif)
 
-上面的代码只有两个事件需要监听，也只需要两个函数。但事件一旦多了起来，就需要编写多个函数分别处理事件，有的时候会很麻烦。
+上面的代码只需要监听两个事件，也只用到两个函数。但事件一旦多起来，就需要编写多个函数分别处理，有时会相当麻烦。
 
-因此，模块提供一个奇妙事件 `__ALL__`，它将在除 `__ALL__` 和 `__TASK_EXCEPTION__` 外的其他所有事件发布时，额外发布出来。
+为此，模块提供了一个奇妙的事件 `__ALL__`：当除 `__ALL__` 与 `__TASK_EXCEPTION__` 之外的任何事件发布时，它都会被额外发布一次。
 
 ``` python
 @dm.on("__ALL__")
@@ -384,15 +384,15 @@ def on_all(info: dict) -> None:
     print(event_name, data)
 ```
 
-绑定此函数回调后再连接直播间，就能感受到被信息包围的氛围感了。
+绑定该回调后再连接直播间，就能感受到被信息包围的氛围了。
 
 ## 2. `session.Session`
 
-接下来要介绍的是 `session.Session`，用于监听私聊消息的 `AsyncEvent` 类。相较于 `live.LiveDanmaku` 这样核心是 WebSocket 的异步过程来说，这个类的异步过程稍显另类，本质上是一个定时任务，每隔 6 秒钟刷新私聊区信息，拉取新消息。不仅如此，`session.Session` 同时支持消息回复功能，这就允许我们如此部署一个简易的聊天机器人。
+接下来要介绍的是 `session.Session`，一个用于监听私聊消息的 `AsyncEvent` 类。与 `live.LiveDanmaku` 这样以 WebSocket 为核心的异步过程不同，它的异步过程稍显另类——本质上是一个定时任务：每隔 6 秒刷新一次私聊信息，拉取新消息。不仅如此，`session.Session` 还支持消息回复功能，这使得我们可以借此部署一个简易的聊天机器人。
 
-事实上，直播间场景下亦可以使用 `live.LiveRoom` 中的函数发送弹幕，即回复弹幕，不过很明显这没有私聊的接发消息来得纯粹。不同于直播间，私聊功能支持多种类型消息，这边我们就只考虑两种基本类型，文字和图片。
+事实上，直播间场景下也可以使用 `live.LiveRoom` 中的函数发送弹幕（即回复弹幕），不过显然不如私聊的收发消息来得纯粹。不同于直播间，私聊支持多种类型的消息，这里我们只考虑两种基本类型：文字和图片。
 
-前文已提到，私聊中会出现多种类型信息，不但如此，除了信息正文内容外，仍有其他信息的信息，例如发送者、发送时间等等，因此模块使用了 `session.Event` 包装了抓取到的信息。这个类属性很多，此处我们只需要最重要的 `content` 属性，即事件内容。至于事件内容类型的判断，可以使用 `msg_type` 属性，也可以按照下面的方法直接绑定在回调中：
+如前文所述，私聊中会出现多种类型的消息；不仅如此，除了消息正文外，还包含其他元信息，例如发送者、发送时间等。因此，模块使用 `session.Event` 类对抓取到的信息进行了包装。这个类的属性很多，这里我们只关心最重要的 `content` 属性，即事件内容。至于事件内容的类型，可以通过 `msg_type` 属性判断，也可以像下面这样直接按类型绑定回调：
 
 ``` python
 @session.on(EventType.TEXT)  # 当收到文字信息时触发
@@ -405,23 +405,23 @@ async def filter_pic(event: Event):
     pass
 ```
 
-现在问题来了，`event.content` 当收到文字时为 `str`，毋庸置疑，那收到图片的时候，`event.content` 又是什么呢？答案是模块提供的 `Picture` 类 (`bilibili_api.Picture`)。
+现在问题来了：收到文字时，`event.content` 是 `str`，毋庸置疑；那收到图片时，`event.content` 又是什么呢？答案是模块提供的 `Picture` 类（`bilibili_api.Picture`）。
 
-`Picture` 类本质上是对 `PIL.Image.Image` 的异步封装（此处假设读者对 `Python Imaging Library` a.k.a. `pillow` 有基本了解），接下来将分别介绍如何初始化一个 `Picture` 类、如何将 `Picture` 类转换为图片内容、文件乃至链接，以及如何对 `Picture` 类包装的 `PIL.Image.Image` 对象进行操作。
+`Picture` 类本质上是对 `PIL.Image.Image` 的异步封装（此处假设读者对 `Python Imaging Library`，即 `pillow`，有基本了解）。接下来将分别介绍：如何初始化一个 `Picture` 类，如何将其转换为图片内容、文件乃至链接，以及如何对 `Picture` 类包装的 `PIL.Image.Image` 对象进行操作。
 
-初始化 `PIL.Image.Image` 只需要提供一个字节流即可，`Image.open` 不会一次性读取全部内容，模块为此提供 `Picture.from_file` 和 `Picture.from_content` 两个同步函数，可以直接在异步函数中使用。如果需要加载网络图片，使用异步方法 `Picture.load_url`，因为此方法内部已经涉及到网络请求。
+初始化 `PIL.Image.Image` 只需要提供一个字节流即可（`Image.open` 不会一次性读取全部内容）。模块为此提供了 `Picture.from_file` 和 `Picture.from_content` 两个同步函数，可以直接在异步函数中使用。如果需要加载网络图片，则使用异步方法 `Picture.load_url`，因为该方法内部涉及网络请求。
 
-`Picture` 对象存在以下属性：`url` 为网络链接或本地文件地址，如果图片为从字节中加载或已经更改过，`url` 属性将设置为 `<bytes>.{extension}`，其中 `extension` 为图片后缀名，也是 `Picture` 对象中存在的属性。此外还有 `width` `height` 属性，表示图片宽度和高度。
+`Picture` 对象包含以下属性：`url` 为网络链接或本地文件地址；如果图片是从字节加载的，或已经过修改，`url` 会被设置为 `<bytes>.{extension}`，其中 `extension` 为图片后缀名，也是 `Picture` 对象中的一个属性。此外还有 `width`、`height` 属性，分别表示图片的宽度和高度。
 
-初始化 `Picture` 对象后，可以通过异步函数 `Picture.content` 获取图片字节内容，异步函数 `Picture.download` 将图片保存到本地文件，亦可以使用哔哩哔哩动态相关功能，将其上传至服务器，只需要调用 `Picture.upload(credential=Credential(...))` 即可，此时获取 `Picture` 类的 `url` 属性，即可获得上传成功后的链接。
+初始化 `Picture` 对象后，可以通过异步函数 `Picture.content` 获取图片的字节内容，通过异步函数 `Picture.download` 将图片保存到本地文件。也可以借助哔哩哔哩动态相关功能将其上传至服务器，只需调用 `Picture.upload(credential=Credential(...))` 即可；上传成功后，读取 `Picture` 的 `url` 属性即可获得链接。
 
-`Picture` 类提供 `Picture.image_call` 对 `PIL.Image.Image` 对象进行操作。例如 `Image.resize((width, height))` 可以调整图片大小，并返回一个新的 `Image` 对象，这个过程可能是阻塞的，因此模块会在一个工作进程中执行此函数，以免阻塞事件循环，在函数执行完成后，`Picture` 类会将其包装的图片设置为返回结果。这就是 `Picture.image_call` 函数在做的事，此处调用 `await Picture.image_call("resize", (width, height))` 即可调整 `Picture` 类对应图片的大小了。
+`Picture` 类还提供了 `Picture.image_call` 方法，用于对内部的 `PIL.Image.Image` 对象进行操作。例如，`Image.resize((width, height))` 可以调整图片大小并返回一个新的 `Image` 对象。这一过程可能是阻塞的，因此模块会在一个工作进程中执行该函数，以免阻塞事件循环；函数执行完成后，`Picture` 类会将内部包装的图片更新为返回结果。这正是 `Picture.image_call` 所做的工作。此处调用 `await Picture.image_call("resize", (width, height))`，即可调整 `Picture` 对应图片的大小。
 
-接下来就可以开始编写逻辑了。对文字消息来说，我们只特殊识别两个文本：收到 `/close` 的时候结束轮询，和收到 `/pic` 的时候发送一张图片，其余情况统一回复 `你好`。
+接下来就可以编写逻辑了。对于文字消息，我们只特殊识别两个内容：收到 `/close` 时结束轮询，收到 `/pic` 时发送一张图片，其余情况统一回复「你好」。
 
-说到结束轮询，就不得不提开始轮询了，`session.Session` 类使用 `start` 函数开始异步过程，使用 `close` 函数结束异步过程，注意前者为异步函数，后者为同步函数。收到 `/close` 后，只需要调用 `close` 函数即可。
+说到结束轮询，就不得不提开始轮询。`session.Session` 使用 `start` 函数开始异步过程，使用 `close` 函数结束异步过程——注意前者是异步函数，后者是同步函数。收到 `/close` 后，只需调用 `close` 即可。
 
-回复消息可以使用 `session.reply`，其接受两个参数，第一个是需要回复的消息，即回调函数的参数 `event`，第二个是具体内容，如果是文本就直接传入文本，如果是图片就需要使用 `Picture` 类了。先使用 `Picture.from_file("path/to/pic")` 加载本地图片，然后使用异步函数 `upload` 将其上传，随后就可以发送了。
+回复消息可以使用 `session.reply`，它接受两个参数：第一个是需要回复的消息，即回调函数的参数 `event`；第二个是具体内容——如果是文本，直接传入文本即可；如果是图片，则需要使用 `Picture` 类。可以先用 `Picture.from_file("path/to/pic")` 加载本地图片，再通过异步函数 `upload` 将其上传，随后即可发送。
 
 > 如果传入的 `Picture` 类尚未上传，模块大多数情况下将自动上传图片。
 
@@ -439,7 +439,7 @@ async def reply(event: Event):
         await session.reply(event, "你好")
 ```
 
-如果收到的是图片，这里实现两个逻辑，首先把图片下载到本地，即调用 `download` 函数，然后给图片加一层滤镜，再发回去，加滤镜可以使用 `Image.Filter` 函数，或是 `Picture.image_call("filter", ...)`，回复图片仍然使用 `reply` 方法。最后回调函数如下：
+如果收到的是图片，我们实现两个逻辑：先把图片下载到本地（调用 `download` 函数），然后给图片加一层滤镜再发回去。加滤镜可以使用 `Image.filter` 函数，在模块中也可以使用 `Picture.image_call("filter", ...)`（此处已进行针对异步环境的包装）；回复图片仍然使用 `reply` 方法。最终的回调函数如下：
 
 ``` python
 @session.on(EventType.PICTURE)
@@ -451,7 +451,7 @@ async def save_pic(event: Event):
     await session.reply(event, event.content)  # type: ignore
 ```
 
-主程序部分，采用和前文连接直播间相同的写法，当 `Ctrl + C` 时停止轮询。
+主程序部分沿用前文连接直播间的写法，收到 `Ctrl + C` 时停止轮询。
 
 ``` python
 try:
