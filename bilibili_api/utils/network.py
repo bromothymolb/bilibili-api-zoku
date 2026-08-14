@@ -1922,9 +1922,14 @@ class MultiEventLoopLocks:
     async def wait_multithread(self) -> None:
         # this function should be locked in get_lock() while running
         event_loop = current_token()
-        self._events[event_loop] = Event()
-        await self._events[event_loop].wait()
-        del self._events[event_loop]
+        while self._running:  # prevent lock releasing in advance
+            event = Event()
+            self._events[event_loop] = event
+            try:
+                await event.wait()
+            finally:
+                if self._events.get(event_loop) is event:
+                    del self._events[event_loop]
 
     async def done_multithread(self) -> None:
         # this function should be run after completing multithread task
