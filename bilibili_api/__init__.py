@@ -147,10 +147,10 @@ def __register_all_clients():
             importlib.import_module(module)
         except ModuleNotFoundError:
             continue
-        client_module = importlib.import_module(  # noqa: F841
+        client_module = importlib.import_module(
             name=f".clients.{client_name}", package="bilibili_api"
         )
-        client_class = eval(f"client_module.{client_name}")
+        client_class = getattr(client_module, client_name)
         register_client(module, client_class, settings)
 
 
