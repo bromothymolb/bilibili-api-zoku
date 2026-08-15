@@ -1459,24 +1459,17 @@ class BiliAPIClient(ABC):
         """
         请求客户端抽象类。通过对第三方模块请求客户端的封装令模块可对其进行调用。
         """
+
         @abstractmethod
         def __init__(
             self,
-            proxy: str = "",
-            timeout: float = 0.0,
-            verify_ssl: bool = True,
-            trust_env: bool = True,
             session: object | None = None,
+            **settings: dict[str, object],
         ) -> None:
             """
             Args:
-                proxy (str, optional): 代理地址. Defaults to "".
-                timeout (float, optional): 请求超时时间. Defaults to 0.0.
-                verify_ssl (bool, optional): 是否验证 SSL. Defaults to True.
-                trust_env (bool, optional): `trust_env`. Defaults to True.
                 session (object, optional): 会话对象. Defaults to None.
-
-            Note: 仅当用户只提供 `session` 参数且用户中途未调用 `set_xxx` 函数才使用用户提供的 `session`。
+                settings (dict[str, object]): 所有的设置项 (**kwargs 传入)，用于初始化时传入设置。
             """
             raise NotImplementedError
 
@@ -1487,46 +1480,6 @@ class BiliAPIClient(ABC):
 
             Returns:
                 object: 第三方会话对象
-            """
-            raise NotImplementedError
-
-        @abstractmethod
-        def set_timeout(self, timeout: float = 0.0) -> None:
-            """
-            设置请求超时时间
-
-            Args:
-                timeout (float, optional): 请求超时时间. Defaults to 0.0.
-            """
-            raise NotImplementedError
-
-        @abstractmethod
-        def set_proxy(self, proxy: str = "") -> None:
-            """
-            设置代理地址
-
-            Args:
-                proxy (str, optional): 代理地址. Defaults to "".
-            """
-            raise NotImplementedError
-
-        @abstractmethod
-        def set_verify_ssl(self, verify_ssl: bool = True) -> None:
-            """
-            设置是否验证 SSL
-
-            Args:
-                verify_ssl (bool, optional): 是否验证 SSL. Defaults to True.
-            """
-            raise NotImplementedError
-
-        @abstractmethod
-        def set_trust_env(self, trust_env: bool = True) -> None:
-            """
-            设置 `trust_env`
-
-            Args:
-                trust_env (bool, optional): `trust_env`. Defaults to True.
             """
             raise NotImplementedError
 
@@ -1691,21 +1644,13 @@ class BiliAPIClient(ABC):
     @abstractmethod
     def __init__(
         self,
-        proxy: str = "",
-        timeout: float = 0.0,
-        verify_ssl: bool = True,
-        trust_env: bool = True,
         session: object | None = None,
+        **settings: dict[str, object],
     ) -> None:
         """
         Args:
-            proxy (str, optional): 代理地址. Defaults to "".
-            timeout (float, optional): 请求超时时间. Defaults to 0.0.
-            verify_ssl (bool, optional): 是否验证 SSL. Defaults to True.
-            trust_env (bool, optional): `trust_env`. Defaults to True.
             session (object, optional): 会话对象. Defaults to None.
-
-        Note: 仅当用户只提供 `session` 参数且用户中途未调用 `set_xxx` 函数才使用用户提供的 `session`。
+            settings (dict[str, object]): 所有的设置项 (**kwargs 传入)，用于初始化时传入设置。
         """
         raise NotImplementedError
 
@@ -1716,46 +1661,6 @@ class BiliAPIClient(ABC):
 
         Returns:
             object: 第三方会话对象
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def set_timeout(self, timeout: float = 0.0) -> None:
-        """
-        设置请求超时时间
-
-        Args:
-            timeout (float, optional): 请求超时时间. Defaults to 0.0.
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def set_proxy(self, proxy: str = "") -> None:
-        """
-        设置代理地址
-
-        Args:
-            proxy (str, optional): 代理地址. Defaults to "".
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def set_verify_ssl(self, verify_ssl: bool = True) -> None:
-        """
-        设置是否验证 SSL
-
-        Args:
-            verify_ssl (bool, optional): 是否验证 SSL. Defaults to True.
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def set_trust_env(self, trust_env: bool = True) -> None:
-        """
-        设置 `trust_env`
-
-        Args:
-            trust_env (bool, optional): `trust_env`. Defaults to True.
         """
         raise NotImplementedError
 

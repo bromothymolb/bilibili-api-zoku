@@ -1,5 +1,5 @@
 """
-bilibili_api.clients.httpx
+bilibili_api.clients.HTTPXClient
 
 HTTPXClient 实现
 """
@@ -69,18 +69,42 @@ class HTTPXClient(BiliAPIClient):
         return self.__session
 
     def set_proxy(self, proxy: str = "") -> None:
+        """
+        设置代理地址
+
+        Args:
+            proxy (str, optional): 代理地址. Defaults to "".
+        """
         self.__proxy = proxy
         self.__need_update_session = True
 
     def set_timeout(self, timeout: float = 0.0) -> None:
+        """
+        设置请求超时时间
+
+        Args:
+            timeout (float, optional): 请求超时时间. Defaults to 0.0.
+        """
         self.__timeout = timeout
         self.__session.timeout = timeout
 
     def set_verify_ssl(self, verify_ssl: bool = True) -> None:
+        """
+        设置是否验证 SSL
+
+        Args:
+            verify_ssl (bool, optional): 是否验证 SSL. Defaults to True.
+        """
         self.__verify_ssl = verify_ssl
         self.__need_update_session = True
 
     def set_trust_env(self, trust_env: bool = True) -> None:
+        """
+        设置 `trust_env`
+
+        Args:
+            trust_env (bool, optional): `trust_env`. Defaults to True.
+        """
         self.__trust_env = trust_env
         self.__need_update_session = True
 
@@ -251,10 +275,6 @@ class HTTPXClient(BiliAPIClient):
         del self.__session
 
     get_wrapped_session.__doc__ = BiliAPIClient.get_wrapped_session.__doc__
-    set_proxy.__doc__ = BiliAPIClient.set_proxy.__doc__
-    set_timeout.__doc__ = BiliAPIClient.set_timeout.__doc__
-    set_verify_ssl.__doc__ = BiliAPIClient.set_verify_ssl.__doc__
-    set_trust_env.__doc__ = BiliAPIClient.set_trust_env.__doc__
     request.__doc__ = BiliAPIClient.request.__doc__
     download_create.__doc__ = BiliAPIClient.download_create.__doc__
     download_chunk.__doc__ = BiliAPIClient.download_chunk.__doc__
