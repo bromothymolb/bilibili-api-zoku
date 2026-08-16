@@ -3269,8 +3269,6 @@ BV 号转 AV 号。
 
 可以添加更多监听器达到更多效果。
 
-Logger: request_log.logger
-
 Extends: AsyncEvent
 
 Events:

@@ -1944,8 +1944,6 @@ class VideoOnlineMonitor(AsyncEvent):
 
     Extends: AsyncEvent
 
-    Logger: VideoOnlineMonitor().logger
-
     Events:
         ONLINE：        在线人数更新。  CallbackData: dict。
         DANMAKU：       收到实时弹幕。  CallbackData: Danmaku。

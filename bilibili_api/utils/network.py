@@ -729,8 +729,6 @@ request_log = RequestLog()
 
 可以添加更多监听器达到更多效果。
 
-Logger: request_log.logger
-
 Extends: AsyncEvent
 
 Events:
@@ -772,8 +770,6 @@ request_log.__doc__ = """
 请求日志支持，默认支持输出到指定 I/O 对象。
 
 可以添加更多监听器达到更多效果。
-
-Logger: request_log.logger
 
 Extends: AsyncEvent
 
