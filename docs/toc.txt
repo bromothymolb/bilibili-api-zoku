@@ -1226,6 +1226,7 @@ bilibili_api
  clean_session
  configure_dynamic_fingerprint
  delegate
+ delegate_local_context
  ensure_bili_ticket
  ensure_buvid
  get_available_settings
@@ -1263,7 +1264,9 @@ bilibili_api
   set_on_events
  request_settings
  select_client
+ select_client_local_context
  select_instance
+ select_instance_local_context
  set_session
  sync
  undelegate

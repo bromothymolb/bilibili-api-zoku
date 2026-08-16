@@ -24,7 +24,7 @@ from bilibili_api import ...
   - [def \_\_init\_\_()](#def-\_\_init\_\_)
   - [def add\_event\_listener()](#def-add\_event\_listener)
   - [def async\_event\_cancel()](#def-async\_event\_cancel)
-  - [async def async\_event\_run()](#async-def-async\_event\_run)
+  - [def async\_event\_run()](#def-async\_event\_run)
   - [def async\_event\_running()](#def-async\_event\_running)
   - [async def async\_event\_start()](#async-def-async\_event\_start)
   - [def dispatch()](#def-dispatch)
@@ -196,6 +196,7 @@ from bilibili_api import ...
 - [async def clean\_session()](#async-def-clean\_session)
 - [def configure\_dynamic\_fingerprint()](#def-configure\_dynamic\_fingerprint)
 - [def delegate()](#def-delegate)
+- [def delegate\_local\_context()](#def-delegate\_local\_context)
 - [async def ensure\_bili\_ticket()](#async-def-ensure\_bili\_ticket)
 - [async def ensure\_buvid()](#async-def-ensure\_buvid)
 - [def get\_available\_settings()](#def-get\_available\_settings)
@@ -233,7 +234,9 @@ from bilibili_api import ...
   - [def set\_on\_events()](#def-set\_on\_events)
 - [var request\_settings](#var-request\_settings)
 - [def select\_client()](#def-select\_client)
+- [def select\_client\_local\_context()](#def-select\_client\_local\_context)
 - [def select\_instance()](#def-select\_instance)
+- [def select\_instance\_local\_context()](#def-select\_instance\_local\_context)
 - [def set\_session()](#def-set\_session)
 - [def sync()](#def-sync)
 - [def undelegate()](#def-undelegate)
@@ -393,9 +396,7 @@ API 基类异常。
 
 
 
-### async def async_event_run()
-
-> `@asynccontextmanager` 
+### def async_event_run()
 
 非阻塞启动异步事件类
 
@@ -406,7 +407,7 @@ API 基类异常。
 | - | - | - |
 | `start_coro` | `Coroutine[Any, Any, ~T]` | 主程序的阻塞启动协程 |
 
-**Returns:** `AsyncGenerator[anyio.TaskHandle[~T | None]]`:  运行主程序的 TaskHandle，若中途取消则返回 None
+**Returns:** `AbstractAsyncContextManager[anyio.TaskHandle[~T | None]]`:  运行主程序的 TaskHandle，若中途取消则返回 None
 
 
 
@@ -2803,7 +2804,24 @@ BV 号转 AV 号。
 | `delegate_type` | `DelegateType` | 转发请求的函数范围，如转发所有 WebSocket 相关函数。 |
 | `destination_client` | `str \| None` | 目标第三方库。若未指定，模块将选择当前第三方库。Defaults to None. |
 | `destination_instance` | `str \| None` | 目标实例。若未指定，模块将选择当前实例名称。Defaults to None. |
-| `local_context` | `bool, optional` | 是否通过 `ContextVar` 仅在局部上下文设置。Defaults to False. |
+
+
+
+
+---
+
+## def delegate_local_context()
+
+通过 `ContextVar` 仅在局部上下文设置派发。
+
+
+| name | type | description |
+| - | - | - |
+| `delegate_type` | `DelegateType` | 转发请求的函数范围，如转发所有 WebSocket 相关函数。 |
+| `destination_client` | `str \| None` | 目标第三方库。若未指定，模块将选择当前第三方库。Defaults to None. |
+| `destination_instance` | `str \| None` | 目标实例。若未指定，模块将选择当前实例名称。Defaults to None. |
+
+**Returns:** `AbstractContextManager[None]`:  上下文管理器
 
 
 
@@ -3099,7 +3117,7 @@ BV 号转 AV 号。
 
 | name | type | description |
 | - | - | - |
-| `name` | `str` | 名称 |
+| `name` | `str` | 实例名称，一般情况下已存在默认实例 `default`。 |
 | `client` | `str \| None, optional` | BiliAPIClient 类型. Defaults to None. |
 
 
@@ -3234,7 +3252,7 @@ BV 号转 AV 号。
 
 | name | type | description |
 | - | - | - |
-| `name` | `str` | 名称 |
+| `name` | `str` | 实例名称，一般情况下已存在默认实例 `default`。 |
 | `client` | `str \| None, optional` | BiliAPIClient 类型. Defaults to None. |
 
 
@@ -3395,7 +3413,22 @@ async def handle(desc: str, data: dict) -> None:
 | name | type | description |
 | - | - | - |
 | `name` | `str` | 请求客户端类型名称，用户自定义命名。 |
-| `local_context` | `bool` | 是否通过 `ContextVar` 仅在局部上下文设置。Defaults to False. |
+
+
+
+
+---
+
+## def select_client_local_context()
+
+通过 `ContextVar` 仅在局部上下文选择请求客户端。
+
+
+| name | type | description |
+| - | - | - |
+| `name` | `str` | 请求客户端类型名称，用户自定义命名。 |
+
+**Returns:** `AbstractContextManager[None]`:  上下文管理器
 
 
 
@@ -3409,8 +3442,23 @@ async def handle(desc: str, data: dict) -> None:
 
 | name | type | description |
 | - | - | - |
-| `name` | `str` | 名称 |
-| `local_context` | `bool` | 是否通过 `ContextVar` 仅在局部上下文设置。Defaults to False. |
+| `name` | `str` | 实例名称，一般情况下已存在默认实例 `default`。 |
+
+
+
+
+---
+
+## def select_instance_local_context()
+
+通过 `ContextVar` 仅在局部上下文选择请求客户端实例。
+
+
+| name | type | description |
+| - | - | - |
+| `name` | `str` | 实例名称，一般情况下已存在默认实例 `default`。 |
+
+**Returns:** `AbstractContextManager[None]`:  上下文管理器
 
 
 
@@ -3460,7 +3508,6 @@ async def handle(desc: str, data: dict) -> None:
 | name | type | description |
 | - | - | - |
 | `delegate_type` | `DelegateType` | 转发请求的函数范围，如转发所有 WebSocket 相关函数。 |
-| `local_context` | `bool, optional` | 是否通过 `ContextVar` 仅在局部上下文设置。Defaults to False. |
 
 
 

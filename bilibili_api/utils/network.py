@@ -190,8 +190,13 @@ from asyncio import AbstractEventLoop, CancelledError
 import atexit
 import base64
 import binascii
-from collections.abc import AsyncGenerator, Callable, Coroutine
-from contextlib import asynccontextmanager
+from collections.abc import AsyncGenerator, Callable, Coroutine, Generator
+from contextlib import (
+    AbstractAsyncContextManager,
+    AbstractContextManager,
+    asynccontextmanager,
+    contextmanager,
+)
 from contextvars import ContextVar
 from copy import deepcopy
 from dataclasses import dataclass, field
@@ -467,10 +472,9 @@ class AsyncEvent:
         del self.task_group
         return ret
 
-    @asynccontextmanager
-    async def async_event_run(
+    def async_event_run(
         self, start_coro: Coroutine[Any, Any, T]
-    ) -> AsyncGenerator[TaskHandle[T | None]]:
+    ) -> AbstractAsyncContextManager[TaskHandle[T | None]]:
         """
         非阻塞启动异步事件类
 
@@ -480,11 +484,16 @@ class AsyncEvent:
             start_coro (Coroutine[Any, Any, ~T]): 主程序的阻塞启动协程
 
         Returns:
-            AsyncGenerator[anyio.TaskHandle[~T | None]]: 运行主程序的 TaskHandle，若中途取消则返回 None
+            AbstractAsyncContextManager[anyio.TaskHandle[~T | None]]: 运行主程序的 TaskHandle，若中途取消则返回 None
         """
-        async with create_task_group() as btg:
-            background_task = btg.create_task(start_coro)
-            yield background_task
+
+        @asynccontextmanager
+        async def __run_bg_task() -> AsyncGenerator[TaskHandle[T | None]]:
+            async with create_task_group() as btg:
+                background_task = btg.create_task(start_coro)
+                yield background_task
+
+        return __run_bg_task()
 
     def async_event_cancel(self) -> None:
         """
@@ -2578,11 +2587,14 @@ class MultiContextVariable(Generic[T]):
         self.__context_var: ContextVar[T] = ContextVar(name, default=empty)
         self.__empty = empty
 
-    def set(self, value: T, local_context: bool = False) -> None:
-        if local_context:
-            self.__context_var.set(value)
-        else:
-            self.__var = value
+    def set(self, value: T) -> None:
+        self.__var = value
+
+    @contextmanager
+    def set_local_context(self, value: T) -> Generator[None]:
+        token = self.__context_var.set(value)
+        yield
+        self.__context_var.reset(token)
 
     def get(self) -> T:
         return (
@@ -2640,17 +2652,29 @@ def unregister_client(name: str) -> None:
         raise ArgsException("未找到指定请求客户端。") from e
 
 
-def select_client(name: str, local_context: bool = False) -> None:
+def select_client(name: str) -> None:
     """
     选择模块使用的注册过的请求客户端，可用于用户自定义请求客户端。
 
     Args:
         name (str): 请求客户端类型名称，用户自定义命名。
-        local_context (bool): 是否通过 `ContextVar` 仅在局部上下文设置。Defaults to False.
     """
     if not sessions.get(name):
         raise ArgsException(f"未注册过 {name}。")
-    selected_client.set(name, local_context)
+    selected_client.set(name)
+
+
+def select_client_local_context(name: str) -> AbstractContextManager[None]:
+    """
+    通过 `ContextVar` 仅在局部上下文选择请求客户端。
+
+    Args:
+        name (str): 请求客户端类型名称，用户自定义命名。
+
+    Returns:
+        AbstractContextManager[None]: 上下文管理器
+    """
+    return selected_client.set_local_context(name)
 
 
 def get_selected_client() -> tuple[str, type[BiliAPIClient]]:
@@ -2660,7 +2684,8 @@ def get_selected_client() -> tuple[str, type[BiliAPIClient]]:
     Returns:
         tuple[str, type[BiliAPIClient]]: 第 0 项为客户端名称，第 1 项为对应的类
     """
-    return selected_client.get(), sessions[selected_client.get()]
+    if selected_client.get() != "":
+        return selected_client.get(), sessions[selected_client.get()]
     raise ArgsException(
         "尚未安装第三方请求库或未注册自定义第三方请求库。\n$ pip3 install (curl_cffi|httpx|aiohttp)"
     )
@@ -2684,7 +2709,7 @@ def new_instance(name: str, client: str | None = None) -> None:
     创建新的请求客户端实例并选择
 
     Args:
-        name (str): 名称
+        name (str): 实例名称，一般情况下已存在默认实例 `default`。
         client (str | None, optional): BiliAPIClient 类型. Defaults to None.
     """
     if name == "":
@@ -2702,7 +2727,7 @@ def remove_instance(name: str, client: str | None = None) -> None:
     移除请求客户端实例
 
     Args:
-        name (str): 名称
+        name (str): 实例名称，一般情况下已存在默认实例 `default`。
         client (str | None, optional): BiliAPIClient 类型. Defaults to None.
     """
     client = client or get_selected_client()[0]
@@ -2713,15 +2738,27 @@ def remove_instance(name: str, client: str | None = None) -> None:
         raise ArgsException("未找到指定请求客户端实例。") from e
 
 
-def select_instance(name: str, local_context: bool = False) -> None:
+def select_instance(name: str) -> None:
     """
     选择请求客户端实例
 
     Args:
-        name (str): 名称
-        local_context (bool): 是否通过 `ContextVar` 仅在局部上下文设置。Defaults to False.
+        name (str): 实例名称，一般情况下已存在默认实例 `default`。
     """
-    selected_instance.set(name, local_context)
+    selected_instance.set(name)
+
+
+def select_instance_local_context(name: str) -> AbstractContextManager[None]:
+    """
+    通过 `ContextVar` 仅在局部上下文选择请求客户端实例。
+
+    Args:
+        name (str): 实例名称，一般情况下已存在默认实例 `default`。
+
+    Returns:
+        AbstractContextManager[None]: 上下文管理器
+    """
+    return selected_instance.set_local_context(name)
 
 
 def get_selected_instance() -> str:
@@ -4444,7 +4481,6 @@ def delegate(
     delegate_type: DelegateType,
     destination_client: str | None = None,
     destination_instance: str | None = None,
-    local_context: bool = False,
 ) -> None:
     """
     将部分类型的请求派发至其他请求客户端。
@@ -4453,14 +4489,50 @@ def delegate(
         delegate_type (DelegateType): 转发请求的函数范围，如转发所有 WebSocket 相关函数。
         destination_client (str | None): 目标第三方库。若未指定，模块将选择当前第三方库。Defaults to None.
         destination_instance (str | None): 目标实例。若未指定，模块将选择当前实例名称。Defaults to None.
-        local_context (bool, optional): 是否通过 `ContextVar` 仅在局部上下文设置。Defaults to False.
     """
     __delegate[delegate_type].set(
         (
             destination_client or get_selected_client()[0],
             destination_instance or get_selected_instance(),
-        ),
-        local_context,
+        )
+    )
+
+
+def undelegate(delegate_type: DelegateType) -> None:
+    """
+    取消派发。
+
+    Args:
+        delegate_type (DelegateType): 转发请求的函数范围，如转发所有 WebSocket 相关函数。
+    """
+    delegate(
+        delegate_type=delegate_type,
+        destination_client="",
+        destination_instance="",
+    )
+
+
+def delegate_local_context(
+    delegate_type: DelegateType,
+    destination_client: str | None = None,
+    destination_instance: str | None = None,
+) -> AbstractContextManager[None]:
+    """
+    通过 `ContextVar` 仅在局部上下文设置派发。
+
+    Args:
+        delegate_type (DelegateType): 转发请求的函数范围，如转发所有 WebSocket 相关函数。
+        destination_client (str | None): 目标第三方库。若未指定，模块将选择当前第三方库。Defaults to None.
+        destination_instance (str | None): 目标实例。若未指定，模块将选择当前实例名称。Defaults to None.
+
+    Returns:
+        AbstractContextManager[None]: 上下文管理器
+    """
+    return __delegate[delegate_type].set_local_context(
+        (
+            destination_client or get_selected_client()[0],
+            destination_instance or get_selected_instance(),
+        )
     )
 
 
@@ -4475,25 +4547,6 @@ def get_delegates() -> dict[DelegateType, tuple[str, str]]:
     for key, item in __delegate.items():
         ret[key] = item.get()
     return ret
-
-
-def undelegate(
-    delegate_type: DelegateType,
-    local_context: bool = False,
-) -> None:
-    """
-    取消派发。
-
-    Args:
-        delegate_type (DelegateType): 转发请求的函数范围，如转发所有 WebSocket 相关函数。
-        local_context (bool, optional): 是否通过 `ContextVar` 仅在局部上下文设置。Defaults to False.
-    """
-    delegate(
-        delegate_type=delegate_type,
-        destination_client="",
-        destination_instance="",
-        local_context=local_context,
-    )
 
 
 async def __request_delegate(
