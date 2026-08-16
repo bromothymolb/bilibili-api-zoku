@@ -39,6 +39,7 @@ request_log.set_ignore_events(["API_REQUEST", "API_RESPONSE"]) # 去除 Api 类�
 - CLOSE: 关闭第三方请求库会话。由 [`BiliAPIClient`](../advance/client.md) 发出。
 - DO_PRE_FILTER: 执行前置[过滤器](../advance/filter.md)。
 - DO_POST_FILTER: 执行后置[过滤器](../advance/filter.md)。
+- DELEGATE: 执行请求转发。(见 [安装与依赖相关](../common/installation.md) 或 [过滤器](../advance/filter.md))
 
 可以通过 `request_log.get_all_events()` 获取所有的信息类型。
 

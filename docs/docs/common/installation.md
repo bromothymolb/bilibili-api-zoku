@@ -68,6 +68,20 @@ select_client("aiohttp")  # 选择 aiohttp
 select_client("httpx")  # 选择 httpx，不支持 WebSocket，支持 http2
 ```
 
+## 请求转发
+
+模块依赖第三方请求库以下功能：http 请求、流式下载和 WebSocket 连接。诸如 `httpx` 等请求库不支持其中的全部功能。这种情况下可以使用请求转发，以保证模块正常运作。
+
+例如 `httpx` 不支持 WebSocket 请求，但 `aiohttp` 支持，通过请求转发，可以让 `httpx` 收到 WebSocket 请求后，把任务交给 `aiohttp` 完成。整个过程会把原来 `httpx` 的任务转发至 `aiohttp`，让 `aiohttp` 代替 `httpx` 进行 WebSocket 连接。
+
+请求转发需要指定目标请求客户端和转发范围，此处以上述情况为例，将 WebSocket 请求转发至 `aiohttp`:
+
+``` python
+delegate(delegate_type=DelegateType.WEBSOCKET, destination_client="aiohttp")
+```
+
+## 浏览器指纹支持
+
 curl_cffi 支持伪装浏览器的 TLS / JA3 / Fingerprint，但需要手动设置。curl_cffi 和 httpx 支持 HTTP2，也需要手动设置。
 
 ``` python
