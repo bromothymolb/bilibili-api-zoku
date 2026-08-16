@@ -1,4 +1,4 @@
-+ [主页](readme.md)
++ [主页](README.md)
 + [FAQ](faq.md)
 + [API 文档目录](toc.md)
 + 快速上手
