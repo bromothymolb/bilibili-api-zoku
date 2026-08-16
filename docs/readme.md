@@ -11,7 +11,7 @@
 [![Docs](https://img.shields.io/badge/Docs-Site-green)][docs]
 [![Docs](https://img.shields.io/badge/Docs-Github-green)][docs-github]
 
-## 欢迎来到 `bilibili-api-zoku v18.0.0.b0` 文档！ヾ(ﾟ∀ﾟゞ)
+## 欢迎来到 bilibili-api-zoku v18.0.0.b0 文档！ヾ(ﾟ∀ﾟゞ)
 
 </div>
 
