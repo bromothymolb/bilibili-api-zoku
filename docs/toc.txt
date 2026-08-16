@@ -1069,6 +1069,7 @@ bilibili_api
  BiliAPIResponse
   json
   utf8_text
+ BiliFilter
  BiliFilterArgs
   get_event_loop
   get_trio_token
@@ -1230,6 +1231,7 @@ bilibili_api
  get_available_settings
  get_bili_headers
  get_client
+ get_delegates
  get_exist_instances
  get_force_settings
  get_instance_settings

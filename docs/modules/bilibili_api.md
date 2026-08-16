@@ -39,6 +39,7 @@ from bilibili_api import ...
 - [class BiliAPIResponse()](#class-BiliAPIResponse)
   - [def json()](#def-json)
   - [def utf8\_text()](#def-utf8\_text)
+- [class BiliFilter()](#class-BiliFilter)
 - [class BiliFilterArgs()](#class-BiliFilterArgs)
   - [def get\_event\_loop()](#def-get\_event\_loop)
   - [def get\_trio\_token()](#def-get\_trio\_token)
@@ -200,6 +201,7 @@ from bilibili_api import ...
 - [def get\_available\_settings()](#def-get\_available\_settings)
 - [def get\_bili\_headers()](#def-get\_bili\_headers)
 - [def get\_client()](#def-get\_client)
+- [def get\_delegates()](#def-get\_delegates)
 - [def get\_exist\_instances()](#def-get\_exist\_instances)
 - [def get\_force\_settings()](#def-get\_force\_settings)
 - [def get\_instance\_settings()](#def-get\_instance\_settings)
@@ -776,6 +778,24 @@ class BiliAPIClient(ABC):
 
 ---
 
+## class BiliFilter()
+
+> `@dataclasses.dataclass` 
+
+过滤器对象
+
+
+| name | type | description |
+| - | - | - |
+| `name` | `str` | 过滤器名称. |
+| `locate` | `str` | 过滤器位置. pre 为前置， post 为后置。 |
+| `priority` | `int, optional` | 优先级。优先级越小，越早执行。Defaults to 1. |
+| `function` | `Callable[[BiliFilterArgs], BiliFilterReturn.Returns \| GeneratorType[BiliFilterReturn.Returns]] \| None, optional` | 同步函数。Defaults to None. |
+| `async_function` | `Callable[..., Coroutine[Any, Any, BiliFilterReturn.Returns] \| AsyncGeneratorType[BiliFilterReturn.Returns]] \| None, optional` | 异步函数。Defaults to None. |
+
+
+---
+
 ## class BiliFilterArgs()
 
 > `@dataclasses.dataclass` 
@@ -906,6 +926,8 @@ class BiliAPIClient(ABC):
 ## class BiliFilterReturn()
 
 用于结束过滤器返回结果的工具类
+
+提供 `BiliFilterReturn.Returns` 作为过滤器返回值 `tuple[BiliFilterFlags, Any]` 的缩写。
 
 
 
@@ -2877,6 +2899,19 @@ BV 号转 AV 号。
 
 ---
 
+## def get_delegates()
+
+获取当前派发情况，键为派发函数范围，值为元组，第一项是第三方库，第二项是具体实例，若二者皆为空则不会进行请求派发。
+
+
+
+**Returns:** `dict[DelegateType, tuple[str, str]]`:  派发情况
+
+
+
+
+---
+
 ## def get_exist_instances()
 
 获取已创建的请求客户端实例
@@ -2992,7 +3027,7 @@ BV 号转 AV 号。
 | - | - | - |
 | `in_priority` | `bool, optional` | 是否排序. Defaults to True. |
 
-**Returns:** `list[dict]`:  已注册的前置过滤器
+**Returns:** `list[BiliFilter]`:  已注册的前置过滤器
 
 
 
@@ -3164,8 +3199,8 @@ BV 号转 AV 号。
 | name | type | description |
 | - | - | - |
 | `name` | `str` | 名称，若重复则为修改对应过滤器。 |
-| `func` | `Callable \| None, optional` | 执行的函数，参数传入 `FilterArgs` 对象. Defaults to None. |
-| `priority` | `int, optional` | 优先级，数字越小越优先执行. Defaults to 0. |
+| `func` | `Callable` | 执行的函数，参数传入 `FilterArgs` 对象. |
+| `priority` | `int, optional` | 优先级，数字越小越优先执行. Defaults to 1. |
 
 
 
@@ -3184,8 +3219,8 @@ BV 号转 AV 号。
 | name | type | description |
 | - | - | - |
 | `name` | `str` | 名称，若重复则为修改对应过滤器。 |
-| `func` | `Callable \| None, optional` | 执行的函数，参数传入 `FilterArgs` 对象. Defaults to None. |
-| `priority` | `int, optional` | 优先级，数字越小越优先执行. Defaults to 0. |
+| `func` | `Callable` | 执行的函数，参数传入 `FilterArgs` 对象. |
+| `priority` | `int, optional` | 优先级，数字越小越优先执行. Defaults to 1. |
 
 
 

@@ -220,6 +220,7 @@ import re
 import struct
 from threading import Lock as ThreadingLock
 import time
+from types import AsyncGeneratorType, GeneratorType
 from typing import Any, Generic, TypeVar
 import urllib.parse
 
@@ -2026,6 +2027,8 @@ class BiliFilterArgs:
 class BiliFilterReturn:
     """
     用于结束过滤器返回结果的工具类
+
+    提供 `BiliFilterReturn.Returns` 作为过滤器返回值 `tuple[BiliFilterFlags, Any]` 的缩写。
     """
 
     Returns = tuple[BiliFilterFlags, Any]
@@ -2110,10 +2113,43 @@ class BiliFilterReturn:
         Returns:
             tuple[BiliFilterFlags, int]: 过滤器函数返回值
         """
-        for idx, fil in enumerate(get_registered_filters()):
-            if fil["name"] == name:
+        for idx, filt in enumerate(get_registered_filters()):
+            if filt.name == name:
                 return BiliFilterFlags.GOTO, idx
         raise ArgsException(f"未找到前置过滤器 {name}")
+
+
+@dataclass
+class BiliFilter:
+    """
+    过滤器对象
+
+    Attributes:
+        name (str): 过滤器名称.
+        locate (str): 过滤器位置. pre 为前置， post 为后置。
+        priority (int, optional): 优先级。优先级越小，越早执行。Defaults to 1.
+        function (Callable[[BiliFilterArgs], BiliFilterReturn.Returns | GeneratorType[BiliFilterReturn.Returns]] | None, optional): 同步函数。Defaults to None.
+        async_function (Callable[..., Coroutine[Any, Any, BiliFilterReturn.Returns] | AsyncGeneratorType[BiliFilterReturn.Returns]] | None, optional): 异步函数。Defaults to None.
+    """
+
+    name: str
+    locate: str
+    priority: int = 1
+    function: (
+        Callable[
+            [BiliFilterArgs],
+            BiliFilterReturn.Returns | GeneratorType[BiliFilterReturn.Returns],
+        ]
+        | None
+    ) = None
+    async_function: (
+        Callable[
+            ...,
+            Coroutine[Any, Any, BiliFilterReturn.Returns]
+            | AsyncGeneratorType[BiliFilterReturn.Returns],
+        ]
+        | None
+    ) = None
 
 
 class _BiliAPIClient:
@@ -2189,18 +2225,27 @@ class _BiliAPIClient:
             return ret
 
         def run_filter(
-            filter: Callable[[BiliFilterArgs], Any], args: BiliFilterArgs
+            filter: Callable[
+                [BiliFilterArgs],
+                BiliFilterReturn.Returns | GeneratorType[BiliFilterReturn.Returns],
+            ],
+            args: BiliFilterArgs,
         ) -> list[tuple[BiliFilterFlags, Any]]:
             result = filter(args)
             if isgenerator(result):
-                return list(result)  # type: ignore
+                return list(result)
             else:
                 if not result:
                     result = BiliFilterReturn.continue_exec()
-                return [result]  # type: ignore
+                return [result]
 
         async def arun_filter(
-            filter: Callable[[BiliFilterArgs], Any], args: BiliFilterArgs
+            filter: Callable[
+                ...,
+                Coroutine[Any, Any, BiliFilterReturn.Returns]
+                | AsyncGeneratorType[BiliFilterReturn.Returns],
+            ],
+            args: BiliFilterArgs,
         ) -> list[tuple[BiliFilterFlags, Any]]:
             result = filter(args)
             if isasyncgen(result):
@@ -2212,7 +2257,7 @@ class _BiliAPIClient:
                 result = await result
                 if not result:
                     result = BiliFilterReturn.continue_exec()
-                return [result]  # type: ignore
+                return [result]
 
         def method_wrapper(method: Callable) -> Callable:
             def wrapped_method(*args, **kwargs) -> Any:
@@ -2234,15 +2279,15 @@ class _BiliAPIClient:
                 i = 0
                 while i < len(filts):
                     filt = filts[i]
-                    locate = filt["locate"]
+                    locate = filt.locate
                     if not skip_pre:
                         request_log.dispatch(
                             f"DO_{log_helper[locate][0]}_FILTER",
                             f"执行{log_helper[locate][1]}过滤器",
                             {
                                 "act_id": cnt,
-                                "name": filt["name"],
-                                "priority": filt["priority"],
+                                "name": filt.name,
+                                "priority": filt.priority,
                                 "client": self.__client__,
                                 "instance": self.__instance__,
                                 "action": key,
@@ -2254,10 +2299,10 @@ class _BiliAPIClient:
                     gparam: Any = None
                     if locate == "pre" and skip_pre:
                         pass
-                    elif filt.get("function"):
+                    elif filt.function:
                         try:
                             results = run_filter(
-                                filt["function"],
+                                filt.function,
                                 BiliFilterArgs(
                                     **filter_args,
                                     params=args.copy(),
@@ -2267,7 +2312,7 @@ class _BiliAPIClient:
                                 ),
                             )
                         except Exception as e:
-                            raise FilterException(locate, filt["name"], e) from e
+                            raise FilterException(locate, filt.name, e) from e
                         for result in results:
                             try:
                                 sflag, sparam = result[0], result[1]
@@ -2296,7 +2341,7 @@ class _BiliAPIClient:
                         continue
                     i += 1
                     if locate == "pre" and (
-                        i >= len(filts) or filts[i]["locate"] == "post"
+                        i >= len(filts) or filts[i].locate == "post"
                     ):
                         ret = method(**args)
                         skip_pre = False
@@ -2324,15 +2369,15 @@ class _BiliAPIClient:
                 i = 0
                 while i < len(filts):
                     filt = filts[i]
-                    locate = filt["locate"]
+                    locate = filt.locate
                     if not skip_pre:
                         request_log.dispatch(
                             f"DO_{log_helper[locate][0]}_FILTER",
                             f"执行{log_helper[locate][1]}过滤器",
                             {
                                 "act_id": cnt,
-                                "name": filt["name"],
-                                "priority": filt["priority"],
+                                "name": filt.name,
+                                "priority": filt.priority,
                                 "client": self.__client__,
                                 "instance": self.__instance__,
                                 "action": key,
@@ -2344,12 +2389,12 @@ class _BiliAPIClient:
                     gparam: Any = None
                     if locate == "pre" and skip_pre:
                         pass
-                    elif filt.get("function") or filt.get("async_function"):
+                    elif filt.function or filt.async_function:
                         try:
-                            if filt.get("function"):
+                            if filt.function:
                                 results = await to_thread.run_sync(
                                     run_filter,
-                                    filt["function"],
+                                    filt.function,
                                     BiliFilterArgs(
                                         **filter_args,
                                         params=args.copy(),
@@ -2358,9 +2403,9 @@ class _BiliAPIClient:
                                         filter_locate=locate,
                                     ),
                                 )
-                            elif filt.get("async_function"):
+                            elif filt.async_function:
                                 results = await arun_filter(
-                                    filt["async_function"],
+                                    filt.async_function,
                                     BiliFilterArgs(
                                         **filter_args,
                                         params=args.copy(),
@@ -2372,7 +2417,7 @@ class _BiliAPIClient:
                             else:
                                 results = []
                         except Exception as e:
-                            raise FilterException(locate, filt["name"], e) from e
+                            raise FilterException(locate, filt.name, e) from e
                         for result in results:
                             try:
                                 sflag, sparam = result[0], result[1]
@@ -2401,7 +2446,7 @@ class _BiliAPIClient:
                         continue
                     i += 1
                     if locate == "pre" and (
-                        i >= len(filts) or filts[i]["locate"] == "post"
+                        i >= len(filts) or filts[i].locate == "post"
                     ):
                         ret = await async_function(**args)  # type: ignore
                         skip_pre = False
@@ -2520,7 +2565,7 @@ sessions: dict[str, type["BiliAPIClient"]] = {}  # client -> BiliAPIClient class
 client_settings: dict[str, list] = {}  # client -> settings
 client_defaults: dict[str, dict] = {}
 client_groups: dict[str, dict[str, _BiliAPIClientGroup]] = {}  # client -> instance
-__registered_filters = []  # filters
+__registered_filters: list[BiliFilter] = []  # filters
 
 
 class MultiContextVariable(Generic[T]):
@@ -2947,8 +2992,8 @@ async def clean_session(
 
 def register_pre_filter(
     name: str,
-    func: Callable | None = None,
-    priority: int = 0,
+    func: Callable,
+    priority: int = 1,
 ) -> None:
     """
     注册/修改前置过滤器
@@ -2959,32 +3004,32 @@ def register_pre_filter(
 
     Args:
         name (str): 名称，若重复则为修改对应过滤器。
-        func (Callable | None, optional): 执行的函数，参数传入 `FilterArgs` 对象. Defaults to None.
-        priority (int, optional): 优先级，数字越小越优先执行. Defaults to 0.
+        func (Callable): 执行的函数，参数传入 `FilterArgs` 对象.
+        priority (int, optional): 优先级，数字越小越优先执行. Defaults to 1.
     """
     global __registered_filters
-    filt = {
+    args = {
         "name": name,
         "priority": priority,
         "locate": "pre",
     }
     if iscoroutinefunction(func):
-        filt["async_function"] = func
+        args["async_function"] = func
     elif isasyncgenfunction(func):
-        filt["async_function"] = func
+        args["async_function"] = func
     else:
-        filt["function"] = func
+        args["function"] = func
     for i, pre in enumerate(__registered_filters):
-        if pre["name"] == name:
-            __registered_filters[i] = filt
+        if pre.name == name:
+            __registered_filters[i] = BiliFilter(**args)
             return
-    __registered_filters.append(filt)
+    __registered_filters.append(BiliFilter(**args))
 
 
 def register_post_filter(
     name: str,
-    func: Callable | None = None,
-    priority: int = 0,
+    func: Callable,
+    priority: int = 1,
 ) -> None:
     """
     注册/修改后置过滤器
@@ -2995,29 +3040,29 @@ def register_post_filter(
 
     Args:
         name (str): 名称，若重复则为修改对应过滤器。
-        func (Callable | None, optional): 执行的函数，参数传入 `FilterArgs` 对象. Defaults to None.
-        priority (int, optional): 优先级，数字越小越优先执行. Defaults to 0.
+        func (Callable): 执行的函数，参数传入 `FilterArgs` 对象.
+        priority (int, optional): 优先级，数字越小越优先执行. Defaults to 1.
     """
     global __registered_filters
-    filt = {
+    args = {
         "name": name,
         "priority": priority,
         "locate": "post",
     }
     if iscoroutinefunction(func):
-        filt["async_function"] = func
+        args["async_function"] = func
     elif isasyncgenfunction(func):
-        filt["async_function"] = func
+        args["async_function"] = func
     else:
-        filt["function"] = func
+        args["function"] = func
     for i, post in enumerate(__registered_filters):
-        if post["name"] == name:
-            __registered_filters[i] = filt
+        if post.name == name:
+            __registered_filters[i] = BiliFilter(**args)
             return
-    __registered_filters.append(filt)
+    __registered_filters.append(BiliFilter(**args))
 
 
-def get_registered_filters(in_priority: bool = True) -> list[dict]:
+def get_registered_filters(in_priority: bool = True) -> list[BiliFilter]:
     """
     获取所有已注册的过滤器
 
@@ -3025,15 +3070,15 @@ def get_registered_filters(in_priority: bool = True) -> list[dict]:
         in_priority (bool, optional): 是否排序. Defaults to True.
 
     Returns:
-        list[dict]: 已注册的前置过滤器
+        list[BiliFilter]: 已注册的前置过滤器
     """
     if in_priority:
 
-        def cmp(filt1: dict, filt2: dict) -> int:
+        def cmp(filt1: BiliFilter, filt2: BiliFilter) -> int:
             locate = ["pre", "post"]
-            if filt1["locate"] != filt2["locate"]:
-                return locate.index(filt1["locate"]) - locate.index(filt2["locate"])
-            return filt1["priority"] - filt2["priority"]
+            if filt1.locate != filt2.locate:
+                return locate.index(filt1.locate) - locate.index(filt2.locate)
+            return filt1.priority - filt2.priority
 
         return sorted(__registered_filters, key=cmp_to_key(cmp))
     return __registered_filters
@@ -3048,7 +3093,7 @@ def unregister_filter(name: str) -> None:
     """
     global __registered_filters
     for i, filt in enumerate(__registered_filters):
-        if filt["name"] == name:
+        if filt.name == name:
             del __registered_filters[i]
             return
 
@@ -4417,6 +4462,19 @@ def delegate(
         ),
         local_context,
     )
+
+
+def get_delegates() -> dict[DelegateType, tuple[str, str]]:
+    """
+    获取当前派发情况，键为派发函数范围，值为元组，第一项是第三方库，第二项是具体实例，若二者皆为空则不会进行请求派发。
+
+    Returns:
+        dict[DelegateType, tuple[str, str]]: 派发情况
+    """
+    ret = {}
+    for key, item in __delegate.items():
+        ret[key] = item.get()
+    return ret
 
 
 def undelegate(
