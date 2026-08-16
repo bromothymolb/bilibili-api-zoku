@@ -203,6 +203,7 @@ import hmac
 from inspect import (
     isasyncgen,
     isasyncgenfunction,
+    iscoroutine,
     iscoroutinefunction,
     isfunction,
     isgenerator,
@@ -219,7 +220,7 @@ import re
 import struct
 from threading import Lock as ThreadingLock
 import time
-from typing import Any, TypeVar
+from typing import Any, Generic, TypeVar
 import urllib.parse
 
 from anyio import (
@@ -269,10 +270,10 @@ if TRIO_AVAILABLE:
 else:
     TrioToken = None
 
-################################################## BEGIN AsyncEvent ##################################################
-
-
 T = TypeVar("T")
+
+
+################################################## BEGIN AsyncEvent ##################################################
 
 
 class AsyncEvent:
@@ -584,6 +585,7 @@ class RequestLog(AsyncEvent):
             "ANTI_SPIDER",
             "DO_PRE_FILTER",
             "DO_POST_FILTER",
+            "DELEGATE",
         ]
 
     def get_on_events(self) -> list[str]:
@@ -703,6 +705,10 @@ class RequestLog(AsyncEvent):
                 priority = real_data.pop("priority")
                 filter_id = real_data.pop("filter_id")
                 log_str = f"{Fore.GREEN}{desc}{Fore.GREEN} [{Fore.CYAN}{filter_id}{Fore.CYAN}] {action}() <- {name} / {Fore.CYAN}{priority}{Fore.CYAN}"
+            elif evt == "DELEGATE":
+                destination_client = real_data.pop("destination_client")
+                destination_instance = real_data.pop("destination_instance")
+                log_str = f"{Fore.GREEN}{desc}{Fore.GREEN} --> [{Fore.MAGENTA}{destination_client} / {destination_instance}{Fore.MAGENTA}]"
             log_str = log_str or f"{Fore.GREEN}{desc}{Fore.GREEN}: {real_data}"
             self.__log(info_str + middle_str + log_str)
 
@@ -737,7 +743,8 @@ Events:
 - ANTI_SPIDER: 反爬虫相关信息。
 - (过滤器)
 - DO_PRE_FILTER: 执行前置过滤器。
-- DO_POST_FILTER: 执行后置过滤器
+- DO_POST_FILTER: 执行后置过滤器。
+- DELEGATE: 请求转发。
 
 CallbackData: 描述 (str) 数据 (dict)
 
@@ -780,7 +787,8 @@ Events:
 - ANTI_SPIDER: 反爬虫相关信息。
 - (过滤器)
 - DO_PRE_FILTER: 执行前置过滤器。
-- DO_POST_FILTER: 执行后置过滤器
+- DO_POST_FILTER: 执行后置过滤器。
+- DELEGATE: 请求转发。
 
 CallbackData: 描述 (str) 数据 (dict)
 
@@ -2512,11 +2520,35 @@ sessions: dict[str, type["BiliAPIClient"]] = {}  # client -> BiliAPIClient class
 client_settings: dict[str, list] = {}  # client -> settings
 client_defaults: dict[str, dict] = {}
 client_groups: dict[str, dict[str, _BiliAPIClientGroup]] = {}  # client -> instance
-selected_client = ""
-selected_instance = ""
-selected_client_context: ContextVar[str] = ContextVar("bili_client", default="")
-selected_instance_context: ContextVar[str] = ContextVar("bili_instance", default="")
-__registered_filters = []
+__registered_filters = []  # filters
+
+
+class MultiContextVariable(Generic[T]):
+    """
+    ContextVar with mutable default value
+    """
+
+    def __init__(self, name: str, empty: T) -> None:
+        self.__var: T = empty
+        self.__context_var: ContextVar[T] = ContextVar(name, default=empty)
+        self.__empty = empty
+
+    def set(self, value: T, local_context: bool = False) -> None:
+        if local_context:
+            self.__context_var.set(value)
+        else:
+            self.__var = value
+
+    def get(self) -> T:
+        return (
+            self.__context_var.get()
+            if self.__context_var.get() != self.__empty
+            else self.__var
+        )
+
+
+selected_client: MultiContextVariable[str] = MultiContextVariable("bili_client", "")
+selected_instance: MultiContextVariable[str] = MultiContextVariable("bili_instance", "")
 
 
 ##### client #####
@@ -2535,14 +2567,16 @@ def register_client(name: str, cls: type, settings: dict | None = None) -> None:
     raise_for_statement(
         issubclass(cls, BiliAPIClient), "传入的类型需要继承 BiliAPIClient"
     )
+    if name == "":
+        raise ArgsException("名称不能为空。")
     if name in sessions.keys():
         raise ArgsException(f"已注册过请求客户端 {name}")
+    settings = settings or {}
     sessions[name] = cls
     client_groups[name] = {}
-    select_client(name)
-    settings = settings or {}
     client_settings[name] = list(settings.keys())
     client_defaults[name] = settings
+    select_client(name)
     new_instance("default", name)
 
 
@@ -2571,11 +2605,7 @@ def select_client(name: str, local_context: bool = False) -> None:
     """
     if not sessions.get(name):
         raise ArgsException(f"未注册过 {name}。")
-    if local_context:
-        selected_client_context.set(name)
-    else:
-        global selected_client
-        selected_client = name
+    selected_client.set(name, local_context)
 
 
 def get_selected_client() -> tuple[str, type[BiliAPIClient]]:
@@ -2585,10 +2615,7 @@ def get_selected_client() -> tuple[str, type[BiliAPIClient]]:
     Returns:
         tuple[str, type[BiliAPIClient]]: 第 0 项为客户端名称，第 1 项为对应的类
     """
-    if selected_client_context.get() != "":
-        return selected_client_context.get(), sessions[selected_client_context.get()]
-    if selected_client != "":
-        return selected_client, sessions[selected_client]
+    return selected_client.get(), sessions[selected_client.get()]
     raise ArgsException(
         "尚未安装第三方请求库或未注册自定义第三方请求库。\n$ pip3 install (curl_cffi|httpx|aiohttp)"
     )
@@ -2615,6 +2642,8 @@ def new_instance(name: str, client: str | None = None) -> None:
         name (str): 名称
         client (str | None, optional): BiliAPIClient 类型. Defaults to None.
     """
+    if name == "":
+        raise ArgsException("名称不能为空。")
     client = client or get_selected_client()[0]
     global client_groups
     if name in client_groups[client].keys():
@@ -2647,11 +2676,7 @@ def select_instance(name: str, local_context: bool = False) -> None:
         name (str): 名称
         local_context (bool): 是否通过 `ContextVar` 仅在局部上下文设置。Defaults to False.
     """
-    if local_context:
-        selected_instance_context.set(name)
-    else:
-        global selected_instance
-        selected_instance = name
+    selected_instance.set(name, local_context)
 
 
 def get_selected_instance() -> str:
@@ -2661,7 +2686,7 @@ def get_selected_instance() -> str:
     Returns:
         str: 选择的请求客户端实例
     """
-    return selected_instance_context.get() or selected_instance
+    return selected_instance.get()
 
 
 def get_instances(client: str | None = None) -> list[str]:
@@ -4253,107 +4278,210 @@ async def _get_bili_ticket(credential: Credential) -> tuple[str, int]:
 ################################################## BEGIN Builtin-Filters ##################################################
 
 
-def __register_builtin_log_filters():
-    def log_pre(args: BiliFilterArgs):
-        running_info = {
-            "act_id": args.filter_cnt,
-            "client": args.client,
-            "instance": args.instance,
-            "event_loop": args.event_loop_token,
-        }
-        match args.func:
-            case "request":
-                request_log.dispatch(
-                    "REQUEST",
-                    "发起请求",
-                    args.params | running_info,
-                )
-            case "ws_send":
-                request_log.dispatch(
-                    "WS_SEND",
-                    "发送 WebSocket 请求",
-                    {"id": args.params["cnt"], "data": args.params["data"]}
-                    | running_info,
-                )
-            case "ws_close":
-                request_log.dispatch(
-                    "WS_CLOSE",
-                    "关闭 WebSocket 请求",
-                    {"id": args.params["cnt"]} | running_info,
-                )
-            case "download_close":
-                request_log.dispatch(
-                    "DWN_CLOSE",
-                    "结束下载",
-                    {"id": args.params["cnt"]} | running_info,
-                )
-            case "close":
-                request_log.dispatch(
-                    "CLOSE",
-                    "关闭会话",
-                    running_info,
-                )
-        return BiliFilterReturn.continue_exec()
-
-    def log_post(args: BiliFilterArgs):
-        running_info = {
-            "act_id": args.filter_cnt,
-            "client": args.client,
-            "instance": args.instance,
-            "event_loop": args.event_loop_token,
-        }
-        match args.func:
-            case "request":
-                request_log.dispatch(
-                    "RESPONSE",
-                    "获得响应",
-                    {
-                        "code": args.ret.code,
-                        "headers": args.ret.headers,
-                        "cookies": args.ret.cookies,
-                        "data": args.ret.raw,
-                        "url": args.ret.url,
-                    }
-                    | running_info,
-                )
-            case "ws_create":
-                args.params["id"] = args.ret
-                request_log.dispatch(
-                    "WS_CREATE",
-                    "开始 WebSocket 连接",
-                    args.params | running_info,
-                )
-            case "download_create":
-                args.params["id"] = args.ret
-                request_log.dispatch(
-                    "DWN_CREATE",
-                    "开始下载",
-                    args.params | running_info,
-                )
-            case "download_chunk":
-                request_log.dispatch(
-                    "DWN_PART",
-                    "收到部分下载数据",
-                    {"id": args.params["cnt"], "data": args.ret} | running_info,
-                )
-            case "ws_recv":
-                request_log.dispatch(
-                    "WS_RECV",
-                    "收到 WebSocket 数据",
-                    {
-                        "id": args.params["cnt"],
-                        "data": args.ret[0],
-                        "flags": args.ret[1].value,
-                    }
-                    | running_info,
-                )
-        return BiliFilterReturn.continue_exec()
-
-    register_pre_filter(name="__builtin_log_pre", func=log_pre, priority=998244353)
-    register_post_filter(name="__builtin_log_post", func=log_post, priority=-998244353)
+def __request_log_pre(args: BiliFilterArgs) -> BiliFilterReturn.Returns:
+    running_info = {
+        "act_id": args.filter_cnt,
+        "client": args.client,
+        "instance": args.instance,
+        "event_loop": args.event_loop_token,
+    }
+    match args.func:
+        case "request":
+            request_log.dispatch(
+                "REQUEST",
+                "发起请求",
+                args.params | running_info,
+            )
+        case "ws_send":
+            request_log.dispatch(
+                "WS_SEND",
+                "发送 WebSocket 请求",
+                {"id": args.params["cnt"], "data": args.params["data"]} | running_info,
+            )
+        case "ws_close":
+            request_log.dispatch(
+                "WS_CLOSE",
+                "关闭 WebSocket 请求",
+                {"id": args.params["cnt"]} | running_info,
+            )
+        case "download_close":
+            request_log.dispatch(
+                "DWN_CLOSE",
+                "结束下载",
+                {"id": args.params["cnt"]} | running_info,
+            )
+        case "close":
+            request_log.dispatch(
+                "CLOSE",
+                "关闭会话",
+                running_info,
+            )
+    return BiliFilterReturn.continue_exec()
 
 
-__register_builtin_log_filters()
+def __request_log_post(args: BiliFilterArgs) -> BiliFilterReturn.Returns:
+    running_info = {
+        "act_id": args.filter_cnt,
+        "client": args.client,
+        "instance": args.instance,
+        "event_loop": args.event_loop_token,
+    }
+    match args.func:
+        case "request":
+            request_log.dispatch(
+                "RESPONSE",
+                "获得响应",
+                {
+                    "code": args.ret.code,
+                    "headers": args.ret.headers,
+                    "cookies": args.ret.cookies,
+                    "data": args.ret.raw,
+                    "url": args.ret.url,
+                }
+                | running_info,
+            )
+        case "ws_create":
+            args.params["id"] = args.ret
+            request_log.dispatch(
+                "WS_CREATE",
+                "开始 WebSocket 连接",
+                args.params | running_info,
+            )
+        case "download_create":
+            args.params["id"] = args.ret
+            request_log.dispatch(
+                "DWN_CREATE",
+                "开始下载",
+                args.params | running_info,
+            )
+        case "download_chunk":
+            request_log.dispatch(
+                "DWN_PART",
+                "收到部分下载数据",
+                {"id": args.params["cnt"], "data": args.ret} | running_info,
+            )
+        case "ws_recv":
+            request_log.dispatch(
+                "WS_RECV",
+                "收到 WebSocket 数据",
+                {
+                    "id": args.params["cnt"],
+                    "data": args.ret[0],
+                    "flags": args.ret[1].value,
+                }
+                | running_info,
+            )
+    return BiliFilterReturn.continue_exec()
+
+
+class DelegateType(Enum):
+    """
+    请求转发类型
+
+    - REQUEST: `request` 函数转发
+    - WEBSOCKET: `ws_create` `ws_recv` `ws_send` `ws_close` 转发
+    - DOWNLOAD: `download_create` `download_chunk` `download_content_length` `download_close` 转发
+    """
+
+    REQUEST = "request"
+    WEBSOCKET = "ws_"
+    DOWNLOAD = "download_"
+
+
+__delegate: dict[DelegateType, MultiContextVariable[tuple[str, str]]] = {
+    DelegateType.REQUEST: MultiContextVariable("bili_delegate_request", ("", "")),
+    DelegateType.WEBSOCKET: MultiContextVariable("bili_delegate_websocket", ("", "")),
+    DelegateType.DOWNLOAD: MultiContextVariable("bili_delegate_download", ("", "")),
+}
+
+
+def delegate(
+    delegate_type: DelegateType,
+    destination_client: str | None = None,
+    destination_instance: str | None = None,
+    local_context: bool = False,
+) -> None:
+    """
+    将部分类型的请求派发至其他请求客户端。
+
+    Args:
+        delegate_type (DelegateType): 转发请求的函数范围，如转发所有 WebSocket 相关函数。
+        destination_client (str | None): 目标第三方库。若未指定，模块将选择当前第三方库。Defaults to None.
+        destination_instance (str | None): 目标实例。若未指定，模块将选择当前实例名称。Defaults to None.
+        local_context (bool, optional): 是否通过 `ContextVar` 仅在局部上下文设置。Defaults to False.
+    """
+    __delegate[delegate_type].set(
+        (
+            destination_client or get_selected_client()[0],
+            destination_instance or get_selected_instance(),
+        ),
+        local_context,
+    )
+
+
+def undelegate(
+    delegate_type: DelegateType,
+    local_context: bool = False,
+) -> None:
+    """
+    取消派发。
+
+    Args:
+        delegate_type (DelegateType): 转发请求的函数范围，如转发所有 WebSocket 相关函数。
+        local_context (bool, optional): 是否通过 `ContextVar` 仅在局部上下文设置。Defaults to False.
+    """
+    delegate(
+        delegate_type=delegate_type,
+        destination_client="",
+        destination_instance="",
+        local_context=local_context,
+    )
+
+
+async def __request_delegate(
+    args: BiliFilterArgs,
+) -> AsyncGenerator[BiliFilterReturn.Returns, None]:
+    for delegate_type, destination_var in __delegate.items():
+        if args.func.startswith(delegate_type.value):
+            destination = destination_var.get()
+            destination_client = destination[0] or get_selected_client()[0]
+            destination_instance = destination[1] or get_selected_instance()
+            if (
+                destination_client == args.client
+                and destination_instance == args.instance
+            ):
+                break
+            running_info = {
+                "act_id": args.filter_cnt,
+                "client": args.client,
+                "instance": args.instance,
+                "event_loop": args.event_loop_token,
+            }
+            request_log.dispatch(
+                "DELEGATE",
+                "转发请求",
+                {
+                    "destination_client": destination_client,
+                    "destination_instance": destination_instance,
+                }
+                | running_info,
+            )
+            delegate_client = get_client(
+                client=destination_client, instance=destination_instance
+            )
+            func = getattr(delegate_client, args.func)
+            result = func(**args.params)
+            if iscoroutine(result):
+                result = await result
+            yield BiliFilterReturn.set_return(result)
+            yield BiliFilterReturn.return_now()
+            return
+    yield BiliFilterReturn.continue_exec()
+
+
+register_pre_filter(name="__builtin_log_pre", func=__request_log_pre, priority=919)
+register_post_filter(name="__builtin_log_post", func=__request_log_post, priority=0)
+register_pre_filter(name="__builtin_delegate", func=__request_delegate, priority=0)
 
 
 ################################################## END Builtin-Filters ##################################################

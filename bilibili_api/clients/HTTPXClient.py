@@ -13,6 +13,7 @@ from ..utils.network import (
     BiliAPIClient,
     BiliAPIFile,
     BiliAPIResponse,
+    BiliWsMsgType,
     MultiEventLoopLocks,
 )
 
@@ -238,7 +239,9 @@ class HTTPXClient(BiliAPIClient):
         del self.__downloads[cnt]
         del self.__download_iter[cnt]
 
-    async def ws_create(self) -> None:  # type: ignore
+    async def ws_create(
+        self, url: str = "", params: dict | None = None, headers: dict | None = None
+    ) -> int:
         """
         httpx 库暂未实现 WebSocket。相关讨论：<https://github.com/encode/httpx/issues/304>
         """
@@ -246,7 +249,7 @@ class HTTPXClient(BiliAPIClient):
             "httpx 库暂未实现 WebSocket。相关讨论：<https://github.com/encode/httpx/issues/304>"
         )
 
-    async def ws_send(self) -> None:  # type: ignore
+    async def ws_send(self, cnt: int, data: bytes) -> None:
         """
         httpx 库暂未实现 WebSocket。相关讨论：<https://github.com/encode/httpx/issues/304>
         """
@@ -254,7 +257,7 @@ class HTTPXClient(BiliAPIClient):
             "httpx 库暂未实现 WebSocket。相关讨论：<https://github.com/encode/httpx/issues/304>"
         )
 
-    async def ws_recv(self) -> None:  # type: ignore
+    async def ws_recv(self, cnt: int) -> tuple[bytes, BiliWsMsgType]:
         """
         httpx 库暂未实现 WebSocket。相关讨论：<https://github.com/encode/httpx/issues/304>
         """
@@ -262,7 +265,7 @@ class HTTPXClient(BiliAPIClient):
             "httpx 库暂未实现 WebSocket。相关讨论：<https://github.com/encode/httpx/issues/304>"
         )
 
-    async def ws_close(self) -> None:  # type: ignore
+    async def ws_close(self, cnt: int) -> None:
         """
         httpx 库暂未实现 WebSocket。相关讨论：<https://github.com/encode/httpx/issues/304>
         """

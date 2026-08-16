@@ -96,6 +96,7 @@ from bilibili_api import ...
   - [def crack\_uid()](#def-crack\_uid)
   - [def to\_xml()](#def-to\_xml)
 - [class DanmakuClosedException()](#class-DanmakuClosedException)
+- [class DelegateType()](#class-DelegateType)
 - [class DmFontSize()](#class-DmFontSize)
 - [class DmMode()](#class-DmMode)
 - [class DynamicExceedImagesException()](#class-DynamicExceedImagesException)
@@ -193,6 +194,7 @@ from bilibili_api import ...
 - [def bvid2aid()](#def-bvid2aid)
 - [async def clean\_session()](#async-def-clean\_session)
 - [def configure\_dynamic\_fingerprint()](#def-configure\_dynamic\_fingerprint)
+- [def delegate()](#def-delegate)
 - [async def ensure\_bili\_ticket()](#async-def-ensure\_bili\_ticket)
 - [async def ensure\_buvid()](#async-def-ensure\_buvid)
 - [def get\_available\_settings()](#def-get\_available\_settings)
@@ -232,6 +234,7 @@ from bilibili_api import ...
 - [def select\_instance()](#def-select\_instance)
 - [def set\_session()](#def-set\_session)
 - [def sync()](#def-sync)
+- [def undelegate()](#def-undelegate)
 - [def unregister\_client()](#def-unregister\_client)
 - [def unregister\_filter()](#def-unregister\_filter)
 - [def unset\_session()](#def-unset\_session)
@@ -1516,6 +1519,21 @@ Credential 类未提供 sessdata 时的异常。
 
 ---
 
+## class DelegateType()
+
+> Extend: `enum.Enum`
+
+请求转发类型
+
+- REQUEST: `request` 函数转发
+- WEBSOCKET: `ws_create` `ws_recv` `ws_send` `ws_close` 转发
+- DOWNLOAD: `download_create` `download_chunk` `download_content_length` `download_close` 转发
+
+
+
+
+---
+
 ## class DmFontSize()
 
 > Extend: `enum.Enum`
@@ -2753,6 +2771,23 @@ BV 号转 AV 号。
 
 ---
 
+## def delegate()
+
+将部分类型的请求派发至其他请求客户端。
+
+
+| name | type | description |
+| - | - | - |
+| `delegate_type` | `DelegateType` | 转发请求的函数范围，如转发所有 WebSocket 相关函数。 |
+| `destination_client` | `str \| None` | 目标第三方库。若未指定，模块将选择当前第三方库。Defaults to None. |
+| `destination_instance` | `str \| None` | 目标实例。若未指定，模块将选择当前实例名称。Defaults to None. |
+| `local_context` | `bool, optional` | 是否通过 `ContextVar` 仅在局部上下文设置。Defaults to False. |
+
+
+
+
+---
+
 ## async def ensure_bili_ticket()
 
 确保 bili_ticket 可用，自动刷新 bili_ticket，若提供凭据类将自动在 credential 中设置相关字段。
@@ -3205,7 +3240,8 @@ Events:
 - ANTI_SPIDER: 反爬虫相关信息。
 - (过滤器)
 - DO_PRE_FILTER: 执行前置过滤器。
-- DO_POST_FILTER: 执行后置过滤器
+- DO_POST_FILTER: 执行后置过滤器。
+- DELEGATE: 请求转发。
 
 CallbackData: 描述 (str) 数据 (dict)
 
@@ -3375,6 +3411,21 @@ async def handle(desc: str, data: dict) -> None:
 | `backend` | `str, optional` | 异步框架，可选 asyncio / trio。Defaults to "asyncio". |
 
 **Returns:** `~T`:  该异步函数的返回值
+
+
+
+
+---
+
+## def undelegate()
+
+取消派发。
+
+
+| name | type | description |
+| - | - | - |
+| `delegate_type` | `DelegateType` | 转发请求的函数范围，如转发所有 WebSocket 相关函数。 |
+| `local_context` | `bool, optional` | 是否通过 `ContextVar` 仅在局部上下文设置。Defaults to False. |
 
 
 

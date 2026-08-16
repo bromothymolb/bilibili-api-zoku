@@ -1126,6 +1126,7 @@ bilibili_api
   crack_uid
   to_xml
  DanmakuClosedException
+ DelegateType
  DmFontSize
  DmMode
  DynamicExceedImagesException
@@ -1223,6 +1224,7 @@ bilibili_api
  bvid2aid
  clean_session
  configure_dynamic_fingerprint
+ delegate
  ensure_bili_ticket
  ensure_buvid
  get_available_settings
@@ -1262,6 +1264,7 @@ bilibili_api
  select_instance
  set_session
  sync
+ undelegate
  unregister_client
  unregister_filter
  unset_session

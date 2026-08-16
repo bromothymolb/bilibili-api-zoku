@@ -1544,7 +1544,7 @@ class LiveDanmaku(AsyncEvent):
 
     def _log_warning(self, msg: str) -> None:
         msg = loguru_apply_anti_tag(msg)
-        logger.opt(colors=True, exception=True).warning(f"<red>{self}</red> | {msg}")
+        logger.opt(colors=True).warning(f"<red>{self}</red> | {msg}")
 
     def _log_error(self, msg: str) -> None:
         msg = loguru_apply_anti_tag(msg)
