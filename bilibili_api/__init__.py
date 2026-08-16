@@ -145,24 +145,27 @@ from .utils.sync import sync
 BILIBILI_API_VERSION = "18.0.0.b0"
 
 
-def __register_all_clients():
-    import importlib
+import importlib
 
-    from .clients import ALL_PROVIDED_CLIENTS
+from .clients import ALL_PROVIDED_CLIENTS
 
-    for module, client_name, settings in ALL_PROVIDED_CLIENTS[::-1]:
-        try:
-            importlib.import_module(module)
-        except ModuleNotFoundError:
-            continue
-        client_module = importlib.import_module(
-            name=f".clients.{client_name}", package="bilibili_api"
-        )
-        client_class = getattr(client_module, client_name)
-        register_client(module, client_class, settings)
+for module, client_name, settings in ALL_PROVIDED_CLIENTS[::-1]:
+    try:
+        importlib.import_module(module)
+    except ModuleNotFoundError:
+        continue
+    register_client(
+        module,
+        getattr(
+            importlib.import_module(
+                name=f".clients.{client_name}", package="bilibili_api"
+            ),
+            client_name,
+        ),
+        settings,
+    )
 
-
-__register_all_clients()
+del ALL_PROVIDED_CLIENTS
 
 
 __all__ = [
