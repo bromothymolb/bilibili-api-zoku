@@ -8,11 +8,11 @@ authors = [
 ]
 maintainers = [{ name = "bromothymolb", email = "bromothymolb@qq.com" }]
 readme = "README.md"
-license = { text = "GPL-3.0-or-later" }
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE"]
 keywords = ["bilibili", "api", "spider"]
 classifiers = [
     "Development Status :: 3 - Alpha",
-    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
     "Natural Language :: Chinese (Simplified)",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
