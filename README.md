@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="./design/logo.png" />
+<img src="https://raw.githubusercontent.com/bromothymolb/bilibili-api-zoku/refs/heads/main/design/logo.png" />
 
 # bilibili-api-zoku
 
