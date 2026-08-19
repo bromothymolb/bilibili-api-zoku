@@ -44,7 +44,17 @@ scripts = { "ivitools" = "bilibili_api.tools.ivitools.__main__:main" }
 dynamic = ["version"]
 
 [project.optional-dependencies]
-fingerprint = ["fpgen", "curl-cffi"]
+# request libraries
+aiohttp = ["aiohttp"]
+aiohttp-speedups = ["aiohttp[speedups]"]
+httpx = ["httpx"]
+httpx-h2 = ["httpx[http2]"]
+curl-cffi = ["curl_cffi"]
+fingerprint = ["fpgen", "curl_cffi"]
+# async backend
+trio = ["trio"]
+# logging
+loguru = ["loguru"]
 
 [project.urls]
 Homepage = "https://github.com/bromothymolb/bilibili-api-zoku"
