@@ -186,6 +186,7 @@ Events:
 | name | type | description |
 | - | - | - |
 | `room_display_id` | `int` | 房间展示 ID |
+| `log` | `bool, optional` | 是否输出日志. Defaults to True. |
 | `debug` | `bool, optional` | 调试模式，将输出更多信息. Defaults to False. |
 | `credential` | `Credential \| None, optional` | 凭据. Defaults to None. |
 | `max_retry` | `int, optional` | 连接出错后最大重试次数. Defaults to 5. |

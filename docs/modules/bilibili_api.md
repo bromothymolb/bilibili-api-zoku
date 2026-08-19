@@ -177,6 +177,7 @@ from bilibili_api import ...
   - [def get\_enable\_bili\_ticket\_global\_persistence()](#def-get\_enable\_bili\_ticket\_global\_persistence)
   - [def get\_enable\_buvid\_global\_persistence()](#def-get\_enable\_buvid\_global\_persistence)
   - [def get\_enable\_fpgen()](#def-get\_enable\_fpgen)
+  - [def get\_enable\_loguru()](#def-get\_enable\_loguru)
   - [def get\_fpgen\_args()](#def-get\_fpgen\_args)
   - [def get\_wbi\_retry\_times()](#def-get\_wbi\_retry\_times)
   - [def gets()](#def-gets)
@@ -188,6 +189,7 @@ from bilibili_api import ...
   - [def set\_enable\_bili\_ticket\_global\_persistence()](#def-set\_enable\_bili\_ticket\_global\_persistence)
   - [def set\_enable\_buvid\_global\_persistence()](#def-set\_enable\_buvid\_global\_persistence)
   - [def set\_enable\_fpgen()](#def-set\_enable\_fpgen)
+  - [def set\_enable\_loguru()](#def-set\_enable\_loguru)
   - [def set\_fpgen\_args()](#def-set\_fpgen\_args)
   - [def set\_wbi\_retry\_times()](#def-set\_wbi\_retry\_times)
   - [def sets()](#def-sets)
@@ -2552,6 +2554,17 @@ AV 号转 BV 号。
 
 
 
+### def get_enable_loguru()
+
+获取是否启用 loguru
+
+
+
+**Returns:** `bool`:  是否启用 loguru. Defaults to False.
+
+
+
+
 ### def get_fpgen_args()
 
 获取调用 fpgen 的参数
@@ -2684,6 +2697,18 @@ AV 号转 BV 号。
 | name | type | description |
 | - | - | - |
 | `enable_fpgen` | `bool` | 是否使用 fpgen |
+
+
+
+
+### def set_enable_loguru()
+
+获取是否启用 loguru
+
+
+| name | type | description |
+| - | - | - |
+| `enable_loguru` | `bool` | 是否启用 loguru |
 
 
 

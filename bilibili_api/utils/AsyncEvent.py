@@ -6,13 +6,8 @@ bilibili_api.utils.AsyncEvent
 
 from asyncio import CancelledError
 from collections.abc import AsyncGenerator, Callable, Coroutine
-from contextlib import (
-    AbstractAsyncContextManager,
-    asynccontextmanager,
-)
-from inspect import (
-    iscoroutinefunction,
-)
+from contextlib import AbstractAsyncContextManager, asynccontextmanager
+from inspect import iscoroutinefunction
 from typing import Any, TypeVar
 
 from anyio import (

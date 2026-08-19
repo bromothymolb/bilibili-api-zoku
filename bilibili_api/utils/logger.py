@@ -4,11 +4,45 @@ bilibili_api.utils.logger
 日志功能支持。提供标准库 logging 与第三方库 loguru 的支持。
 """
 
+import logging
+
 from colorama import Fore
-from loguru import logger
 
 from .AsyncEvent import AsyncEvent
+from .settings import bili_settings
 from .utils import loguru_apply_anti_tag
+
+
+def get_logging_loggers(namespace: str, level: int) -> logging.Logger:
+    logger = logging.getLogger(namespace)
+    logger.setLevel(level)
+    if not logger.handlers:
+        handler = logging.StreamHandler()
+        handler.setFormatter(
+            logging.Formatter(f"[{namespace}][%(asctime)s][%(levelname)s] %(message)s")
+        )
+        logger.addHandler(handler)
+    return logger
+
+
+def AsyncEvent_log(namespace: str, msg: str, level: str, debug: bool) -> None:
+    if bili_settings.get_enable_loguru():
+        if not debug and level == "debug":
+            return
+        from loguru import logger
+
+        msg = loguru_apply_anti_tag(msg)
+        if level != "error":
+            getattr(logger.opt(colors=True), level)(f"<red>{namespace}</red> | {msg}")
+        else:
+            getattr(logger.opt(colors=True, exception=True), level)(
+                f"<red>{namespace}</red> | {msg}"
+            )
+    else:
+        logger = get_logging_loggers(
+            namespace, logging.DEBUG if debug else logging.INFO
+        )
+        getattr(logger, level)(msg)
 
 
 class RequestLog(AsyncEvent):
@@ -108,25 +142,34 @@ class RequestLog(AsyncEvent):
         self.__on = status
 
     def __log(self, event: str) -> None:
-        event = loguru_apply_anti_tag(event)
         colors = {
             Fore.GREEN: ("<green>", "</green>"),
             Fore.MAGENTA: ("<magenta>", "</magenta>"),
             Fore.YELLOW: ("<yellow>", "</yellow>"),
             Fore.CYAN: ("<cyan>", "</cyan>"),
         }
-        for color, color_tags in colors.items():
-            end_tag = 0
-            while True:
-                color_str = str(color)
-                idx = event.find(color_str)
-                if idx == -1:
-                    break
-                event = (
-                    event[:idx] + color_tags[end_tag] + event[(idx + len(color_str)) :]
-                )
-                end_tag = 1 - end_tag
-        logger.opt(colors=True).debug(f"<red>bilibili-api-request</red> | {event}")
+        if bili_settings.get_enable_loguru():
+            from loguru import logger
+
+            event = loguru_apply_anti_tag(event)
+            for color, color_tags in colors.items():
+                end_tag = 0
+                while True:
+                    color_str = str(color)
+                    idx = event.find(color_str)
+                    if idx == -1:
+                        break
+                    event = (
+                        event[:idx]
+                        + color_tags[end_tag]
+                        + event[(idx + len(color_str)) :]
+                    )
+                    end_tag = 1 - end_tag
+            logger.opt(colors=True).debug(f"<red>bilibili-api-request</red> | {event}")
+        else:
+            for color in colors.keys():
+                event = event.replace(str(color), "")
+            get_logging_loggers("bilibili-api-request", logging.DEBUG).debug(event)
 
     def __handle_events(self, data: dict) -> None:
         evt = data["name"]

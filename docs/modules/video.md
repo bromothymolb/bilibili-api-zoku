@@ -1436,6 +1436,7 @@ CONNECTED:  成功连接。 CallbackData: None。
 | `aid` | `int \| None, optional` | AID. Defaults to None. |
 | `page_index` | `int, optional` | 分 P 序号. Defaults to 0. |
 | `credential` | `Credential \| None, optional` | Credential 类. Defaults to None. |
+| `log` | `bool, optional` | 是否输出日志. Defaults to True. |
 | `debug` | `bool, optional` | 调试模式，将输出更详细信息. Defaults to False. |
 
 

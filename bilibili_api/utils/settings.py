@@ -19,6 +19,7 @@ class BiliSettings:
             "enable_bili_ticket_global_persistence": False,
             "enable_fpgen": False,
             "fpgen_args": {},
+            "enable_loguru": False,
         }
         self.__defaults = {
             "wbi_retry_times": 3,
@@ -28,6 +29,7 @@ class BiliSettings:
             "enable_bili_ticket_global_persistence": False,
             "enable_fpgen": False,
             "fpgen_args": {},
+            "enable_loguru": False,
         }
 
     def get(self, name: str) -> Any:
@@ -216,6 +218,24 @@ class BiliSettings:
             fpgen_args (dict): 调用 fpgen 的参数
         """
         self.set("fpgen_args", fpgen_args)
+
+    def get_enable_loguru(self) -> bool:
+        """
+        获取是否启用 loguru
+
+        Returns:
+            bool: 是否启用 loguru. Defaults to False.
+        """
+        return self.get("enable_loguru")
+
+    def set_enable_loguru(self, enable_loguru: bool) -> None:
+        """
+        获取是否启用 loguru
+
+        Args:
+            enable_loguru (bool): 是否启用 loguru
+        """
+        self.set("enable_loguru", enable_loguru)
 
     def gets(self, keys: list[str]) -> dict:
         """

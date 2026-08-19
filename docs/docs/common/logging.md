@@ -4,15 +4,25 @@
 from bilibili_api import request_log
 ```
 
-模块提供基于 [Loguru](https://loguru.readthedocs.io/en/stable/) 的请求日志支持，同时支持用户代码对日志信息的监听。
+模块同时提供基于标准库 [logging](https://docs.python.org/3/library/logging.html) 和第三方库 [Loguru](https://loguru.readthedocs.io/en/stable/) 的日志支持，同时支持用户代码对日志信息的监听。
 
-## 开启请求日志
+考虑到依赖原因，模块默认使用 `logging` 作为日志库，如需启用 `loguru` 需要提前设置：
+
+``` python
+from bilibili_api import bili_settings
+
+bili_settings.set_enable_loguru(True)
+```
+
+## 1. 请求日志
+
+### 开启请求日志
 
 ```python
 request_log.set_on(True)
 ```
 
-## 设置请求日志
+### 设置请求日志
 
 ``` python
 request_log.set_on_events(["REQUEST"]) # 仅当有 http 请求时打印日志
@@ -60,7 +70,7 @@ logger.add(sys.stderr, format=log_format)
 logger.add("test.log", format=log_format)  # 将日志输出到文件
 ```
 
-## 请求日志是如何工作的？
+### 请求日志是如何工作的？
 
 `request_log` 本质为 `AsyncEvent`，即发布-订阅模式异步事件类，因此可以通过 `AsyncEvent.on` 设置相关事件发送后的回调。
 
@@ -79,3 +89,13 @@ request_log.set_on(False)
 def log(event: dict) -> None:
     print(event["name"], event["data"])
 ```
+
+## 2. `AsyncEvent` 日志
+
+模块以下异步事件类提供日志：`live.LiveDanmaku` `session.Session` `video.VideoOnlineMonitor`，这些日志也同时支持 logging 和 loguru。以上三个类均提供初始化参数 `debug`，用于设置是否开启 `debug` 信息。
+
+如果使用 logging，以上三个类将使用名称为 `str(AsyncEvent())` 的日志实例。例如，`dm = live.LiveDanmaku(xxx)` 的日志实例名称为 `str(dm)`，即 `LiveDanmaku(LiveRoom(room_display_id=xxx, real_id=yyy))`，这个名称用于传入 `logging.getLogger` 函数，可获取对应的日志实例。模块将设置日志实例的日志等级，以过滤掉 `DEBUG` 信息，如果参数设置为 `debug=False`。
+
+如果使用 loguru，模块将在日志信息前添加前缀，即 `str(dm)`，用于和其他消息区分，此时模块过滤 `DEBUG` 信息的方法是，检查 `debug` 参数，若其为 `False`，则不会调用 `logger.debug`。
+
+默认情况下，无论如何，上面三个类都将在 `stderr` 输出 `INFO` 日志信息，如果需要关闭输出，可以设置初始参数 `log=False`，原理是不调用任何输出日志的函数，与 loguru 下过滤 `DEBUG` 信息的方法相同。

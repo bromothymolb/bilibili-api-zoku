@@ -32,7 +32,6 @@ dependencies = [
     "chompjs",
     "colorama",
     "frozendict",
-    "loguru",
     "lxml",
     "pillow",
     "pycryptodomex",

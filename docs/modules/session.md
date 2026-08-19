@@ -100,6 +100,7 @@ from bilibili_api import session
 | name | type | description |
 | - | - | - |
 | `credential` | `Credential` | 凭据类。 |
+| `log` | `bool, optional` | 是否输出日志. Defaults to True. |
 | `debug` | `bool, optional` | 调试模式，将输出更多信息. Defaults to False. |
 
 

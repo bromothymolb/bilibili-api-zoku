@@ -18,7 +18,6 @@ import struct
 from typing import Any
 
 import anyio
-from loguru import logger
 from yarl import URL
 
 from . import user
@@ -33,8 +32,9 @@ from .utils.AsyncEvent import AsyncEvent
 from .utils.BytesReader import BytesReader
 from .utils.danmaku import Danmaku, SpecialDanmaku
 from .utils.high_level import Api, Credential
+from .utils.logger import AsyncEvent_log
 from .utils.network import BiliWsMsgType, get_client
-from .utils.utils import get_api, get_data, loguru_apply_anti_tag, raise_for_statement
+from .utils.utils import get_api, get_data, raise_for_statement
 
 API = get_api("video")
 
@@ -1971,6 +1971,7 @@ class VideoOnlineMonitor(AsyncEvent):
         aid: int | None = None,
         page_index: int = 0,
         credential: Credential | None = None,
+        log: bool = True,
         debug: bool = False,
     ) -> None:
         """
@@ -1979,6 +1980,7 @@ class VideoOnlineMonitor(AsyncEvent):
             aid (int | None, optional): AID. Defaults to None.
             page_index (int, optional): 分 P 序号. Defaults to 0.
             credential (Credential | None, optional): Credential 类. Defaults to None.
+            log (bool, optional): 是否输出日志. Defaults to True.
             debug (bool, optional): 调试模式，将输出更详细信息. Defaults to False.
         """
         super().__init__()
@@ -1995,6 +1997,7 @@ class VideoOnlineMonitor(AsyncEvent):
         self.__page_index = page_index
         self.__tasks: list[anyio.TaskHandle] = []
         self.__debug = debug
+        self.__log = log
 
     def __repr__(self) -> str:
         return f"VideoOnlineMonitor(id={self.id_showed})"
@@ -2003,18 +2006,20 @@ class VideoOnlineMonitor(AsyncEvent):
         return f"VideoOnlineMonitor(id={self.id_showed})"
 
     def _log_debug(self, msg: str) -> None:
-        if not self.__debug:
-            return
-        msg = loguru_apply_anti_tag(msg)
-        logger.opt(colors=True).debug(f"<red>{self}</red> | {msg}")
+        if self.__log:
+            AsyncEvent_log(str(self), msg, "debug", self.__debug)
 
     def _log_info(self, msg: str) -> None:
-        msg = loguru_apply_anti_tag(msg)
-        logger.opt(colors=True).info(f"<red>{self}</red> | {msg}")
+        if self.__log:
+            AsyncEvent_log(str(self), msg, "info", self.__debug)
 
     def _log_warning(self, msg: str) -> None:
-        msg = loguru_apply_anti_tag(msg)
-        logger.opt(colors=True, exception=True).warning(f"<red>{self}</red> | {msg}")
+        if self.__log:
+            AsyncEvent_log(str(self), msg, "warning", self.__debug)
+
+    def _log_error(self, msg: str) -> None:
+        if self.__log:
+            AsyncEvent_log(str(self), msg, "error", self.__debug)
 
     async def connect(self) -> None:
         """
@@ -2080,7 +2085,7 @@ class VideoOnlineMonitor(AsyncEvent):
             try:
                 data, flag = await self.__client.ws_recv(cnt=self.__ws)
             except Exception:
-                self._log_warning("连接被异常断开")
+                self._log_error("连接被异常断开")
                 self.__cancel_all_tasks()
                 self.dispatch("ERROR", "")
                 continue

@@ -11,14 +11,14 @@ import json
 import time
 
 import anyio
-from loguru import logger
 
 from .exceptions import ArgsException
 from .user import get_self_info
 from .utils.AsyncEvent import AsyncEvent
 from .utils.high_level import Api, Credential
+from .utils.logger import AsyncEvent_log
 from .utils.picture import Picture
-from .utils.utils import get_api, loguru_apply_anti_tag
+from .utils.utils import get_api
 from .video import Video
 
 API = get_api("session")
@@ -427,10 +427,13 @@ class Session(AsyncEvent):
     会话类，用来开启消息监听。
     """
 
-    def __init__(self, credential: Credential, debug: bool = False) -> None:
+    def __init__(
+        self, credential: Credential, log: bool = True, debug: bool = False
+    ) -> None:
         """
         Args:
             credential (Credential): 凭据类。
+            log (bool, optional): 是否输出日志. Defaults to True.
             debug (bool, optional): 调试模式，将输出更多信息. Defaults to False.
         """
         super().__init__()
@@ -452,6 +455,7 @@ class Session(AsyncEvent):
 
         # logging
         self.__debug = debug
+        self.__log = log
 
     def __repr__(self) -> str:
         return "Session()"
@@ -460,18 +464,20 @@ class Session(AsyncEvent):
         return "Session()"
 
     def _log_debug(self, msg: str) -> None:
-        if not self.__debug:
-            return
-        msg = loguru_apply_anti_tag(msg)
-        logger.opt(colors=True).debug(f"<red>{self}</red> | {msg}")
+        if self.__log:
+            AsyncEvent_log(str(self), msg, "debug", self.__debug)
 
     def _log_info(self, msg: str) -> None:
-        msg = loguru_apply_anti_tag(msg)
-        logger.opt(colors=True).info(f"<red>{self}</red> | {msg}")
+        if self.__log:
+            AsyncEvent_log(str(self), msg, "info", self.__debug)
 
     def _log_warning(self, msg: str) -> None:
-        msg = loguru_apply_anti_tag(msg)
-        logger.opt(colors=True, exception=True).warning(f"<red>{self}</red> | {msg}")
+        if self.__log:
+            AsyncEvent_log(str(self), msg, "warning", self.__debug)
+
+    def _log_error(self, msg: str) -> None:
+        if self.__log:
+            AsyncEvent_log(str(self), msg, "error", self.__debug)
 
     def on(self, event_type: str | EventType) -> Callable:  # type: ignore
         """
@@ -528,7 +534,7 @@ class Session(AsyncEvent):
                     try:
                         await event._content()
                     except Exception as e:
-                        self._log_warning(f"解析消息错误: {e}")
+                        self._log_error(f"解析消息错误: {e}")
 
                     if event.msg_type == EventType.WITHDRAW.value:
                         self._log_info(

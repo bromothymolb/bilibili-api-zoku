@@ -1207,6 +1207,7 @@ bilibili_api
   get_enable_bili_ticket_global_persistence
   get_enable_buvid_global_persistence
   get_enable_fpgen
+  get_enable_loguru
   get_fpgen_args
   get_wbi_retry_times
   gets
@@ -1218,6 +1219,7 @@ bilibili_api
   set_enable_bili_ticket_global_persistence
   set_enable_buvid_global_persistence
   set_enable_fpgen
+  set_enable_loguru
   set_fpgen_args
   set_wbi_retry_times
   sets

@@ -13,15 +13,15 @@ from typing import Any
 
 import anyio
 import brotli
-from loguru import logger
 
 from .exceptions.LiveException import LiveException
 from .utils.AsyncEvent import AsyncEvent
 from .utils.BytesReader import BytesReader
 from .utils.danmaku import Danmaku
 from .utils.high_level import Api, Credential, ensure_buvid, get_bili_headers
+from .utils.logger import AsyncEvent_log
 from .utils.network import BiliWsMsgType, get_client
-from .utils.utils import get_api, loguru_apply_anti_tag
+from .utils.utils import get_api
 
 API = get_api("live")
 
@@ -1482,6 +1482,7 @@ class LiveDanmaku(AsyncEvent):
     def __init__(
         self,
         room_display_id: int,
+        log: bool = True,
         debug: bool = False,
         credential: Credential | None = None,
         max_retry: int = 5,
@@ -1491,6 +1492,7 @@ class LiveDanmaku(AsyncEvent):
         """
         Args:
             room_display_id (int): 房间展示 ID
+            log (bool, optional): 是否输出日志. Defaults to True.
             debug (bool, optional): 调试模式，将输出更多信息. Defaults to False.
             credential (Credential | None, optional): 凭据. Defaults to None.
             max_retry (int, optional): 连接出错后最大重试次数. Defaults to 5.
@@ -1517,30 +1519,29 @@ class LiveDanmaku(AsyncEvent):
             room_display_id=self.room_display_id, credential=self.credential
         )
         self.__debug = debug
+        self.__log = log
 
     def __str__(self) -> str:
-        return f"LiveDanmaku({self.room})"
+        return f"LiveDanmaku(room_display_id={self.room_display_id})"
 
     def __repr__(self) -> str:
-        return f"LiveDanmaku({self.room})"
+        return f"LiveDanmaku(room_display_id={self.room_display_id})"
 
     def _log_debug(self, msg: str) -> None:
-        if not self.__debug:
-            return
-        msg = loguru_apply_anti_tag(msg)
-        logger.opt(colors=True).debug(f"<red>{self}</red> | {msg}")
+        if self.__log:
+            AsyncEvent_log(str(self), msg, "debug", self.__debug)
 
     def _log_info(self, msg: str) -> None:
-        msg = loguru_apply_anti_tag(msg)
-        logger.opt(colors=True).info(f"<red>{self}</red> | {msg}")
+        if self.__log:
+            AsyncEvent_log(str(self), msg, "info", self.__debug)
 
     def _log_warning(self, msg: str) -> None:
-        msg = loguru_apply_anti_tag(msg)
-        logger.opt(colors=True).warning(f"<red>{self}</red> | {msg}")
+        if self.__log:
+            AsyncEvent_log(str(self), msg, "warning", self.__debug)
 
     def _log_error(self, msg: str) -> None:
-        msg = loguru_apply_anti_tag(msg)
-        logger.opt(colors=True, exception=True).error(f"<red>{self}</red> | {msg}")
+        if self.__log:
+            AsyncEvent_log(str(self), msg, "error", self.__debug)
 
     def get_live_room(self) -> LiveRoom:
         """
