@@ -12,7 +12,7 @@ import yaml
 from . import article, dynamic
 from .exceptions import ArgsException
 from .utils import cache_pool
-from .utils.network import Api, Credential
+from .utils.high_level import Api, Credential
 from .utils.picture import Picture
 from .utils.utils import get_api, img_auto_scheme
 

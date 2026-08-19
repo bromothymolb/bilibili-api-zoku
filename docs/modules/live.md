@@ -85,7 +85,7 @@ from bilibili_api import live
 
 ## class LiveDanmaku()
 
-> Extend: `bilibili_api.utils.network.AsyncEvent`
+> Extend: `bilibili_api.utils.AsyncEvent.AsyncEvent`
 
 Websocket 实时获取直播弹幕
 

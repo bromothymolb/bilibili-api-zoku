@@ -21,7 +21,7 @@ import json
 
 from .dynamic import upload_image
 from .exceptions.ArgsException import ArgsException
-from .utils.network import Api, Credential
+from .utils.high_level import Api, Credential
 from .utils.picture import Picture
 from .utils.utils import get_api
 

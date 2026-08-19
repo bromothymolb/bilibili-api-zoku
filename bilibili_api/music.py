@@ -10,7 +10,7 @@ get_homepage_recommend 和 get_music_index_info 来源于 https://www.bilibili.c
 
 from enum import Enum
 
-from .utils.network import Api, Credential
+from .utils.high_level import Api, Credential
 from .utils.utils import get_api
 
 API_audio = get_api("audio")

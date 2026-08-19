@@ -1389,7 +1389,7 @@ page_index 和 cid 至少提供其中一个，其中 cid 优先级最高
 
 ## class VideoOnlineMonitor()
 
-> Extend: `bilibili_api.utils.network.AsyncEvent`
+> Extend: `bilibili_api.utils.AsyncEvent.AsyncEvent`
 
 视频在线人数实时监测。
 

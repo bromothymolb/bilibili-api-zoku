@@ -7,7 +7,7 @@ bilibili_api.article_category
 import copy
 from enum import Enum
 
-from .utils.network import Api
+from .utils.high_level import Api
 from .utils.utils import get_api, get_data
 
 API = get_api("article-category")

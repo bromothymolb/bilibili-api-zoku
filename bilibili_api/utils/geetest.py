@@ -15,7 +15,7 @@ import threading
 import anyio
 
 from ..exceptions import GeetestException
-from .network import Api
+from .high_level import Api
 from .utils import get_api
 
 API = get_api("login")

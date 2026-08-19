@@ -19,7 +19,7 @@ from .article import Article
 from .exceptions import ArgsException
 from .opus import Opus
 from .utils import cache_pool
-from .utils.network import Api, Credential
+from .utils.high_level import Api, Credential
 from .utils.picture import Picture
 from .utils.utils import get_api
 

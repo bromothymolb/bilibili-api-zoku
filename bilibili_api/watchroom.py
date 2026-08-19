@@ -11,7 +11,7 @@ import time
 from typing import Union
 
 from .utils import cache_pool
-from .utils.network import Api, Credential
+from .utils.high_level import Api, Credential
 from .utils.utils import get_api
 
 API = get_api("watchroom")

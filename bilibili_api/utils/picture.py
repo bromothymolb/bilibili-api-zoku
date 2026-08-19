@@ -14,7 +14,8 @@ from PIL import Image, ImageSequence
 from yarl import URL
 
 from ..exceptions import ArgsException
-from .network import BiliAPIFile, Credential, get_client
+from .high_level import Credential
+from .network import BiliAPIFile, get_client
 
 
 @dataclass

@@ -8,7 +8,7 @@ from enum import Enum
 
 from . import user
 from .utils import cache_pool
-from .utils.network import Api, Credential
+from .utils.high_level import Api, Credential
 from .utils.utils import get_api, raise_for_statement
 
 API_USER = get_api("user")

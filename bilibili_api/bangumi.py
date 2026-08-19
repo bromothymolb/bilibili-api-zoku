@@ -18,11 +18,11 @@ from .exceptions import ApiException, ArgsException
 from .utils import cache_pool
 from .utils.aid_bvid_transformer import aid2bvid, bvid2aid
 from .utils.danmaku import Danmaku
+from .utils.high_level import Api, Credential
 from .utils.initial_state import (
     InitialDataType,
     get_initial_state,
 )
-from .utils.network import Api, Credential
 from .utils.utils import get_api
 from .video import Video
 

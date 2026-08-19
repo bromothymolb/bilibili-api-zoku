@@ -76,11 +76,24 @@ from .exceptions import (
     WbiRetryTimesExceedException,
 )
 from .utils.aid_bvid_transformer import aid2bvid, bvid2aid
+from .utils.AsyncEvent import AsyncEvent
 from .utils.danmaku import Danmaku, DmFontSize, DmMode, SpecialDanmaku
 from .utils.geetest import Geetest, GeetestMeta, GeetestType
-from .utils.network import (
+from .utils.high_level import (
     Api,
-    AsyncEvent,
+    Credential,
+    bili_fast_download,
+    bili_simple_download,
+    configure_dynamic_fingerprint,
+    ensure_bili_ticket,
+    ensure_buvid,
+    get_bili_headers,
+    obtain_bili_ticket,
+    obtain_buvid,
+    recalculate_wbi,
+)
+from .utils.logger import request_log
+from .utils.network import (
     BiliAPIClient,
     BiliAPIFile,
     BiliAPIResponse,
@@ -90,20 +103,12 @@ from .utils.network import (
     BiliFilterFlags,
     BiliFilterReturn,
     BiliWsMsgType,
-    Credential,
     DelegateType,
     RequestSettings,
-    bili_fast_download,
-    bili_settings,
-    bili_simple_download,
     clean_session,
-    configure_dynamic_fingerprint,
     delegate,
     delegate_local_context,
-    ensure_bili_ticket,
-    ensure_buvid,
     get_available_settings,
-    get_bili_headers,
     get_client,
     get_delegates,
     get_exist_instances,
@@ -118,14 +123,10 @@ from .utils.network import (
     get_session,
     get_settings,
     new_instance,
-    obtain_bili_ticket,
-    obtain_buvid,
-    recalculate_wbi,
     register_client,
     register_post_filter,
     register_pre_filter,
     remove_instance,
-    request_log,
     request_settings,
     select_client,
     select_client_local_context,
@@ -139,6 +140,7 @@ from .utils.network import (
 )
 from .utils.parse_link import ResourceType, parse_link
 from .utils.picture import Picture
+from .utils.settings import bili_settings
 from .utils.short import get_real_url
 from .utils.sync import sync
 

@@ -2887,9 +2887,6 @@ BV 号转 AV 号。
 部分请求头取自 fpgen 生成的浏览器指纹信息。
 
 
-| name | type | description |
-| - | - | - |
-| `fpgen_fp` | `bool, optional` | 是否使用 fpgen 生成的浏览器指纹信息. Defaults to True. |
 
 **Returns:** `dict`:  请求头
 

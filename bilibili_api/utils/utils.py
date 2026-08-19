@@ -4,15 +4,38 @@ bilibili_api.utils.utils
 通用工具库。
 """
 
+from collections.abc import Generator
+from contextlib import contextmanager
+from contextvars import ContextVar
 from datetime import datetime
 import json
 import os
 import random
 import re
-from typing import TypeVar
+from threading import Lock as ThreadingLock
+from typing import Generic, TypeVar
 from urllib.parse import quote
 
+from anyio import (
+    Event,
+    Lock,
+    from_thread,
+    get_available_backends,
+    to_thread,
+)
+from anyio.lowlevel import EventLoopToken, current_token
+
 from ..exceptions import StatementException
+
+TRIO_AVAILABLE = "trio" in get_available_backends()
+
+if TRIO_AVAILABLE:
+    from trio.lowlevel import TrioToken
+else:
+    TrioToken = None
+
+T = TypeVar("T")
+
 
 get_data_cache = {}
 
@@ -316,3 +339,82 @@ def loguru_apply_anti_tag(event: str) -> str:
         ret += "\\" * add_slashes.get(pos, 0)
         ret += char
     return ret
+
+
+T = TypeVar("T")
+
+
+class MultiContextVariable(Generic[T]):
+    """
+    ContextVar with mutable default value
+    """
+
+    def __init__(self, name: str, empty: T) -> None:
+        self.__var: T = empty
+        self.__context_var: ContextVar[T] = ContextVar(name, default=empty)
+        self.__empty = empty
+
+    def set(self, value: T) -> None:
+        self.__var = value
+
+    @contextmanager
+    def set_local_context(self, value: T) -> Generator[None]:
+        token = self.__context_var.set(value)
+        yield
+        self.__context_var.reset(token)
+
+    def get(self) -> T:
+        return (
+            self.__context_var.get()
+            if self.__context_var.get() != self.__empty
+            else self.__var
+        )
+
+
+class MultiEventLoopLocks:
+    def __init__(self) -> None:
+        # helper class for Credential locking
+        # for Credential is used by many event loops
+        self._locks: dict[EventLoopToken, Lock] = {}
+        self._lock: ThreadingLock = ThreadingLock()
+        self._running: bool = False
+        self._multithread_lock: ThreadingLock = ThreadingLock()
+        self._events: dict[EventLoopToken, Event] = {}
+
+    def get_lock(self) -> Lock:
+        event_loop = current_token()
+        if self._locks.get(event_loop):
+            return self._locks[event_loop]
+        with self._lock:
+            if not self._locks.get(event_loop):
+                self._locks[event_loop] = Lock()
+        return self._locks[event_loop]
+
+    def check_multithread_state(self) -> bool:
+        with self._multithread_lock:
+            if not self._running:
+                self._running = True
+                return True  # the first thread is able to execute
+        return False  # other threads won't execute, as duplicated
+
+    async def wait_multithread(self) -> None:
+        # this function should be locked in get_lock() while running
+        event_loop = current_token()
+        while self._running:  # prevent lock releasing in advance
+            event = Event()
+            self._events[event_loop] = event
+            try:
+                await event.wait()
+            finally:
+                if self._events.get(event_loop) is event:
+                    del self._events[event_loop]
+
+    async def done_multithread(self) -> None:
+        # this function should be run after completing multithread task
+        self._running = False
+
+        def stop_waiting_anyio_events():
+            for token, event in list(self._events.items()):
+                from_thread.run_sync(event.set, token=token)
+
+        await to_thread.run_sync(stop_waiting_anyio_events)

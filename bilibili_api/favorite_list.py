@@ -8,7 +8,7 @@ from enum import Enum
 
 from . import user
 from .exceptions.ArgsException import ArgsException
-from .utils.network import Api, Credential
+from .utils.high_level import Api, Credential
 from .utils.utils import get_api, join, raise_for_statement
 from .video import Video
 

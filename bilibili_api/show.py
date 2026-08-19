@@ -9,7 +9,7 @@ import json
 import random
 import time
 
-from .utils.network import Api, Credential
+from .utils.high_level import Api, Credential
 from .utils.utils import get_api, get_deviceid
 
 API = get_api("show")

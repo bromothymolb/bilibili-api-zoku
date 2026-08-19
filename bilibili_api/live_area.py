@@ -8,7 +8,7 @@ import copy
 
 from .exceptions import ApiException
 from .live import get_area_info
-from .utils.network import Api, Credential
+from .utils.high_level import Api, Credential
 from .utils.user_render_data import get_webid
 from .utils.utils import get_api
 

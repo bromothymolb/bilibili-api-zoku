@@ -6,7 +6,7 @@ bilibili_api.black_room
 
 from enum import Enum
 
-from .utils.network import Api, Credential
+from .utils.high_level import Api, Credential
 from .utils.utils import get_api
 
 

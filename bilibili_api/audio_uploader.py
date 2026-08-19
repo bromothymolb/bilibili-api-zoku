@@ -13,13 +13,9 @@ import time
 from . import user
 from .exceptions.ApiException import ApiException
 from .exceptions.NetworkException import NetworkException
-from .utils.network import (
-    Api,
-    AsyncEvent,
-    Credential,
-    get_bili_headers,
-    get_client,
-)
+from .utils.AsyncEvent import AsyncEvent
+from .utils.high_level import Api, Credential, get_bili_headers
+from .utils.network import get_client
 from .utils.picture import Picture
 from .utils.upos import UposFile, UposFileUploader
 from .utils.utils import get_api, raise_for_statement

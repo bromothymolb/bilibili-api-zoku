@@ -19,13 +19,9 @@ import anyio
 import anyio.to_thread
 
 from .exceptions import ArgsException
-from .utils.network import (
-    Api,
-    AsyncEvent,
-    Credential,
-    get_bili_headers,
-    get_client,
-)
+from .utils.AsyncEvent import AsyncEvent
+from .utils.high_level import Api, Credential, get_bili_headers
+from .utils.network import get_client
 from .utils.utils import get_api
 from .video import Video, VideoDownloadURLDataDetecter
 

@@ -308,6 +308,8 @@ data = json.load(
     )
 )
 for key in data["names"].keys():
+    if key in ["ALL_PROVIDED_CLIENTS", "importlib"]:
+        continue
     if key != ".class" and not key.startswith("_"):
         if os.path.exists(
             os.path.join(
@@ -330,7 +332,7 @@ for key in data["names"].keys():
                             f"{sys.version_info.major}.{sys.version_info.minor}",
                             "bilibili_api",
                             "utils",
-                            "network.data.json",
+                            "logger.data.json",
                         )
                     )
                 )["names"]["RequestLog"],
@@ -378,7 +380,7 @@ for key in data["names"].keys():
                             f"{sys.version_info.major}.{sys.version_info.minor}",
                             "bilibili_api",
                             "utils",
-                            "network.data.json",
+                            "settings.data.json",
                         )
                     )
                 )["names"]["BiliSettings"],

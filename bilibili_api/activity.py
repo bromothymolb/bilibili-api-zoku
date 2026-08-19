@@ -4,8 +4,8 @@ bilibili_api.activity
 活动相关
 """
 
+from .utils.high_level import Api
 from .utils.initial_state import get_initial_state
-from .utils.network import Api
 from .utils.utils import get_api
 
 API = get_api("activity")

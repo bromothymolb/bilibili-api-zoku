@@ -16,8 +16,8 @@ from yarl import URL
 from . import article
 from .exceptions import ApiException, ArgsException
 from .utils import cache_pool
+from .utils.high_level import Api, Credential
 from .utils.initial_state import get_initial_state
-from .utils.network import Api, Credential
 from .utils.picture import Picture
 from .utils.utils import get_api, img_auto_scheme, raise_for_statement
 

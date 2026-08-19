@@ -9,7 +9,7 @@ import json
 from urllib.parse import unquote
 
 from ..exceptions import InitialStateException
-from .network import Api, Credential
+from .high_level import Api, Credential
 
 
 class InitialDataType(Enum):

@@ -4,7 +4,7 @@ bilibili_api.homepage
 主页相关操作。
 """
 
-from .utils.network import Api, Credential
+from .utils.high_level import Api, Credential
 from .utils.utils import get_api
 
 API = get_api("homepage")

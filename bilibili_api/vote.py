@@ -10,7 +10,7 @@ from enum import Enum
 from .exceptions import ArgsException
 from .user import fetch_dedeuserid
 from .utils import cache_pool
-from .utils.network import Api, Credential
+from .utils.high_level import Api, Credential
 from .utils.picture import Picture
 from .utils.utils import get_api
 

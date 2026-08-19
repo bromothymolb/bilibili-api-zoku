@@ -22,7 +22,7 @@ from .exceptions.ArgsException import ArgsException
 from .utils import cache_pool
 from .utils.BytesReader import BytesReader
 from .utils.danmaku import Danmaku
-from .utils.network import Api, Credential
+from .utils.high_level import Api, Credential
 from .utils.utils import get_api
 
 API = get_api("cheese")

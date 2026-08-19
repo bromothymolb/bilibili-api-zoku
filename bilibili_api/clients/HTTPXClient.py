@@ -14,8 +14,8 @@ from ..utils.network import (
     BiliAPIFile,
     BiliAPIResponse,
     BiliWsMsgType,
-    MultiEventLoopLocks,
 )
+from ..utils.utils import MultiEventLoopLocks
 
 
 class HTTPXClient(BiliAPIClient):

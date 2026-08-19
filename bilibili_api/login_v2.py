@@ -19,7 +19,8 @@ import yarl
 
 from .exceptions import GeetestException, LoginError
 from .utils.geetest import Geetest, GeetestType
-from .utils.network import Api, Credential, ensure_buvid, get_client
+from .utils.high_level import Api, Credential, ensure_buvid
+from .utils.network import get_client
 from .utils.picture import Picture
 from .utils.utils import get_api, get_data, raise_for_statement, to_form_urlencoded
 

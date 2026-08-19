@@ -26,8 +26,8 @@ from ..opus import Opus
 from ..topic import Topic
 from ..user import ChannelSeries, ChannelSeriesType, User, get_self_info
 from ..video import Video
+from .high_level import Api, Credential
 from .initial_state import get_initial_state
-from .network import Api, Credential
 from .short import get_real_url
 from .utils import get_api
 

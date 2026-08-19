@@ -18,7 +18,7 @@ from yarl import URL
 from .exceptions.NetworkException import ApiException
 from .note import Note, NoteType
 from .utils import cache_pool
-from .utils.network import Api, Credential
+from .utils.high_level import Api, Credential
 from .utils.utils import get_api
 
 API = get_api("article")

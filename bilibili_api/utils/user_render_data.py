@@ -9,8 +9,8 @@ import time
 
 import jwt
 
+from .high_level import Credential
 from .initial_state import get_initial_state
-from .network import Credential
 
 RENDER_DATA_PATTERN: Pattern[str] = compile(
     r"<script id=\"__RENDER_DATA__\" type=\"application/json\">(.*?)</script>"

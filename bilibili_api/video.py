@@ -29,15 +29,11 @@ from .exceptions import (
     ResponseException,
 )
 from .utils.aid_bvid_transformer import aid2bvid, bvid2aid
+from .utils.AsyncEvent import AsyncEvent
 from .utils.BytesReader import BytesReader
 from .utils.danmaku import Danmaku, SpecialDanmaku
-from .utils.network import (
-    Api,
-    AsyncEvent,
-    BiliWsMsgType,
-    Credential,
-    get_client,
-)
+from .utils.high_level import Api, Credential
+from .utils.network import BiliWsMsgType, get_client
 from .utils.utils import get_api, get_data, loguru_apply_anti_tag, raise_for_statement
 
 API = get_api("video")

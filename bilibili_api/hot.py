@@ -4,7 +4,7 @@ bilibili_api.hot
 热门相关 API
 """
 
-from .utils.network import Api
+from .utils.high_level import Api
 from .utils.utils import get_api
 
 API_rank = get_api("rank")

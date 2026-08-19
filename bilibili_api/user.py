@@ -11,7 +11,7 @@ import json
 from .channel_series import ChannelOrder, ChannelSeries, ChannelSeriesType
 from .exceptions import ResponseCodeException
 from .utils import cache_pool
-from .utils.network import Api, Credential
+from .utils.high_level import Api, Credential
 from .utils.user_render_data import get_user_dynamic_render_data
 from .utils.utils import get_api, join, raise_for_statement
 

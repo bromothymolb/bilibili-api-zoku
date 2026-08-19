@@ -15,7 +15,8 @@ from loguru import logger
 
 from .exceptions import ArgsException
 from .user import get_self_info
-from .utils.network import Api, AsyncEvent, Credential
+from .utils.AsyncEvent import AsyncEvent
+from .utils.high_level import Api, Credential
 from .utils.picture import Picture
 from .utils.utils import get_api, loguru_apply_anti_tag
 from .video import Video

@@ -7,7 +7,7 @@ bilibili_api.search
 from enum import Enum
 
 from .exceptions import ArgsException
-from .utils.network import Api, Credential
+from .utils.high_level import Api, Credential
 from .utils.utils import get_api, to_timestamps
 from .video_zone import VideoZoneTypes
 

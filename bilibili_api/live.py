@@ -16,17 +16,11 @@ import brotli
 from loguru import logger
 
 from .exceptions.LiveException import LiveException
+from .utils.AsyncEvent import AsyncEvent
 from .utils.BytesReader import BytesReader
 from .utils.danmaku import Danmaku
-from .utils.network import (
-    Api,
-    AsyncEvent,
-    BiliWsMsgType,
-    Credential,
-    ensure_buvid,
-    get_bili_headers,
-    get_client,
-)
+from .utils.high_level import Api, Credential, ensure_buvid, get_bili_headers
+from .utils.network import BiliWsMsgType, get_client
 from .utils.utils import get_api, loguru_apply_anti_tag
 
 API = get_api("live")

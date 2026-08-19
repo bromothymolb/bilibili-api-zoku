@@ -21,10 +21,9 @@ from .exceptions.NetworkException import NetworkException
 from .exceptions.ResponseCodeException import ResponseCodeException
 from .topic import Topic
 from .utils.aid_bvid_transformer import bvid2aid
+from .utils.AsyncEvent import AsyncEvent
+from .utils.high_level import Api, Credential
 from .utils.network import (
-    Api,
-    AsyncEvent,
-    Credential,
     get_client,
     get_force_settings,
     get_instance_settings,

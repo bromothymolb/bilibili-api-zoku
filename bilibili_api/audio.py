@@ -4,7 +4,7 @@ bilibili_api.audio
 音频相关
 """
 
-from .utils.network import Api, Credential
+from .utils.high_level import Api, Credential
 from .utils.utils import get_api
 
 API = get_api("audio")

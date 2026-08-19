@@ -41,7 +41,7 @@ from bilibili_api import audio_uploader
 
 ## class AudioUploader()
 
-> Extend: `bilibili_api.utils.network.AsyncEvent`
+> Extend: `bilibili_api.utils.AsyncEvent.AsyncEvent`
 
 音频上传
 

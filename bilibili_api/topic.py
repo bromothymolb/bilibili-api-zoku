@@ -7,7 +7,7 @@ bilibili_api.topic
 from enum import Enum
 
 from .user import get_self_info
-from .utils.network import Api, Credential
+from .utils.high_level import Api, Credential
 from .utils.utils import get_api
 
 API = get_api("topic")

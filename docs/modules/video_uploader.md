@@ -58,7 +58,7 @@ bupfetch 模式下 kodo 目前弃用 `{'error': 'no such bucket'}`
 
 ## class VideoEditor()
 
-> Extend: `bilibili_api.utils.network.AsyncEvent`
+> Extend: `bilibili_api.utils.AsyncEvent.AsyncEvent`
 
 视频稿件编辑
 
@@ -298,7 +298,7 @@ meta 参数示例: (保留 video, cover, tid, aid 字段)
 
 ## class VideoUploader()
 
-> Extend: `bilibili_api.utils.network.AsyncEvent`
+> Extend: `bilibili_api.utils.AsyncEvent.AsyncEvent`
 
 视频上传
 
