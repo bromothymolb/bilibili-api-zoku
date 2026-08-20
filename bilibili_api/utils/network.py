@@ -6,7 +6,7 @@ bilibili_api.utils.network
 
 from asyncio import AbstractEventLoop
 import atexit
-from collections.abc import AsyncGenerator, Callable, Coroutine
+from collections.abc import AsyncGenerator, Callable, Coroutine, Generator
 from contextlib import AbstractContextManager
 from copy import deepcopy
 from enum import Enum
@@ -21,7 +21,6 @@ from inspect import (
     signature,
 )
 from threading import Lock as ThreadingLock
-from types import AsyncGeneratorType, GeneratorType
 from typing import Any, TypeVar
 
 from anyio import (
@@ -137,7 +136,7 @@ class _BiliAPIClient:
         def run_filter(
             filter: Callable[
                 [BiliFilterArgs],
-                BiliFilterReturn.Returns | GeneratorType[BiliFilterReturn.Returns],
+                BiliFilterReturn.Returns | Generator[BiliFilterReturn.Returns],
             ],
             args: BiliFilterArgs,
         ) -> list[tuple[BiliFilterFlags, Any]]:
@@ -147,24 +146,24 @@ class _BiliAPIClient:
             else:
                 if not result:
                     result = BiliFilterReturn.continue_exec()
-                return [result]
+                return [result]  # type: ignore
 
         async def arun_filter(
             filter: Callable[
                 ...,
                 Coroutine[Any, Any, BiliFilterReturn.Returns]
-                | AsyncGeneratorType[BiliFilterReturn.Returns],
+                | AsyncGenerator[BiliFilterReturn.Returns],
             ],
             args: BiliFilterArgs,
         ) -> list[tuple[BiliFilterFlags, Any]]:
             result = filter(args)
             if isasyncgen(result):
                 ret = []
-                async for item in result:
+                async for item in result:  # type: ignore
                     ret.append(item)
                 return ret
             else:
-                result = await result
+                result = await result  # type: ignore
                 if not result:
                     result = BiliFilterReturn.continue_exec()
                 return [result]

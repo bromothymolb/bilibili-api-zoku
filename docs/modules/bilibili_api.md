@@ -793,8 +793,8 @@ class BiliAPIClient(ABC):
 | `name` | `str` | 过滤器名称. |
 | `locate` | `str` | 过滤器位置. pre 为前置， post 为后置。 |
 | `priority` | `int, optional` | 优先级。优先级越小，越早执行。Defaults to 1. |
-| `function` | `Callable[[BiliFilterArgs], BiliFilterReturn.Returns \| GeneratorType[BiliFilterReturn.Returns]] \| None, optional` | 同步函数。Defaults to None. |
-| `async_function` | `Callable[..., Coroutine[Any, Any, BiliFilterReturn.Returns] \| AsyncGeneratorType[BiliFilterReturn.Returns]] \| None, optional` | 异步函数。Defaults to None. |
+| `function` | `Callable[[BiliFilterArgs], BiliFilterReturn.Returns \| Generator[BiliFilterReturn.Returns]] \| None, optional` | 同步函数。Defaults to None. |
+| `async_function` | `Callable[..., Coroutine[Any, Any, BiliFilterReturn.Returns] \| AsyncGenerator[BiliFilterReturn.Returns]] \| None, optional` | 异步函数。Defaults to None. |
 
 
 ---
