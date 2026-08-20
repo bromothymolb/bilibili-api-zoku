@@ -11,7 +11,7 @@ on:
     - cron: '0 4 * * 6'
 
 jobs:
-  test-3_10:
+  testing:
     runs-on: ubuntu-latest
 
     steps:
