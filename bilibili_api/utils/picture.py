@@ -15,7 +15,8 @@ from yarl import URL
 
 from ..exceptions import ArgsException
 from .high_level import Credential
-from .network import BiliAPIFile, get_client
+from .models import BiliAPIFile
+from .network import get_client
 
 
 @dataclass

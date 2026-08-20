@@ -76,6 +76,7 @@ from .exceptions import (
     WbiRetryTimesExceedException,
 )
 from .utils.aid_bvid_transformer import aid2bvid, bvid2aid
+from .utils.anti_spider import get_bili_headers
 from .utils.AsyncEvent import AsyncEvent
 from .utils.danmaku import Danmaku, DmFontSize, DmMode, SpecialDanmaku
 from .utils.geetest import Geetest, GeetestMeta, GeetestType
@@ -87,13 +88,12 @@ from .utils.high_level import (
     configure_dynamic_fingerprint,
     ensure_bili_ticket,
     ensure_buvid,
-    get_bili_headers,
     obtain_bili_ticket,
     obtain_buvid,
     recalculate_wbi,
 )
 from .utils.logger import request_log
-from .utils.network import (
+from .utils.models import (
     BiliAPIClient,
     BiliAPIFile,
     BiliAPIResponse,
@@ -101,10 +101,12 @@ from .utils.network import (
     BiliFilterArgs,
     BiliFilterData,
     BiliFilterFlags,
-    BiliFilterReturn,
     BiliWsMsgType,
-    DelegateType,
     RequestSettings,
+)
+from .utils.network import (
+    BiliFilterReturn,
+    DelegateType,
     clean_session,
     delegate,
     delegate_local_context,

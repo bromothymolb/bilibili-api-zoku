@@ -4,10 +4,14 @@
       "url": "https://manga.bilibili.com/twirp/comic.v1.Comic/ComicDetail",
       "method": "POST",
       "verify": false,
+      "m2": true,
+      "ultra_sign": true,
+      "decode_bytes": true,
       "params": {
         "device": "str: 设备",
         "platform": "str: 平台",
-        "nov": "int: 25"
+        "nov": "int: 27",
+        "a": "int: 810"
       },
       "data": {
         "comic_id": "int: 漫画 id"
@@ -21,7 +25,8 @@
       "params": {
         "device": "str: 设备",
         "platform": "str: 平台",
-        "nov": "int: 25"
+        "nov": "int: 27",
+        "a": "int: 810"
       },
       "data": {
         "id": "int: 章节 id"
@@ -32,10 +37,14 @@
       "url": "https://manga.bilibili.com/twirp/comic.v1.Comic/GetImageIndex",
       "method": "POST",
       "verify": false,
+      "m2": true,
+      "ultra_sign": true,
+      "decode_bytes": true,
       "params": {
         "device": "str: 设备",
         "platform": "str: 平台",
-        "nov": "int: 25"
+        "nov": "int: 27",
+        "a": "int: 810"
       },
       "data": {
         "ep_id": "int: 章节 id"
@@ -46,10 +55,13 @@
       "url": "https://manga.bilibili.com/twirp/comic.v1.Comic/ImageToken",
       "method": "POST",
       "verify": false,
+      "ultra_sign": true,
+      "decode_bytes": true,
       "params": {
         "device": "str: 设备",
         "platform": "str: 平台",
-        "nov": "int: 25"
+        "nov": "int: 27",
+        "a": "int: 810"
       },
       "data": {
         "urls": "str: 内容如下：[\"图片链接\"]",
@@ -61,10 +73,14 @@
       "url": "https://manga.bilibili.com/twirp/comic.v1.Comic/ClassPage",
       "method": "POST",
       "verify": false,
+      "m2": true,
+      "ultra_sign": true,
+      "decode_bytes": true,
       "params": {
         "device": "str: 设备",
         "platform": "str: 平台",
-        "nov": "int: 25"
+        "nov": "int: 27",
+        "a": "int: 810"
       },
       "data": {
         "area_id": "int: 地区 id",
@@ -84,7 +100,8 @@
       "params": {
         "device": "str: 设备",
         "platform": "str: 平台",
-        "nov": "int: 25"
+        "nov": "int: 27",
+        "a": "int: 810"
       },
       "comment": "获取漫画索引的参数"
     },
@@ -95,7 +112,7 @@
       "params": {
         "device": "str: 设备",
         "platform": "str: 平台",
-        "nov": "int: 25"
+        "nov": "int: 27"
       },
       "data": {
         "date": "str: 日期，格式为 YYYY-MM-DD",
@@ -111,7 +128,7 @@
       "params": {
         "device": "str: 设备",
         "platform": "str: 平台",
-        "nov": "int: 25"
+        "nov": "int: 27"
       },
       "data": {
         "seed": "str: unknown param",
@@ -126,7 +143,7 @@
       "params": {
         "device": "str: 设备",
         "platform": "str: 平台",
-        "nov": "int: 25"
+        "nov": "int: 27"
       },
       "data": {
         "page_num": "int: 页码",
@@ -135,6 +152,21 @@
         "wait_free": "int: 是否为等免"
       },
       "comment": "获取追漫列表"
+    },
+    "history": {
+      "url": "https://manga.bilibili.com/twirp/bookshelf.v1.Bookshelf/ListHistory",
+      "method": "POST",
+      "verify": true,
+      "params": {
+        "device": "str: 设备",
+        "platform": "str: 平台",
+        "nov": "int: 27"
+      },
+      "data": {
+        "page_num": "int: 页码",
+        "page_size": "int: 每页数量"
+      },
+      "comment": "获取漫画阅读历史记录"
     }
   },
   "operate": {
@@ -145,7 +177,7 @@
       "params": {
         "device": "str: 设备",
         "platform": "str: 平台",
-        "nov": "int: 25"
+        "nov": "int: 27"
       },
       "data": {
         "comic_ids": "int: 漫画 id"
@@ -159,7 +191,7 @@
       "params": {
         "device": "str: 设备",
         "platform": "str: 平台",
-        "nov": "int: 25"
+        "nov": "int: 27"
       },
       "data": {
         "comic_ids": "int: 漫画 id"

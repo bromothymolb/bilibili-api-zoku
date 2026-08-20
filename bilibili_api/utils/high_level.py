@@ -4,31 +4,14 @@ bilibili_api.utils.high_level
 模块高层级网络请求功能，包括凭据类、反爬虫与 Api 类。
 """
 
-import base64
-import binascii
 from dataclasses import dataclass, field
 from email.utils import parsedate_to_datetime
-from functools import reduce
-import hashlib
-import hmac
-import io
 import json
-from json import scanner
-from json.decoder import scanstring  # type: ignore
-import os
-import random
 import re
-import struct
-import time
 from typing import Any
 import urllib.parse
 
 from anyio import Lock, create_task_group, open_file
-from bs4 import BeautifulSoup
-import chompjs
-from Cryptodome.Cipher import PKCS1_OAEP
-from Cryptodome.Hash import SHA256
-from Cryptodome.PublicKey import RSA
 
 from ..exceptions import (
     ArgsException,
@@ -44,38 +27,26 @@ from ..exceptions import (
     ResponseCodeException,
     WbiRetryTimesExceedException,
 )
-from .logger import request_log
-from .network import (
-    BiliAPIClient,
-    BiliAPIFile,
-    BiliAPIResponse,
-    get_client,
-    request_settings,
-    select_client,
+from .anti_spider import (
+    _enc_dm,
+    _enc_sign,
+    _enc_wbi,
+    _gen_b_lsid,
+    _gen_bili_ticket_params,
+    _gen_buvid_fp,
+    _gen_buvid_payload,
+    _gen_mixin_key,
+    _gen_uuid_infoc,
+    _get_time,
+    _getCorrespondPath,
+    get_bili_headers,
+    get_browser_fingerprint,
 )
+from .logger import request_log
+from .models import BiliAPIClient, BiliAPIFile, BiliAPIResponse
+from .network import get_client, request_settings, select_client
 from .settings import bili_settings
 from .utils import MultiEventLoopLocks, get_api
-
-
-def _get_time_milli() -> int:
-    return int(time.time() * 1000)
-
-
-def _gen_b_lsid() -> str:
-    return f"{random.randbytes(4).hex().upper()}_{hex(_get_time_milli())[2:].upper()}"
-
-
-def _gen_uuid_infoc() -> str:
-    def gen_part(x: int) -> str:
-        return "".join([random.choice(mp) for _ in range(x)])
-
-    t = _get_time_milli() % 100000
-    mp = [*list("123456789ABCDEF"), "10"]
-    pck = [8, 4, 4, 4, 12]
-
-    return (
-        "-".join([gen_part(length) for length in pck]) + str(t).ljust(5, "0") + "infoc"
-    )
 
 
 class Credential:
@@ -194,7 +165,7 @@ class Credential:
         """
         生成部分用于 buvid 激活的本地 cookies
         """
-        self.b_nut = str(int(time.time()))
+        self.b_nut = str(int(_get_time()))
         self.b_lsid = _gen_b_lsid()
         self.uuid_infoc = _gen_uuid_infoc()
 
@@ -235,7 +206,7 @@ class Credential:
         return bool(
             self.bili_ticket
             and self.bili_ticket_expires
-            and time.time() <= int(self.bili_ticket_expires)
+            and _get_time() <= int(self.bili_ticket_expires)
         )
 
     def clear_buvid(self) -> None:
@@ -588,6 +559,9 @@ https://socialsisteryi.github.io/bilibili-API-collect/docs/login/cookie_refresh.
 """
 
 
+API = get_api("credential")
+
+
 async def _check_valid(credential: Credential) -> bool:
     api = API["info"]["valid"]
     return (await Api(**api, credential=credential).result)["isLogin"]
@@ -596,22 +570,6 @@ async def _check_valid(credential: Credential) -> bool:
 async def _check_cookies(credential: Credential) -> bool:
     api = API["info"]["check_cookies"]
     return (await Api(**api, credential=credential).result)["refresh"]
-
-
-def _getCorrespondPath() -> str:
-    key = RSA.importKey(
-        """\
------BEGIN PUBLIC KEY-----
-MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDLgd2OAkcGVtoE3ThUREbio0Eg
-Uc/prcajMKXvkCKFCWhJYJcLkcM2DKKcSeFpD/j6Boy538YXnR6VhcuUJOhH2x71
-nzPjfdTcqMz7djHum0qSZA0AyCBDABUqCrfNgCiJ00Ra7GmRj+YCK1NJEuewlb40
-JNrRuoEUXpabUzGB8QIDAQAB
------END PUBLIC KEY-----"""
-    )
-    ts = round(time.time() * 1000)
-    cipher = PKCS1_OAEP.new(key, SHA256)
-    encrypted = cipher.encrypt(f"refresh_{ts}".encode())
-    return binascii.b2a_hex(encrypted).decode()
 
 
 async def _get_refresh_csrf(credential: Credential) -> str:
@@ -680,6 +638,13 @@ async def _confirm_refresh(
     await Api(**api, credential=new_credential).update_data(**data).result
 
 
+"""
+buvid3 / buvid4 / buvid_fp 获取
+
+思路来源：https://github.com/SocialSisterYi/bilibili-API-collect/issues/933
+"""
+
+
 async def _get_spi_buvid() -> tuple[dict, str]:
     api = API["info"]["spi"]
     client = get_client()
@@ -695,393 +660,6 @@ async def _get_spi_buvid() -> tuple[dict, str]:
         (response).json()["data"],
         str(int(parsedate_to_datetime(date).timestamp())),
     )
-
-
-OE = list(
-    base64.b64decode(
-        b"Li8SAjUIFyAPMgofOgMtIxsrBTEhCSoTHRwOJwwmKQ0lMAcQGDcoPRoRAAE8Mx4EFhk2FTg7Bj85PgskFCIsNA=="
-    )
-)
-APPKEY = "4409e2ce8ffd12b8"
-APPSEC = "59b43e04ad6965f34319062b478f83dd"
-HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
-    "Referer": "https://www.bilibili.com/",
-}
-API = get_api("credential")
-browser_fingerprint = None
-
-
-def get_browser_fingerprint() -> dict:
-    global browser_fingerprint
-    if browser_fingerprint is None:
-        if bili_settings.get_enable_fpgen():
-            import fpgen
-
-            browser_fingerprint = fpgen.generate(**bili_settings.get_fpgen_args())
-        else:
-            with open(
-                os.path.abspath(
-                    os.path.join(
-                        os.path.dirname(__file__),
-                        "..",
-                        "data",
-                        "browser_fingerprint.json",
-                    )
-                ),
-                encoding="utf-8",
-            ) as f:
-                browser_fingerprint = json.load(f)
-    return browser_fingerprint
-
-
-def get_bili_headers() -> dict:
-    """
-    获取可供访问 bilibili 链接的伪装请求头。
-
-    部分请求头取自 fpgen 生成的浏览器指纹信息。
-
-    Returns:
-        dict: 请求头
-    """
-    fp = get_browser_fingerprint()
-    headers = HEADERS.copy()
-    for k, v in fp["headers"].items():
-        if v:
-            headers[k.title()] = v[0] if v and isinstance(v, list) else str(v)
-    return headers
-
-
-"""
-思路来源：https://github.com/SocialSisterYi/bilibili-API-collect/issues/933
-"""
-
-
-class _CookieJsonDecoder(json.JSONDecoder):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.parse_string = self.cookie_scanstring
-        self.scan_once = scanner.py_make_scanner(self)  # pyright: ignore[reportAttributeAccessIssue]
-
-    @staticmethod
-    def cookie_scanstring(*args, **kwargs):
-        (val, end) = scanstring(*args, **kwargs)
-
-        if val.startswith("getCookie"):
-            match = re.match(r"getCookie\('([^']*)'\)", val)
-            if match:
-                _cookie_name = match.group(1)
-                return (None, end)
-
-        return (val, end)
-
-
-async def _gen_buvid_fp(
-    buvid3: str, buvid4: str, credential: Credential
-) -> tuple[str, str]:
-    MOD = 1 << 64
-
-    def rotate_left(x: int, k: int) -> int:
-        bin_str = bin(x)[2:].rjust(64, "0")
-        return int(bin_str[k:] + bin_str[:k], base=2)
-
-    def gen_buvid_fp(key: str, seed: int):
-        source = io.BytesIO(bytes(key, "utf-8"))
-        m = murmur3_x64_128(source, seed)
-        return f"{hex(m & (MOD - 1))[2:]}{hex(m >> 64)[2:]}"
-
-    def murmur3_x64_128(source: io.BufferedIOBase, seed: int) -> int:
-        C1 = 0x87C3_7B91_1142_53D5
-        C2 = 0x4CF5_AD43_2745_937F
-        C3 = 0x52DC_E729
-        C4 = 0x3849_5AB5
-        R1, R2, R3, M = 27, 31, 33, 5
-        h1, h2 = seed, seed
-        processed = 0
-        while True:
-            read = source.read(16)
-            processed += len(read)
-            if len(read) == 16:
-                k1 = struct.unpack("<q", read[:8])[0]
-                k2 = struct.unpack("<q", read[8:])[0]
-                h1 ^= rotate_left(k1 * C1 % MOD, R2) * C2 % MOD
-                h1 = ((rotate_left(h1, R1) + h2) * M + C3) % MOD
-                h2 ^= rotate_left(k2 * C2 % MOD, R3) * C1 % MOD
-                h2 = ((rotate_left(h2, R2) + h1) * M + C4) % MOD
-            elif len(read) == 0:
-                h1 ^= processed
-                h2 ^= processed
-                h1 = (h1 + h2) % MOD
-                h2 = (h2 + h1) % MOD
-                h1 = fmix64(h1)
-                h2 = fmix64(h2)
-                h1 = (h1 + h2) % MOD
-                h2 = (h2 + h1) % MOD
-                return (h2 << 64) | h1
-            else:
-                k1 = 0
-                k2 = 0
-                if len(read) >= 15:
-                    k2 ^= int(read[14]) << 48
-                if len(read) >= 14:
-                    k2 ^= int(read[13]) << 40
-                if len(read) >= 13:
-                    k2 ^= int(read[12]) << 32
-                if len(read) >= 12:
-                    k2 ^= int(read[11]) << 24
-                if len(read) >= 11:
-                    k2 ^= int(read[10]) << 16
-                if len(read) >= 10:
-                    k2 ^= int(read[9]) << 8
-                if len(read) >= 9:
-                    k2 ^= int(read[8])
-                    k2 = rotate_left(k2 * C2 % MOD, R3) * C1 % MOD
-                    h2 ^= k2
-                if len(read) >= 8:
-                    k1 ^= int(read[7]) << 56
-                if len(read) >= 7:
-                    k1 ^= int(read[6]) << 48
-                if len(read) >= 6:
-                    k1 ^= int(read[5]) << 40
-                if len(read) >= 5:
-                    k1 ^= int(read[4]) << 32
-                if len(read) >= 4:
-                    k1 ^= int(read[3]) << 24
-                if len(read) >= 3:
-                    k1 ^= int(read[2]) << 16
-                if len(read) >= 2:
-                    k1 ^= int(read[1]) << 8
-                if len(read) >= 1:
-                    k1 ^= int(read[0])
-                k1 = rotate_left(k1 * C1 % MOD, R2) * C2 % MOD
-                h1 ^= k1
-
-    def fmix64(k: int) -> int:
-        C1 = 0xFF51_AFD7_ED55_8CCD
-        C2 = 0xC4CE_B9FE_1A85_EC53
-        R = 33
-        tmp = k
-        tmp ^= tmp >> R
-        tmp = tmp * C1 % MOD
-        tmp ^= tmp >> R
-        tmp = tmp * C2 % MOD
-        tmp ^= tmp >> R
-        return tmp
-
-    def get_payload(uuid: str, homepage_html: str) -> str:
-        def extract_abtest_dict(html: str) -> dict[str, Any]:
-            soup = BeautifulSoup(html, "html.parser")
-            scripts = soup.find_all("script")
-
-            for script in scripts:
-                js_code = script.string
-                if not js_code or "window.abtest" not in js_code:
-                    continue
-
-                # Isolate the JavaScript object string using a regular expression.
-                # This looks for 'window.abtest = {' and captures everything until the matching '};'
-                match = re.search(r"window\.abtest\s*=\s*({.*?})\n", js_code, re.DOTALL)
-                if not match:
-                    continue
-
-                js_object_string = match.group(1)
-
-                try:
-                    return chompjs.parse_js_object(
-                        js_object_string, loader_kwargs={"cls": _CookieJsonDecoder}
-                    )
-                except Exception as e:
-                    print(f"Error parsing JavaScript object: {e}")
-                    return {}
-
-            return {}
-
-        browser_fingerprint = get_browser_fingerprint()
-        plugins = browser_fingerprint["plugins"]
-        mime_type_suffix: dict[str, str] | None = (
-            {
-                mime_type["type"]: mime_type["suffixes"]
-                for mime_type in browser_fingerprint["plugins"]["mimeTypes"]
-            }
-            if plugins
-            else None
-        )
-
-        def get_param(param_id: int) -> str | int | bool:
-            param = browser_fingerprint["webgl"]["params"].get(str(param_id))
-            return param["value"] if param["value"] is not None else "null"
-
-        a3c1 = [
-            f"extensions:{';'.join(browser_fingerprint['webgl']['supportedExtensions'])}",
-            f"webgl aliased line width range:{(get_param(33902))}",
-            f"webgl aliased point size range:{get_param(33901)}",
-            f"webgl alpha bits:{get_param(3413)}",
-            f"webgl antialiasing:{'yes' if browser_fingerprint['webgl']['contextAttributes']['antialias'] else 'no'}",
-            f"webgl blue bits:{get_param(3412)}",
-            f"webgl depth bits:{get_param(3414)}",
-            f"webgl green bits:{get_param(3411)}",
-            f"webgl max anisotropy:{get_param(34047)}",
-            f"webgl max combined texture image units:{get_param(35661)}",
-            f"webgl max cube map texture size:{get_param(34076)}",
-            f"webgl max fragment uniform vectors:{get_param(36349)}",
-            f"webgl max render buffer size:{get_param(34024)}",
-            f"webgl max texture image units:{get_param(34930)}",
-            f"webgl max texture size:{get_param(3379)}",
-            f"webgl max varying vectors:{get_param(36348)}",
-            f"webgl max vertex attribs:{get_param(34921)}",
-            f"webgl max vertex texture image units:{get_param(35660)}",
-            f"webgl max vertex uniform vectors:{get_param(36347)}",
-            f"webgl max viewport dims:{get_param(3386)}",
-            f"webgl red bits:{get_param(3410)}",
-            f"webgl renderer:{get_param(7937)}",
-            f"webgl shading language version:{get_param(35724)}",
-            f"webgl stencil bits:{get_param(3415)}",
-            f"webgl vendor:{get_param(7936)}",
-            f"webgl version:{get_param(7938)}",
-        ]
-
-        if (
-            "WEBGL_debug_renderer_info"
-            in browser_fingerprint["webgl"]["supportedExtensions"]
-        ):
-            a3c1.append(f"webgl unmasked vendor:{browser_fingerprint['gpu']['vendor']}")
-            a3c1.append(
-                f"webgl unmasked renderer:{browser_fingerprint['gpu']['renderer']}"
-            )
-
-        shader_precisions = browser_fingerprint["webgl"]["shaderPrecisionFormats"]
-        numerics = ["FLOAT", "INT"]
-        shader_map = {"VERTEX": 35633, "FRAGMENT": 35632}
-        precisions = ["HIGH", "MEDIUM", "LOW"]
-        precision_map = {
-            "HIGH_FLOAT": 36338,
-            "MEDIUM_FLOAT": 36337,
-            "LOW_FLOAT": 36336,
-            "HIGH_INT": 36341,
-            "MEDIUM_INT": 36340,
-            "LOW_INT": 36339,
-        }
-
-        for ntype_k in numerics:
-            for stype_k, stype_v in shader_map.items():
-                for ptype_k in precisions:
-                    precision_type = f"{ptype_k}_{ntype_k}"
-                    precision_data = next(
-                        format
-                        for format in shader_precisions
-                        if format["precisionType"] == precision_map[precision_type]
-                        and format["shaderType"] == stype_v
-                    )
-                    for prop in ["precision", "rangeMin", "rangeMax"]:
-                        value = precision_data["r"][prop]
-                        prop_name = prop
-                        if prop != "precision":
-                            prop_name = f"precision {prop}"
-                        a3c1.append(
-                            f"webgl {stype_k.lower()} shader {ptype_k.lower()} {ntype_k.lower()} {prop_name}:{value}"
-                        )
-
-        png_suffix = bytes.fromhex("0000000049454E44AE426082")
-
-        content = {
-            "3064": 1,
-            "5062": str(_get_time_milli()),
-            "03bf": "https%3A%2F%2Fwww.bilibili.com%2F",
-            "39c8": "333.1007.fp.risk",
-            "34f1": "",
-            "d402": "",
-            "654a": "",
-            "6e7c": f"{browser_fingerprint['window']['innerWidth']}x{browser_fingerprint['window']['innerHeight']}",
-            "3c43": {
-                "2673": 0,
-                "5766": browser_fingerprint["screen"]["colorDepth"],
-                "6527": 0,
-                "7003": 1,
-                "807e": 1,
-                "b8ce": browser_fingerprint["navigator"]["userAgent"],
-                "641c": 0,
-                "07a4": browser_fingerprint["intl"]["locale"],
-                "1c57": browser_fingerprint["navigator"]["deviceMemory"],
-                "0bd0": browser_fingerprint["navigator"]["hardwareConcurrency"],
-                "748e": [
-                    browser_fingerprint["screen"]["width"],
-                    browser_fingerprint["screen"]["height"],
-                ],
-                "d61f": [
-                    browser_fingerprint["screen"]["width"],
-                    browser_fingerprint["screen"]["height"],
-                ],
-                "fc9d": -480,
-                "6aa9": "Asia/Shanghai",
-                "75b8": 1,
-                "3b21": 1,
-                "8a1c": 0,
-                "d52f": "not available",
-                "adca": browser_fingerprint["navigator"]["platform"],
-                "80c9": (
-                    [
-                        [
-                            plugin["name"],
-                            plugin["description"],
-                            [
-                                [mime_type, mime_type_suffix.get(mime_type, "")]
-                                for mime_type in plugin["__mimeTypes"]
-                            ],
-                        ]
-                        for plugin in plugins["plugins"]
-                    ]
-                    if mime_type_suffix
-                    else "not available"
-                ),
-                "13ab": base64.b64encode(
-                    random.randbytes(random.randrange(15, 20)) + png_suffix
-                ).decode(encoding="ascii")[:-20],
-                "bfe9": base64.b64encode(
-                    random.randbytes(random.randrange(40, 50)) + png_suffix
-                ).decode(encoding="ascii")[:-50],
-                "a3c1": a3c1,
-                "6bc5": f"{browser_fingerprint['gpu']['vendor']}~{browser_fingerprint['gpu']['renderer']}",
-                "ed31": 0,
-                "72bd": 0,
-                "097b": 0,
-                "52cd": [0, 0, 0],
-                "a658": browser_fingerprint["allFonts"],
-                "d02f": str(124.043475 + random.random() / 1e6),
-            },
-            "54ef": json.dumps(
-                extract_abtest_dict(homepage_html),
-                ensure_ascii=False,
-                allow_nan=False,
-                separators=(",", ":"),
-            ),
-            "8b94": "https%3A%2F%2Fwww.bilibili.com%2F",
-            "df35": uuid,
-            "07a4": browser_fingerprint["intl"]["locale"],
-            "5f45": None,
-            "db46": 0,
-        }
-        return json.dumps(
-            {"payload": json.dumps(content, ensure_ascii=False, separators=(",", ":"))},
-            ensure_ascii=False,
-            separators=(",", ":"),
-        )
-
-    client = get_client()
-    headers = get_bili_headers()
-    homepage_html = await client.request(
-        method="GET",
-        url="https://www.bilibili.com",
-        headers=headers,
-        cookies={
-            "buvid3": buvid3,
-            "buvid4": buvid4,
-            "b_nut": credential.b_nut,
-            "b_lsid": credential.b_lsid,
-            "_uuid": credential.uuid_infoc,
-        },
-    )
-    payload = get_payload(credential.uuid_infoc, homepage_html.utf8_text())  # type: ignore
-    return gen_buvid_fp(payload, 31), payload
 
 
 async def _active_buvid(
@@ -1110,120 +688,37 @@ async def _active_buvid(
         raise ExClimbWuzhiException(data["code"], data["message"])
 
 
-async def _get_nav(credential: Credential | None = None) -> dict:
-    credential = credential or Credential()
-    api = API["info"]["valid"]
+async def _get_buvid_fp(
+    buvid3: str, buvid4: str, credential: Credential
+) -> tuple[str, str]:
     client = get_client()
-    return (
-        await client.request(
-            method="GET",
-            url=api["url"],
-            headers=get_bili_headers(),
-            cookies=await credential.get_cookies(),
-        )
-    ).json()["data"]
-
-
-async def _get_mixin_key(credential: Credential | None = None) -> str:
-    data = await _get_nav(credential=credential)
-    wbi_img: dict[str, str] = data["wbi_img"]
-
-    def split(key):
-        return wbi_img.get(key).split("/")[-1].split(".")[0]  # type: ignore
-
-    ae = split("img_url") + split("sub_url")
-    le = reduce(lambda s, i: s + (ae[i] if i < len(ae) else ""), OE, "")
-    return le[:32]
-
-
-def _enc_wbi(params: dict, mixin_key: str) -> dict:
-    params.pop("w_rid", None)  # 重试时先把原有 w_rid 去除
-    params.pop("wts", None)
-    params["wts"] = round(time.time())
-    # web_location 没被列入参数可能炸一些接口 比如 video.get_ai_conclusion
-    Ae = urllib.parse.urlencode(sorted(params.items()))
-    params["w_rid"] = hashlib.md5((Ae + mixin_key).encode(encoding="utf-8")).hexdigest()
-    return params
-
-
-def _enc_dm(params: dict) -> dict:
-    def encode_to_base64_substring(raw: str) -> str:
-        encoded_bytes = base64.b64encode(raw.encode())
-        encoded_string = encoded_bytes.decode("ascii")
-        return encoded_string[:-2]
-
-    def get_wh(width: int, height: int) -> list[int]:
-        rnd = random.randrange(114)
-        return [2 * width + 2 * height + 3 * rnd, 4 * width - height + rnd, rnd]
-
-    def get_of(scroll_top: int, scroll_left: int) -> list[int]:
-        rnd = random.randrange(514)
-        return [
-            3 * scroll_top + 2 * scroll_left + rnd,
-            4 * scroll_top - 4 * scroll_left + 2 * rnd,
-            rnd,
-        ]
-
-    browser_fingerprint = get_browser_fingerprint()
-    wh_str = ",".join(
-        str(value)
-        for value in get_wh(
-            browser_fingerprint["window"]["innerWidth"],
-            browser_fingerprint["window"]["innerHeight"],
-        )
+    headers = get_bili_headers()
+    homepage_html = await client.request(
+        method="GET",
+        url="https://www.bilibili.com",
+        headers=headers,
+        cookies={
+            "buvid3": buvid3,
+            "buvid4": buvid4,
+            "b_nut": credential.b_nut,
+            "b_lsid": credential.b_lsid,
+            "_uuid": credential.uuid_infoc,
+        },
     )
-    of_str = ",".join(
-        str(value)
-        for value in get_of(
-            browser_fingerprint["window"]["pageYOffset"],
-            0,
-        )
-    )
-    params.update(
-        {
-            "dm_img_list": "[]",  # 鼠标/键盘操作记录
-            "dm_img_str": encode_to_base64_substring(
-                browser_fingerprint["webgl"]["params"]["7938"]["value"]
-            ),
-            "dm_cover_img_str": encode_to_base64_substring(
-                browser_fingerprint["gpu"]["renderer"]
-            ),
-            "dm_img_inter": f'{{"ds":[],"wh":[{wh_str}],"of":[{of_str}]}}',
-        }
-    )
-    return params
-
-
-def _enc_sign(paramsordata: dict) -> dict:
-    paramsordata["appkey"] = APPKEY
-    paramsordata = dict(sorted(paramsordata.items()))
-    paramsordata["sign"] = hashlib.md5(
-        (urllib.parse.urlencode(paramsordata) + APPSEC).encode("utf-8")
-    ).hexdigest()
-    return paramsordata
+    payload = _gen_buvid_payload(credential.uuid_infoc, homepage_html.utf8_text())  # type: ignore
+    return _gen_buvid_fp(payload, 31), payload
 
 
 """
+bili_ticket 获取
+
 算法来源：https://github.com/SocialSisterYi/bilibili-API-collect/issues/903
 """
 
 
 async def _get_bili_ticket(credential: Credential) -> tuple[str, int]:
-    def hmac_sha256(key: str, message: str) -> str:
-        hmac_obj = hmac.new(
-            key.encode("utf-8"), message.encode("utf-8"), hashlib.sha256
-        )
-        return hmac_obj.digest().hex()
-
-    ts = int(time.time())
-    o = hmac_sha256("XgwSnGZ1p", f"ts{ts}")
     api = API["info"]["ticket"]
-    params = {
-        "key_id": "ec02",
-        "hexsign": o,
-        "context[ts]": f"{ts}",
-        "csrf": credential.bili_jct or "",
-    }
+    params = _gen_bili_ticket_params() | {"csrf": credential.bili_jct or ""}
     client = get_client()
     resp = (
         await client.request(
@@ -1247,16 +742,20 @@ async def _get_bili_ticket(credential: Credential) -> tuple[str, int]:
     return (resp["data"]["ticket"], resp["data"]["created_at"] + resp["data"]["ttl"])
 
 
-# Credential 维护 buvid / bili_ticket 遵循以下规则：
-# 1. `global` 为模块初始化时定义的独一无二的凭据类。
-# 2. `blank` 为 `get_core_cookies` 字段全为 `None` 的凭据类，即 `Credential()`。可通过 `check_blank()` 检查凭据类是否为 `blank`。
-# 3. 其余凭据类均为 `normal`，即使传入 `sessdata="", bili_jct=""` 亦视为 `normal`。
-# 4. `get_xxx` 函数拆分为 `ensure_xxx` 和 `obtain_xxx`，接受凭据类传入。
-#     1. `ensure` 保证 `buvid` / `bili_ticket` 存在且可用，只有凭据类中的 `buvid` 和 `bili_ticket` 不可用才进行 `obtain`。`ensure` 在已有 cookies 情况下不会修改 cookies。
-#     2. `obtain` 总是发起网络请求获取新的 `buvid` / `bili_ticket`。
-# 5. `blank` 或在 `global_persistence` 下，凭据类进行 `ensure` 或 `obtain` 将先 `ensure global` 或 `obtain global`，再复制 `global` 相关字段，称此复制过程为同步。
-# 6. `get_cookies` 中直接调用 `ensure`，不会直接调用 `obtain`。在禁用 `buvid` 与 `bili_ticket` 自动获取时只同步不请求。
-# 7. `ensure` 与 `obtain` 若没有传入凭据类，将创建一个新的 `blank` 作为凭据类带入。因此获取 `global` 字段直接不带参调用 `ensure`，更新 `global` 字段直接不带参调用 `obtain`。
+"""
+buvid / bili_ticket 维护
+
+Credential 维护 buvid / bili_ticket 遵循以下规则：
+1. `global` 为模块初始化时定义的独一无二的凭据类。
+2. `blank` 为 `get_core_cookies` 字段全为 `None` 的凭据类，即 `Credential()`。可通过 `check_blank()` 检查凭据类是否为 `blank`。
+3. 其余凭据类均为 `normal`，即使传入 `sessdata="", bili_jct=""` 亦视为 `normal`。
+4. `get_xxx` 函数拆分为 `ensure_xxx` 和 `obtain_xxx`，接受凭据类传入。
+    1. `ensure` 保证 `buvid` / `bili_ticket` 存在且可用，只有凭据类中的 `buvid` 和 `bili_ticket` 不可用才进行 `obtain`。`ensure` 在已有 cookies 情况下不会修改 cookies。
+    2. `obtain` 总是发起网络请求获取新的 `buvid` / `bili_ticket`。
+5. `blank` 或在 `global_persistence` 下，凭据类进行 `ensure` 或 `obtain` 将先 `ensure global` 或 `obtain global`，再复制 `global` 相关字段，称此复制过程为同步。
+6. `get_cookies` 中直接调用 `ensure`，不会直接调用 `obtain`。在禁用 `buvid` 与 `bili_ticket` 自动获取时只同步不请求。
+7. `ensure` 与 `obtain` 若没有传入凭据类，将创建一个新的 `blank` 作为凭据类带入。因此获取 `global` 字段直接不带参调用 `ensure`，更新 `global` 字段直接不带参调用 `obtain`。
+"""
 
 
 class GlobalCredential(Credential):
@@ -1372,7 +871,7 @@ async def obtain_buvid(credential: Credential | None = None) -> tuple[str, str, 
     credential.b_nut = b_nut
     credential.buvid3 = spi["b_3"]
     credential.buvid4 = spi["b_4"]
-    credential.buvid_fp, payload = await _gen_buvid_fp(
+    credential.buvid_fp, payload = await _get_buvid_fp(
         credential.buvid3, credential.buvid4, credential
     )
     await _active_buvid(
@@ -1474,7 +973,34 @@ async def obtain_bili_ticket(
     return credential.bili_ticket, credential.bili_ticket_expires
 
 
+"""
+WBI 相关
+
+https://github.com/katurahinagiku/bilibili-API-collect/blob/main/docs/misc/sign/wbi.md
+"""
+
+
 __wbi_mixin_key: str | None = None
+
+
+async def _get_nav(credential: Credential | None = None) -> dict:
+    credential = credential or Credential()
+    api = API["info"]["valid"]
+    client = get_client()
+    return (
+        await client.request(
+            method="GET",
+            url=api["url"],
+            headers=get_bili_headers(),
+            cookies=await credential.get_cookies(),
+        )
+    ).json()["data"]
+
+
+async def _get_mixin_key(credential: Credential | None = None) -> str:
+    data = await _get_nav(credential=credential)
+    wbi_img: dict[str, str] = data["wbi_img"]
+    return _gen_mixin_key(wbi_img)
 
 
 def recalculate_wbi() -> None:
@@ -1920,6 +1446,3 @@ def configure_dynamic_fingerprint(os: str, browser: str, version: int) -> None:
     }
     bili_settings.set_enable_fpgen(True)
     bili_settings.set_fpgen_args(fpgen_args)
-
-
-################################################## END Api ##################################################

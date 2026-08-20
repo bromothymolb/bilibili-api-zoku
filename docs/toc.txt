@@ -623,6 +623,7 @@ manga
   Style
  MangaOrderType
  get_followed_manga
+ get_manga_history
  get_manga_home_recommend
  get_manga_update
  set_follow_manga

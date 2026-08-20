@@ -21,6 +21,7 @@ from bilibili_api import manga
   - [class Style()](#class-Style)
 - [class MangaOrderType()](#class-MangaOrderType)
 - [async def get\_followed\_manga()](#async-def-get\_followed\_manga)
+- [async def get\_manga\_history()](#async-def-get\_manga\_history)
 - [async def get\_manga\_home\_recommend()](#async-def-get\_manga\_home\_recommend)
 - [async def get\_manga\_update()](#async-def-get\_manga\_update)
 - [async def set\_follow\_manga()](#async-def-set\_follow\_manga)
@@ -178,7 +179,25 @@ from bilibili_api import manga
 | `order` | `MangaOrderType, optional` | 排序方式. Defaults to MangaOrderType.FOLLOW. |
 | `credential` | `Credential \| None, optional` | 凭据类. Defaults to None. |
 
-**Returns:** `list[manga.Manga]`:  追漫列表
+**Returns:** `dict`:  调用 API 返回的结果
+
+
+
+
+---
+
+## async def get_manga_history()
+
+获取漫画阅读历史记录
+
+
+| name | type | description |
+| - | - | - |
+| `pn` | `int, optional` | 页码. Defaults to 1. |
+| `ps` | `int, optional` | 每页数量. Defaults to 15. |
+| `credential` | `Credential \| None, optional` | 凭据类. Defaults to None. |
+
+**Returns:** `dict`:  调用 API 返回的结果
 
 
 
@@ -196,7 +215,7 @@ from bilibili_api import manga
 | `seed` | `str \| None, optional` | Unknown param，无需传入. Defaults to '0'. |
 | `credential` | `Credential \| None, optional` | 凭据类. Defaults to None. |
 
-**Returns:** `list[manga.Manga]`:  漫画列表
+**Returns:** `dict`:  调用 API 返回的结果
 
 
 
@@ -215,7 +234,7 @@ from bilibili_api import manga
 | `ps` | `int, optional` | 每页数量. Defaults to 8. |
 | `credential` | `Credential \| None, optional` | 凭据类. Defaults to None. |
 
-**Returns:** `list[manga.Manga]`:  漫画列表
+**Returns:** `dict`:  调用 API 返回的结果
 
 
 

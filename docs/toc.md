@@ -627,6 +627,7 @@
     - [class Style()](./modules/manga.md#class-Style)
   - [class MangaOrderType()](./modules/manga.md#class-MangaOrderType)
   - [async def get\_followed\_manga()](./modules/manga.md#async-def-get\_followed\_manga)
+  - [async def get\_manga\_history()](./modules/manga.md#async-def-get\_manga\_history)
   - [async def get\_manga\_home\_recommend()](./modules/manga.md#async-def-get\_manga\_home\_recommend)
   - [async def get\_manga\_update()](./modules/manga.md#async-def-get\_manga\_update)
   - [async def set\_follow\_manga()](./modules/manga.md#async-def-set\_follow\_manga)
