@@ -3512,6 +3512,7 @@ async def handle(desc: str, data: dict) -> None:
 | - | - | - |
 | `coroutine` | `Coroutine[Any, Any, ~T] \| Future[~T]` | 异步函数 |
 | `backend` | `str, optional` | 异步框架，可选 asyncio / trio。Defaults to "asyncio". |
+| `enable_uvloop` | `bool, optional` | 是否启用 `uvloop`。Defaults to False. (backend 将锁定为 asyncio) |
 
 **Returns:** `~T`:  该异步函数的返回值
 

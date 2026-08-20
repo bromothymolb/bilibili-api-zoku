@@ -22,13 +22,18 @@ def ensure_event_loop() -> asyncio.AbstractEventLoop:
     return asyncio.get_event_loop()
 
 
-def sync(coroutine: Coroutine[Any, Any, T] | Future[T], backend: str = "asyncio") -> T:
+def sync(
+    coroutine: Coroutine[Any, Any, T] | Future[T],
+    backend: str = "asyncio",
+    enable_uvloop: bool = False,
+) -> T:
     """
     同步执行异步函数，使用可参考 [同步执行异步代码](https://bromothymolb.github.io/bilibili-api-zoku/#/docs/common/sync-executor)
 
     Args:
         coroutine (Coroutine[Any, Any, ~T] | Future[~T]): 异步函数
         backend (str, optional): 异步框架，可选 asyncio / trio。Defaults to "asyncio".
+        enable_uvloop (bool, optional): 是否启用 `uvloop`。Defaults to False. (backend 将锁定为 asyncio)
 
     Returns:
         ~T: 该异步函数的返回值
@@ -37,4 +42,10 @@ def sync(coroutine: Coroutine[Any, Any, T] | Future[T], backend: str = "asyncio"
     async def sync_task() -> T:
         return await coroutine
 
-    return anyio.run(sync_task, backend=backend)
+    return anyio.run(
+        sync_task,
+        backend=backend,
+        backend_options={}
+        if not enable_uvloop
+        else {"loop_factory": __import__("uvloop").new_event_loop},
+    )

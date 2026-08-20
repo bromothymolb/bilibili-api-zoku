@@ -51,8 +51,9 @@ httpx = ["httpx"]
 httpx-h2 = ["httpx[http2]"]
 curl-cffi = ["curl_cffi"]
 fingerprint = ["fpgen", "curl_cffi"]
-# async backend
+# async backend related
 trio = ["trio"]
+uvloop = ["uvloop"]
 # logging
 loguru = ["loguru"]
 
