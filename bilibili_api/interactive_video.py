@@ -790,12 +790,11 @@ class InteractiveGraph:
         """
         导出情节树，导出后可使用 `InteractiveEmulator` 进行交互。
 
-        字段：
-            - `skin`: `dict` 按钮样式相关
-            - `nodes`: `dict[str, dict]` 包含所有节点的信息。键为 node_id 对应字符串。
-            - `root`: `int` 根节点的 ID
-            - `bvid`: `str` 视频 bvid
-            - `aid`: `int` 视频 aid
+        - `skin`: `dict` 按钮样式相关
+        - `nodes`: `dict[str, dict]` 包含所有节点的信息。键为 node_id 对应字符串。
+        - `root`: `int` 根节点的 ID
+        - `bvid`: `str` 视频 bvid
+        - `aid`: `int` 视频 aid
 
         每个节点信息结构请查看 `InteractiveNode.to_json` 函数。
 

@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 import inspect
 import io
 import os
+from typing import Self
 
 from anyio import TaskHandle, create_task_group, to_thread
 from PIL import Image, ImageSequence
@@ -151,7 +152,7 @@ class Picture:
             mime_type=self.mime_type,
         )
 
-    async def upload(self, credential: Credential) -> "Picture":
+    async def upload(self, credential: Credential) -> Self:
         """
         上传图片至 B 站。
 
@@ -167,7 +168,7 @@ class Picture:
         self.url = res["image_url"]
         return self
 
-    async def upload_by_note(self, credential: Credential) -> "Picture":
+    async def upload_by_note(self, credential: Credential) -> Self:
         """
         通过笔记接口上传图片至 B 站。
 
@@ -183,7 +184,7 @@ class Picture:
         self.url = "http:" + res["location"]
         return self
 
-    async def upload_by_session(self, credential: Credential) -> "Picture":
+    async def upload_by_session(self, credential: Credential) -> Self:
         """
         通过消息接口上传图片至 B 站。
 
@@ -199,7 +200,7 @@ class Picture:
         self.url = res["image_url"]
         return self
 
-    async def download(self, path: str) -> "Picture":
+    async def download(self, path: str) -> Self:
         """
         下载图片至本地。支持自定义文件格式。
 
@@ -240,7 +241,7 @@ class Picture:
             self._content = await to_thread.run_sync(fetch_content)
         return self._content
 
-    def set_extension(self, extension: str) -> "Picture":
+    def set_extension(self, extension: str) -> Self:
         """
         更改图片后缀名
 
@@ -266,7 +267,7 @@ class Picture:
             raise ValueError(msg) from e
         return self
 
-    async def image_call(self, func: str, *args, **kwargs) -> "Picture":
+    async def image_call(self, func: str, *args, **kwargs) -> Self:
         """
         调用 PIL.Image.Image 中的返回 Image 的操作函数
 

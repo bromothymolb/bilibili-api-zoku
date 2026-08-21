@@ -74,8 +74,9 @@ from bilibili_api import live
 直播源视频编码
 
 视频编码，0 为 avc 编码，1 为 hevc 编码。默认：0,1
-+ AVC   : 0。
-+ HEVC  : 1。
+
++ AVC       : 0。
++ HEVC      : 1。
 + DEFAULT   : 0,1。
 
 
@@ -243,9 +244,10 @@ Events:
 直播源容器格式
 
 容器格式，0 为 flv 格式；1 为 ts 格式（仅限 hls 流）；2 为 fmp4 格式（仅限 hls 流）。默认：0,2
-+ FLV   : 0。
-+ TS: 1。
-+ FMP4  : 2。
+
++ FLV       : 0。
++ TS        : 1。
++ FMP4      : 2。
 + DEFAULT   : 2。
 
 
@@ -260,8 +262,9 @@ Events:
 直播源流协议。
 
 流协议，0 为 FLV 流，1 为 HLS 流。默认：0,1
-+ FLV : 0。
-+ HLS : 1。
+
++ FLV     : 0。
++ HLS     : 1。
 + DEFAULT : 0,1
 
 
@@ -733,13 +736,14 @@ Events:
 直播源清晰度。
 
 清晰度编号，4K 20000，原画 10000，蓝光（杜比）401，蓝光 400，超清 250，高清 150，流畅 80
-+ FOUR_K: 4K。
-+ ORIGINAL  : 原画。
+
++ FOUR_K        : 4K。
++ ORIGINAL      : 原画。
 + BLU_RAY_DOLBY : 蓝光（杜比）。
-+ BLU_RAY   : 蓝光。
-+ ULTRA_HD  : 超清。
-+ HD: 高清。
-+ FLUENCY   : 流畅。
++ BLU_RAY       : 蓝光。
++ ULTRA_HD      : 超清。
++ HD            : 高清。
++ FLUENCY       : 流畅。
 
 
 

@@ -100,9 +100,9 @@ from bilibili_api import user
 相册类型
 
 + ALL : 全部。
-+ DRAW: 绘画。
-+ PHOTO: 摄影。
-+ DAILY: 日常。
++ DRAW : 绘画。
++ PHOTO : 摄影。
++ DAILY : 日常。
 
 
 
@@ -131,7 +131,7 @@ from bilibili_api import user
 
 + PUBDATE : 发布日期倒序。
 + FAVORITE: 收藏量倒序。
-+ VIEW: 阅读量倒序。
++ VIEW    : 阅读量倒序。
 
 
 
@@ -146,7 +146,7 @@ from bilibili_api import user
 
 + PUBDATE : 上传日期倒序。
 + FAVORITE: 收藏量倒序。
-+ VIEW: 播放量倒序。
++ VIEW    : 播放量倒序。
 
 
 
@@ -159,10 +159,10 @@ from bilibili_api import user
 
 番剧追番状态类型。
 
-+ ALL: 全部
-+ WANT   : 想看
++ ALL        : 全部
++ WANT       : 想看
 + WATCHING   : 在看
-+ WATCHED: 已看
++ WATCHED    : 已看
 
 
 
@@ -206,9 +206,9 @@ from bilibili_api import user
 
 历史记录分类
 
-+ ALL  : 全部
++ ALL      : 全部
 + archive  : 稿件
-+ live : 直播
++ live     : 直播
 + article  : 专栏
 
 
@@ -223,7 +223,7 @@ from bilibili_api import user
 medialist排序顺序。
 
 + PUBDATE : 上传日期。
-+ PLAY: 播放量。
++ PLAY    : 播放量。
 + COLLECT : 收藏量。
 
 
@@ -266,12 +266,12 @@ medialist排序顺序。
 
 用户关系操作类型。
 
-+ SUBSCRIBE : 关注。
-+ UNSUBSCRIBE   : 取关。
++ SUBSCRIBE         : 关注。
++ UNSUBSCRIBE       : 取关。
 + SUBSCRIBE_SECRETLY: 悄悄关注。已失效
-+ BLOCK : 拉黑。
-+ UNBLOCK   : 取消拉黑。
-+ REMOVE_FANS   : 移除粉丝。
++ BLOCK             : 拉黑。
++ UNBLOCK           : 取消拉黑。
++ REMOVE_FANS       : 移除粉丝。
 
 
 
@@ -855,7 +855,7 @@ medialist排序顺序。
 
 + PUBDATE : 上传日期倒序。
 + FAVORITE: 收藏量倒序。
-+ VIEW: 播放量倒序。
++ VIEW    : 播放量倒序。
 
 
 

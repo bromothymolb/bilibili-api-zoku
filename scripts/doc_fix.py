@@ -9,230 +9,14 @@ import os
 import re
 import sys
 
+from .doc_gen import parse
+
 sys.path.append(os.path.join(os.path.abspath(os.path.dirname(__file__)), ".."))
 
 # os.system("stubgen bilibili_api -o .doc_cache/ --include-docstrings")
 
 all_funcs = []
 funcs = []
-
-ignored_classes = [
-    "AnchorNode",
-    "ArticleCardNode",
-    "BangumiCardNode",
-    "BlockquoteNode",
-    "BoldNode",
-    "CodeNode",
-    "ColorNode",
-    "ComicCardNode",
-    "DelNode",
-    "FontSizeNode",
-    "HeadingNode",
-    "ImageNode",
-    "ItalicNode",
-    "LatexNode",
-    "LiNode",
-    "LiveCardNode",
-    "MusicCardNode",
-    "Node",
-    "OlNode",
-    "ParagraphNode",
-    "SeparatorNode",
-    "ShopCardNode",
-    "TextNode",
-    "UlNode",
-    "UnderlineNode",
-    "VideoCardNode",
-    "node_info",
-    "ServerThreadModel",
-    "Datapack",
-]
-
-ignored_funcs = [
-    "export_ass_from_json",
-    "export_ass_from_srt",
-    "export_ass_from_xml",
-    "json2srt",
-    "app_signature",
-    "encrypt",
-    "id_",
-    "photo",
-    "is_destroy",
-    "login_key",
-    "make_qrcode",
-    "parse_credential_url",
-    "parse_tv_resp",
-    "photo",
-    "qrcode_image",
-    "update_qrcode_data",
-    "update_tv_qrcode_data",
-    "verify_tv_login_status",
-    "generate_clickPosition",
-    "BAD_FOR_YOUNGS",
-    "CANNOT_CHARGE",
-    "CLICKBAIT",
-    "COOPERATE_INFRINGEMENT",
-    "COVID_RUMORS",
-    "DANGEROUS",
-    "DISCOMFORT",
-    "GAMBLED_SCAMS",
-    "ILLEGAL",
-    "ILLEGAL_OTHER",
-    "ILLEGAL_POPULARIZE",
-    "ILLEGAL_URL",
-    "INFRINGEMENT",
-    "LEAD_WAR",
-    "OTHER",
-    "OTHER_NEW",
-    "PERSONAL_ATTACK",
-    "POLITICAL_RUMORS",
-    "PRON",
-    "SOCIAL_RUMORS",
-    "UNREAL_EVENT",
-    "VIDEO_INFRINGEMENT",
-    "VIOLENT",
-    "VULGAR",
-    "set_aid_e",
-    "set_bvid_e",
-    "get_geetest",
-    "get_safecenter_geetest",
-    "login_with_key",
-    "parse_online_rank_v3",
-    "parse_interact_word_v2",
-    "parse_user_info",
-]
-
-ignored_vars = [
-    "API",
-    "API_USER",
-    "API_video",
-    "countries_list",
-    "cheese_video_meta_cache",
-    "fes_id",
-    "credential",
-    "API_rank",
-    "DATAPACK_TYPE_HEARTBEAT",
-    "DATAPACK_TYPE_HEARTBEAT_RESPONSE",
-    "DATAPACK_TYPE_NOTICE",
-    "DATAPACK_TYPE_VERIFY",
-    "DATAPACK_TYPE_VERIFY_SUCCESS_RESPONSE",
-    "PROTOCOL_VERSION_BROTLI_JSON",
-    "PROTOCOL_VERSION_HEARTBEAT",
-    "PROTOCOL_VERSION_RAW_JSON",
-    "STATUS_CLOSED",
-    "STATUS_CLOSING",
-    "STATUS_CONNECTING",
-    "STATUS_ERROR",
-    "STATUS_ESTABLISHED",
-    "STATUS_INIT",
-    "err_reason",
-    "logger",
-    "max_retry",
-    "retry_after",
-    "room_display_id",
-    "app_signature",
-    "captcha_key",
-    "check_url",
-    "geetest_result",
-    "tmp_token",
-    "yarl_url",
-    "captcha_id",
-    "API_audio",
-    "API_ARTICLE",
-    "handler",
-    "logger",
-    "LINES_INFO",
-    "watch_room_bangumi_cache",
-]
-
-
-def parse(data: dict, indent: int = 0, root: bool = False):
-    if data.get("cross_ref") and not root:
-        return
-    elif data.get("cross_ref"):
-        file = "/".join(data["cross_ref"].split(".")[:-1])
-        jsons = json.load(
-            open(
-                os.path.join(
-                    ".mypy_cache", f"{sys.version_info.major}.{sys.version_info.minor}"
-                )
-                + "/"
-                + file
-                + ".data.json"
-            )
-        )
-        parse(jsons["names"][data["cross_ref"].split(".")[-1]], indent, root=True)
-        return
-    if data["node"][".class"] == "TypeInfo":
-        if data["node"]["defn"]["name"] in ignored_classes:
-            return
-        if not data["node"]["defn"]["name"].startswith("Request"):
-            funcs.append(
-                [
-                    data["node"]["defn"]["name"],
-                    data["node"]["defn"]["fullname"],
-                    "class",
-                    data["node"]["bases"][0],
-                    indent,
-                ]
-            )
-            if data["node"]["metadata"].get("dataclass"):
-                funcs[-1][3] = "@dataclasses.dataclass"
-    elif data["node"][".class"] == "FuncDef":
-        if data["node"]["name"] in ignored_funcs:
-            return
-        funcs.append(
-            [
-                data["node"]["name"],
-                data["node"]["fullname"],
-                "async def" if "is_coroutine" in data["node"]["flags"] else "def",
-                "",
-                indent,
-            ]
-        )
-    elif (
-        data["node"][".class"] == "Decorator"
-        and "is_static" in data["node"]["func"]["flags"]
-    ):
-        funcs.append(
-            [
-                data["node"]["func"]["name"],
-                data["node"]["func"]["fullname"],
-                (
-                    "async def"
-                    if "is_coroutine" in data["node"]["func"]["flags"]
-                    else "def"
-                ),
-                "@staticmethod",
-                indent,
-            ]
-        )
-    elif (
-        data["node"][".class"] == "Var"
-        and "is_suppressed_import" not in data["node"]["flags"]
-    ):
-        if data["node"]["name"] in ignored_vars:
-            return
-        if indent != 1:
-            return
-        funcs.append(
-            (
-                data["node"]["name"],
-                data["node"]["fullname"],
-                "const",
-                "",
-                indent,
-            )
-        )
-    else:
-        return
-    if "names" not in data["node"]:
-        return
-    if data["node"]["bases"][0] == "enum.Enum":
-        return
-    for key in data["node"]["names"].keys():
-        if (not str(key).startswith("_") and key != ".class") or str(key) == "__init__":
-            parse(data["node"]["names"][key], indent + 1)
 
 
 modules = os.listdir(
@@ -348,13 +132,20 @@ def handle_annotation(ty: type):
     ret = ret.replace("bilibili_api.utils.geetest.", "")
     ret = ret.replace("bilibili_api.utils.parse_link.", "")
     ret = ret.replace("bilibili_api.utils.picture.", "")
+    ret = ret.replace("bilibili_api.utils.logger.", "")
+    ret = ret.replace("bilibili_api.utils.high_level.", "")
+    ret = ret.replace("bilibili_api.utils.settings.", "")
+    ret = ret.replace("bilibili_api.utils.anti_spider.", "")
     ret = ret.replace("bilibili_api.", "")
     ret = ret.replace("typing.", "")
     ret = ret.replace("collections.abc.", "")
     return ret
 
 
-def handle_doc(doc: str, isp: inspect.Signature):
+def handle_doc(doc: str, sig: inspect.Signature):
+    spaces = 114514
+    for line in doc.split("\n"):
+        spaces = min(spaces, len(line) - len(line.lstrip()))
     doc = doc.lstrip("\n")
     info = ""
     arginfos = {}
@@ -370,13 +161,14 @@ def handle_doc(doc: str, isp: inspect.Signature):
             if state == 0:
                 info += line + "\n"
             elif state == 1:
-                if line.strip() == "":
+                line = line.lstrip()
+                if line == "":
                     continue
                 if not line.startswith("    ") and line != "Return":
                     state = 3
                     continue
-                arginfo = line.split(":")[1].lstrip()
-                argname = line.split("(")[0].strip()
+                arginfo = ":".join(line.split(":")[1:]).lstrip()
+                argname = line.split("(")[0].rstrip()
                 reg = re.compile(r"([Dd]efault[s]? to .*[\\.。])")
                 reg_no_comma = re.compile(r"([Dd]efault[s]? to .*)")
                 m1 = reg.findall(arginfo)
@@ -389,6 +181,7 @@ def handle_doc(doc: str, isp: inspect.Signature):
                         arginfo = arginfo.replace(m, "")
                 arginfos[argname] = arginfo
             elif state == 2:
+                line = line.lstrip()
                 ret += line + "\n"
                 state = 3
             else:

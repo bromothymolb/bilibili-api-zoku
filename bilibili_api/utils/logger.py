@@ -4,11 +4,12 @@ bilibili_api.utils.logger
 日志功能支持。提供标准库 logging 与第三方库 loguru 的支持。
 """
 
+from collections.abc import Callable
 import logging
+from typing import Any, Literal, overload
 
 from colorama import Fore
 
-from .AsyncEvent import AsyncEvent
 from .settings import bili_settings
 from .utils import loguru_apply_anti_tag
 
@@ -45,7 +46,7 @@ def AsyncEvent_log(namespace: str, msg: str, level: str, debug: bool) -> None:
         getattr(logger, level)(msg)
 
 
-class RequestLog(AsyncEvent):
+class RequestLog:
     def __init__(self) -> None:
         super().__init__()
         self.__on = False
@@ -58,17 +59,7 @@ class RequestLog(AsyncEvent):
             "WS_SEND",
             "WS_CLOSE",
         ]
-        self.__ignore_events: list[str] = []
-        self.add_event_listener("__ALL__", self.__handle_events)
-
-    def get_all_events(self) -> list[str]:
-        """
-        获取日志支持的所有默认事件列表
-
-        Returns:
-            list[str]: 日志支持的所有默认事件列表
-        """
-        return [
+        self.__all_events: list[str] = [
             "REQUEST",
             "RESPONSE",
             "WS_CREATE",
@@ -86,6 +77,152 @@ class RequestLog(AsyncEvent):
             "DO_POST_FILTER",
             "DELEGATE",
         ]
+        self.__handlers = {}
+        self.__ignore_events: list[str] = []
+        self.add_event_listener("__ALL__", self.__handle_events)
+
+    @overload
+    def add_event_listener(
+        self, name: Literal["__ALL__"], handler: Callable[[str, str, dict], Any]
+    ) -> None: ...
+
+    @overload
+    def add_event_listener(
+        self, name: Literal["__TASK_EXCEPTION__"], handler: Callable[[Exception], Any]
+    ) -> None: ...
+
+    @overload
+    def add_event_listener(
+        self, name: str, handler: Callable[[str, dict], Any]
+    ) -> None: ...
+
+    def add_event_listener(self, name: str, handler: Callable) -> None:
+        """
+        注册事件监听器。
+
+        ``` python
+        def handle_request(desc: str, data: dict) -> None:
+            # desc: 发起请求
+            # data: {'method': 'GET', 'url': 'https://api.bilibili.com/x/web-interface/zone', ...}
+            raise ApiException("测试抛出异常")
+
+        request_log.add_event_listener("REQUEST", handle_request)
+
+        def handle_all(name: str, desc: str, data: dict) -> None:
+            # name: REQUEST
+            # desc: 发起请求
+            # data: {'method': 'GET', 'url': 'https://api.bilibili.com/x/web-interface/zone', ...}
+            print(data)
+
+        request_log.add_event_listener("__ALL__", handle_all)
+
+        def handle_exception(exc: Exception) -> None:
+            # exc: ApiException("测试抛出异常")
+            print(exc)
+
+        request_log.add_event_listener("__TASK_EXCEPTION__", handle_exception)
+        ```
+
+        Args:
+            name (str): 事件名。
+            handler (Callable): 回调函数。
+        """
+        name = name.upper()
+        if name not in self.__handlers:
+            self.__handlers[name] = []
+        self.__handlers[name].append(handler)
+
+    @overload
+    def on(  # type: ignore
+        self, event_name: Literal["__ALL__"]
+    ) -> Callable[[Callable[[str, str, dict], Any]], Any]: ...
+
+    @overload
+    def on(
+        self, event_name: Literal["__TASK_EXCEPTION__"]
+    ) -> Callable[[Callable[[Exception], Any]], Any]: ...
+
+    @overload
+    def on(self, event_name: str) -> Callable[[Callable[[str, dict], Any]], Any]: ...
+
+    def on(self, event_name: str) -> Callable:
+        """
+        装饰器注册事件监听器。
+
+        ``` python
+        @request_log.on("REQUEST")
+        def handle_request(desc: str, data: dict) -> None:
+            # desc: 发起请求
+            # data: {'method': 'GET', 'url': 'https://api.bilibili.com/x/web-interface/zone', ...}
+            raise ApiException("测试抛出异常")
+
+        @request_log.on("__ALL__")
+        def handle_all(name: str, desc: str, data: dict) -> None:
+            # name: REQUEST
+            # desc: 发起请求
+            # data: {'method': 'GET', 'url': 'https://api.bilibili.com/x/web-interface/zone', ...}
+            print(data)
+
+        @request_log.on("__TASK_EXCEPTION__")
+        def handle_exception(exc: Exception) -> None:
+            # exc: ApiException("测试抛出异常")
+            print(exc)
+        ```
+
+        Args:
+            event_name (str): 事件名。
+
+        Returns:
+            Callable: 装饰器。
+        """
+
+        def decorator(func: Callable):
+            self.add_event_listener(event_name, func)
+            return func
+
+        return decorator
+
+    def remove_all_event_listener(self) -> None:
+        """
+        移除所有事件监听函数
+        """
+        self.__handlers = {}
+
+    def remove_event_listener(self, name: str, handler: Callable) -> bool:
+        """
+        移除事件监听函数。
+
+        Args:
+            name (str): 事件名。
+            handler (Callable): 要移除的函数。
+
+        Returns:
+            bool: 是否移除成功。
+        """
+        name = name.upper()
+        if name in self.__handlers:
+            if handler in self.__handlers[name]:
+                self.__handlers[name].remove(handler)
+                return True
+        return False
+
+    def get_all_events(self) -> list[str]:
+        """
+        获取日志支持的所有默认事件列表
+
+        Returns:
+            list[str]: 日志支持的所有默认事件列表
+        """
+        return self.__all_events.copy()
+
+    def register_event(self, name: str) -> None:
+        """
+        注册请求日志事件
+
+        Args:
+            name (str): 请求日志事件
+        """
+        self.__all_events.append(name)
 
     def get_on_events(self) -> list[str]:
         """
@@ -141,6 +278,26 @@ class RequestLog(AsyncEvent):
         """
         self.__on = status
 
+    def dispatch(self, name: str, *args) -> None:
+        """
+        异步发布事件。
+
+        Args:
+            name (str): 事件名。
+            args (Any): 要传递给函数的参数。 *args 传递。
+        """
+        name = name.upper()
+        if name in self.__handlers:
+            for func in self.__handlers[name]:
+                try:
+                    func(*args)
+                except Exception as e:
+                    if name == "__TASK_EXCEPTION__":
+                        raise e
+                    self.dispatch("__TASK_EXCEPTION__", e)
+        if name != "__ALL__" and name != "__TASK_EXCEPTION__":
+            self.dispatch("__ALL__", name, *args)
+
     def __log(self, event: str) -> None:
         colors = {
             Fore.GREEN: ("<green>", "</green>"),
@@ -171,53 +328,51 @@ class RequestLog(AsyncEvent):
                 event = event.replace(str(color), "")
             get_logging_loggers("bilibili-api-request", logging.DEBUG).debug(event)
 
-    def __handle_events(self, data: dict) -> None:
-        evt = data["name"]
-        desc, real_data = data["data"]
+    def __handle_events(self, name: str, desc: str, data: dict) -> None:
         if (
             self.__on
-            and evt in self.get_on_events()
-            and evt not in self.get_ignore_events()
+            and name in self.get_on_events()
+            and name not in self.get_ignore_events()
         ):
-            if evt == "ANTI_SPIDER":
-                self.__log(f"{Fore.GREEN}【{desc}】{Fore.GREEN} {real_data['msg']}")
+            if name == "ANTI_SPIDER":
+                self.__log(f"{Fore.GREEN}【{desc}】{Fore.GREEN} {data['msg']}")
                 return
-            elif not real_data.get("act_id"):
-                self.__log(f"{Fore.GREEN}【{desc}】{Fore.GREEN} {real_data}")
+            elif not data.get("act_id"):
+                self.__log(f"{Fore.GREEN}【{desc}】{Fore.GREEN} {data}")
                 return
-            act_id = real_data.pop("act_id")
-            client = real_data.pop("client")
-            instance = real_data.pop("instance")
-            loop = real_data.pop("event_loop")
+            act_id = data.pop("act_id")
+            client = data.pop("client")
+            instance = data.pop("instance")
+            loop = data.pop("event_loop")
             backend = {"AsyncIOBackend": "asyncio", "TrioBackend": "trio"}[
                 loop.backend_class.__name__
             ]
             info_str = f"#{Fore.CYAN}{act_id}{Fore.CYAN} {Fore.MAGENTA}[{client} / {instance}]{Fore.MAGENTA} {Fore.YELLOW}<{backend} @ {hash(loop)}>{Fore.YELLOW} "
             log_str = ""
             middle_str = " "
-            if evt.startswith("WS_"):
-                ws_id = real_data.pop("id")
+            if name.startswith("WS_"):
+                ws_id = data.pop("id")
                 middle_str += f"WS #{ws_id} "
-            elif evt.startswith("DWN_"):
-                dwn_id = real_data.pop("id")
+            elif name.startswith("DWN_"):
+                dwn_id = data.pop("id")
                 middle_str += f"DWN #{dwn_id} "
-            elif evt == "DO_PRE_FILTER":
-                action = real_data.pop("action")
-                name = real_data.pop("name")
-                priority = real_data.pop("priority")
-                filter_id = real_data.pop("filter_id")
+            elif name == "DO_PRE_FILTER":
+                action = data.pop("action")
+                name = data.pop("name")
+                priority = data.pop("priority")
+                filter_id = data.pop("filter_id")
                 log_str = f"{Fore.GREEN}{desc}{Fore.GREEN} [{Fore.CYAN}{filter_id}{Fore.CYAN}] {action}() <- {name} / {Fore.CYAN}{priority}{Fore.CYAN}"
-            elif evt == "DO_POST_FILTER":
-                action = real_data.pop("action")
-                name = real_data.pop("name")
-                priority = real_data.pop("priority")
-                filter_id = real_data.pop("filter_id")
+            elif name == "DO_POST_FILTER":
+                action = data.pop("action")
+                name = data.pop("name")
+                priority = data.pop("priority")
+                filter_id = data.pop("filter_id")
                 log_str = f"{Fore.GREEN}{desc}{Fore.GREEN} [{Fore.CYAN}{filter_id}{Fore.CYAN}] {action}() <- {name} / {Fore.CYAN}{priority}{Fore.CYAN}"
-            elif evt == "DELEGATE":
-                destination_client = real_data.pop("destination_client")
-                destination_instance = real_data.pop("destination_instance")
+            elif name == "DELEGATE":
+                destination_client = data.pop("destination_client")
+                destination_instance = data.pop("destination_instance")
                 log_str = f"{Fore.GREEN}{desc}{Fore.GREEN} --> [{Fore.MAGENTA}{destination_client} / {destination_instance}{Fore.MAGENTA}]"
-            log_str = log_str or f"{Fore.GREEN}{desc}{Fore.GREEN}: {real_data}"
+            log_str = log_str or f"{Fore.GREEN}{desc}{Fore.GREEN}: {data}"
             self.__log(info_str + middle_str + log_str)
 
 

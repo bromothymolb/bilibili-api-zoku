@@ -65,9 +65,9 @@ class AlbumType(Enum):
     相册类型
 
     + ALL : 全部。
-    + DRAW: 绘画。
-    + PHOTO    : 摄影。
-    + DAILY    : 日常。
+    + DRAW : 绘画。
+    + PHOTO : 摄影。
+    + DAILY : 日常。
     """
 
     ALL = "all"

@@ -431,6 +431,10 @@ from bilibili_api import bangumi
 **Returns:** `list['Danmaku']`:  弹幕列表
 
 
+- 1. 段数可以通过视频时长计算。6分钟为一段。
+- 2. `from_seg` 和 `to_seg` 仅对 `date == None` 的时候有效果。
+- 3. 例：取前 `12` 分钟的弹幕：`from_seg=0, to_seg=1`
+
 
 
 ### async def get_download_url()
@@ -582,12 +586,12 @@ from bilibili_api import bangumi
   "background_color": "str: 背景颜色，默认 #9C27B0",
   "Stroke": "str: 描边，目前作用未知，默认为 none",
   "body": [
-{
-  "from": "int: 字幕开始时间（秒）",
-  "to": "int: 字幕结束时间（秒）",
-  "location": "int: 字幕位置，默认为 2",
-  "content": "str: 字幕内容"
-}
+    {
+      "from": "int: 字幕开始时间（秒）",
+      "to": "int: 字幕结束时间（秒）",
+      "location": "int: 字幕位置，默认为 2",
+      "content": "str: 字幕内容"
+    }
   ]
 }
 ```

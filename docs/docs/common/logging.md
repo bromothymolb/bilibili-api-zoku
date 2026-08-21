@@ -53,7 +53,9 @@ request_log.set_ignore_events(["API_REQUEST", "API_RESPONSE"]) # 去除 Api 类�
 
 可以通过 `request_log.get_all_events()` 获取所有的信息类型。
 
-模块日志输出基于第三方库 [Loguru](https://loguru.readthedocs.io/en/stable/) 实现，可以使用 Loguru 的功能对模块日志输出加以设置。
+可以使用 `get_logger` 获取模块使用的 `logging.Logger` 实例。有了 `logging.Logger` 或 `loguru.logger` 之后就可以自定义日志输出样式了。
+
+下面是 Loguru 自定义日志输出格式的示例：
 
 ``` python
 from loguru import logger
@@ -72,11 +74,11 @@ logger.add("test.log", format=log_format)  # 将日志输出到文件
 
 ### 请求日志是如何工作的？
 
-`request_log` 本质为 `AsyncEvent`，即发布-订阅模式异步事件类，因此可以通过 `AsyncEvent.on` 设置相关事件发送后的回调。
+`request_log` 底层上接近 `AsyncEvent`，即发布-订阅模式异步事件类，虽然并未保留异步功能，但仍然可以通过 `AsyncEvent.on` 设置相关事件发送后的回调。
 
-> `request_log` 比较特殊，其**不支持异步函数回调**，也不支持运行**阻塞同步函数**。
+> `request_log` 未保留异步功能，因此其**不支持异步函数回调**，也不支持运行**阻塞同步函数**。
 
-在模块中，日志输出信息先经过 `AsyncEvent.dispatch` 发送，再传入到模块的默认回调函数 (`request_log.__handle_events`) 中，回调函数将调用 `loguru.logger` 输出日志信息。
+在模块中，日志输出信息先经过 `request_log.dispatch` 发送，再传入到模块的默认回调函数 (`request_log.__handle_events`) 中，回调函数将调用 `logging.Logger` 或 `loguru.logger` 输出日志信息。
 
 实际上，`set_on` 设置为 `False` 只会禁用模块的默认回调函数，`set_on_events` 和 `set_ignore_events` 的过滤也是在模块的默认回调函数中进行。因此，对这些选项进行任何的设置，都不会影响到 `AsyncEvent` 与其他回调函数的正常发布-订阅流程。
 
@@ -94,7 +96,7 @@ def log(event: dict) -> None:
 
 模块以下异步事件类提供日志：`live.LiveDanmaku` `session.Session` `video.VideoOnlineMonitor`，这些日志也同时支持 logging 和 loguru。以上三个类均提供初始化参数 `debug`，用于设置是否开启 `debug` 信息。
 
-如果使用 logging，以上三个类将使用名称为 `str(AsyncEvent())` 的日志实例。例如，`dm = live.LiveDanmaku(xxx)` 的日志实例名称为 `str(dm)`，即 `LiveDanmaku(LiveRoom(room_display_id=xxx, real_id=yyy))`，这个名称用于传入 `logging.getLogger` 函数，可获取对应的日志实例。模块将设置日志实例的日志等级，以过滤掉 `DEBUG` 信息，如果参数设置为 `debug=False`。
+如果使用 logging，以上三个类将使用名称为 `str(AsyncEvent())` 的日志实例。例如，`dm = live.LiveDanmaku(xxx)` 的日志实例名称为 `str(dm)`，即 `LiveDanmaku(LiveRoom(room_display_id=xxx, real_id=yyy))`，这个名称用于传入 `logging.getLogger` 函数，可获取对应的日志实例。或者，使用 `get_logger` 方法亦可获取 `logging.Logger` 实例。模块将设置日志实例的日志等级，以过滤掉 `DEBUG` 信息，如果参数设置为 `debug=False`。
 
 如果使用 loguru，模块将在日志信息前添加前缀，即 `str(dm)`，用于和其他消息区分，此时模块过滤 `DEBUG` 信息的方法是，检查 `debug` 参数，若其为 `False`，则不会调用 `logger.debug`。
 

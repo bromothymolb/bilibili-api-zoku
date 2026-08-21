@@ -179,12 +179,12 @@ def parse(data: dict, indent: int = 0, root: bool = False):
             )
             if data["node"]["metadata"].get("dataclass"):
                 funcs[-1][3] = "@dataclasses.dataclass"
-    elif data["node"][".class"] == "FuncDef":
-        if data["node"]["name"] in ignored_funcs:
+    elif data["node"][".class"] in ["OverloadedFuncDef", "FuncDef"]:
+        if data["node"]["fullname"].split(".")[-1] in ignored_funcs:
             return
         funcs.append(
             [
-                data["node"]["name"],
+                data["node"]["fullname"].split(".")[-1],
                 data["node"]["fullname"],
                 "async def" if "is_coroutine" in data["node"]["flags"] else "def",
                 "",
@@ -398,7 +398,9 @@ all_funcs.append(funcs)
 def parse_docstring(doc: str):
     if not doc:
         doc = ""
-    doc = doc.replace("    ", "")
+    spaces = 114514
+    for line in doc.split("\n"):
+        spaces = min(spaces, len(line) - len(line.lstrip()))
     doc = doc.lstrip("\n")
     info = ""
     table = []
@@ -406,6 +408,7 @@ def parse_docstring(doc: str):
     note = ""
     state = 0
     for line in doc.split("\n"):
+        line = line[spaces:]
         if line.startswith("Attribute") or line.startswith("Args"):
             state = 1
         elif line.startswith("Return"):
@@ -414,6 +417,7 @@ def parse_docstring(doc: str):
             if state == 0:
                 info += line + "\n"
             elif state == 1:
+                line = line.lstrip()
                 if line == "":
                     continue
                 arginfo = ":".join(line.split(":")[1:]).lstrip()
@@ -433,6 +437,7 @@ def parse_docstring(doc: str):
                 # assert argtype != ""
                 table.append((argname, argtype, arginfo))
             elif state == 2:
+                line = line.lstrip()
                 ret += line + "\n"
                 state = 3
             else:
@@ -457,18 +462,22 @@ def parse_docstring(doc: str):
 def parse_docstring1(doc: str):
     if not doc:
         doc = ""
-    doc = doc.replace("    ", "")
+    spaces = 114514
+    for line in doc.split("\n"):
+        spaces = min(spaces, len(line) - len(line.lstrip()))
     doc = doc.lstrip("\n")
     info = ""
     table = []
     state = 0
     for line in doc.split("\n"):
+        line = line[spaces:]
         if line.startswith("Attribute") or line.startswith("Args"):
             state = 1
         else:
             if state == 0:
                 info += line + "\n"
             elif state == 1:
+                line = line.lstrip()
                 if line == "":
                     continue
                 if line.find(":") == -1:

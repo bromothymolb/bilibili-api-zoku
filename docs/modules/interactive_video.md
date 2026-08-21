@@ -152,9 +152,9 @@ from bilibili_api import interactive_video
 |xxx|----o (TEXT_LEFT)
 -----
 
- -----
+     -----
 o----|xxx| (TEXT_RIGHT)
- -----
+     -----
 
 ----------
 |XXXXXXXX| (DEFAULT)
@@ -352,7 +352,6 @@ o----|xxx| (TEXT_RIGHT)
 
 导出情节树，导出后可使用 `InteractiveEmulator` 进行交互。
 
-字段：
 - `skin`: `dict` 按钮样式相关
 - `nodes`: `dict[str, dict]` 包含所有节点的信息。键为 node_id 对应字符串。
 - `root`: `int` 根节点的 ID
@@ -656,21 +655,21 @@ o----|xxx| (TEXT_RIGHT)
 - `title` (`str`: 标题)
 - `cid` (`int`: CID)
 - `sub` (`list`: 子节点列表)
-- `text` (`str`: 按钮文字)
-- `align` (`int`: 按钮文字相对于定位的位置，有上左下右中五种，可以参考 `interactive_video.InteractiveButtonAlign`，里面有详细注释)
-- `pos` (`list[int]`: 按钮位置信息 (如果所有按钮都照正常布局，那么此数据的值为 `[null, null]`))
-- `0`: X 坐标
-- `1`: Y 坐标
-- `condition` (`str`: 节点跳转必须符合的表达式，默认为 `""`。为 `javascript` 语言。主要作用为实现随机跳转。)
-- `jump_type` (`int`: 跳转方式，有直接跳转和选择跳转两种，可查看 `interactive_video.InteractiveJumpingType`)
-- `is_default` (`bool`: 是否为默认节点，如果是直接跳转则会跳转至默认节点，或者是定时选择后直接跳转至默认节点(定时选择后直接跳转目前不支持))
-- `command` (`str`: 跳转成功后需要对变量做的操作。为 `javascript` 语言。)
+    - `text` (`str`: 按钮文字)
+    - `align` (`int`: 按钮文字相对于定位的位置，有上左下右中五种，可以参考 `interactive_video.InteractiveButtonAlign`，里面有详细注释)
+    - `pos` (`list[int]`: 按钮位置信息 (如果所有按钮都照正常布局，那么此数据的值为 `[null, null]`))
+        - `0`: X 坐标
+        - `1`: Y 坐标
+    - `condition` (`str`: 节点跳转必须符合的表达式，默认为 `""`。为 `javascript` 语言。主要作用为实现随机跳转。)
+    - `jump_type` (`int`: 跳转方式，有直接跳转和选择跳转两种，可查看 `interactive_video.InteractiveJumpingType`)
+    - `is_default` (`bool`: 是否为默认节点，如果是直接跳转则会跳转至默认节点，或者是定时选择后直接跳转至默认节点(定时选择后直接跳转目前不支持))
+    - `command` (`str`: 跳转成功后需要对变量做的操作。为 `javascript` 语言。)
 - `vars` (`list[dict]`: 初始化时的变量设置)
-- `name` (`str`: 变量名)
-- `id` (`str`: 变量 id，为变量在 `command` 和 `condition` 中出现时使用的变量名)
-- `value` (`int`: 变量数值)
-- `show` (`bool`: 变量是否展示，有的变量需要时刻展示给观看者，例如 `循环编号`, `分数` 等)
-- `random` (`bool`: 变量是否随机值。随机变量配上跳转公式是实现随机跳转的重要部分，这里说明：随机值取值范围为 `0-100`。)
+    - `name` (`str`: 变量名)
+    - `id` (`str`: 变量 id，为变量在 `command` 和 `condition` 中出现时使用的变量名)
+    - `value` (`int`: 变量数值)
+    - `show` (`bool`: 变量是否展示，有的变量需要时刻展示给观看者，例如 `循环编号`, `分数` 等)
+    - `random` (`bool`: 变量是否随机值。随机变量配上跳转公式是实现随机跳转的重要部分，这里说明：随机值取值范围为 `0-100`。)
 
 
 
@@ -687,7 +686,7 @@ o----|xxx| (TEXT_RIGHT)
 
 对下一节点的跳转的方式
 
-- ASK: 选择
+- ASK    : 选择
 - DEFAULT: 跳转到默认节点
 - READY  : 选择(只有一个选择)
 

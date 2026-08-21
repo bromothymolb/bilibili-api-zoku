@@ -41,13 +41,13 @@ from bilibili_api import session
 事件参数:
 + receiver_id:   收信人 UID
 + receiver_type: 收信人类型，1: 私聊, 2: 应援团通知, 3: 应援团
-+ sender_uid:发送人 UID
-+ talker_id: 对话人 UID
-+ msg_seqno: 事件 Seqno
-+ msg_type:  事件类型
-+ msg_key:   事件唯一编号
-+ timestamp: 事件时间戳
-+ content:   事件内容
++ sender_uid:    发送人 UID
++ talker_id:     对话人 UID
++ msg_seqno:     事件 Seqno
++ msg_type:      事件类型
++ msg_key:       事件唯一编号
++ timestamp:     事件时间戳
++ content:       事件内容
 
 
 
@@ -71,14 +71,14 @@ from bilibili_api import session
 
 事件类型
 
-- TEXT:   纯文字消息
-- PICTURE:图片消息
-- WITHDRAW:   撤回消息
+- TEXT:           纯文字消息
+- PICTURE:        图片消息
+- WITHDRAW:       撤回消息
 - GROUPS_PICTURE: 应援团图片，但似乎不常触发，一般使用 PICTURE 即可
-- SHARE_VIDEO:分享视频
-- NOTICE: 系统通知
+- SHARE_VIDEO:    分享视频
+- NOTICE:         系统通知
 - PUSHED_VIDEO:   UP主推送的视频
-- WELCOME:新成员加入应援团欢迎
+- WELCOME:        新成员加入应援团欢迎
 
 
 

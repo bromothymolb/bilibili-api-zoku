@@ -85,9 +85,9 @@ from bilibili_api import search
 课程搜索排序类型
 
 + RECOMMEND: 综合
-+ SELL : 销量最高
-+ NEW  : 最新上架
-+ CHEEP: 售价最低
++ SELL     : 销量最高
++ NEW      : 最新上架
++ CHEEP    : 售价最低
 
 
 

@@ -408,7 +408,6 @@ cid 和 page_index 至少提供其中一个，其中 cid 优先级最高
 **Returns:** `list[Danmaku]`:  Danmaku 类的列表。
 
 
-注意：
 - 1. 段数可以通过视频时长计算。6分钟为一段。
 - 2. `from_seg` 和 `to_seg` 仅对 `date == None` 的时候有效果。
 - 3. 例：取前 `12` 分钟的弹幕：`from_seg=0, to_seg=1`
@@ -912,12 +911,12 @@ page_index 和 cid 至少提供其中一个，其中 cid 优先级最高
   "background_color": "str: 背景颜色，默认 #9C27B0",
   "Stroke": "str: 描边，目前作用未知，默认为 none",
   "body": [
-{
-  "from": "int: 字幕开始时间（秒）",
-  "to": "int: 字幕结束时间（秒）",
-  "location": "int: 字幕位置，默认为 2",
-  "content": "str: 字幕内容"
-}
+    {
+      "from": "int: 字幕开始时间（秒）",
+      "to": "int: 字幕结束时间（秒）",
+      "location": "int: 字幕位置，默认为 2",
+      "content": "str: 字幕内容"
+    }
   ]
 }
 ```
@@ -1404,11 +1403,11 @@ r = video.VideoOnlineMonitor("BV1Bf4y1Q7QP")
 # 装饰器方法注册事件监听器
 @r.on("ONLINE")
 async def handler(data):
-print(data)
+    print(data)
 
 # 函数方法注册事件监听器
 async def handler2(data):
-print(data)
+    print(data)
 
 r.add_event_listener("ONLINE", handler2)
 
@@ -1418,11 +1417,11 @@ sync(r.connect())
 Extends: AsyncEvent
 
 Events:
-ONLINE：在线人数更新。  CallbackData: dict。
-DANMAKU：   收到实时弹幕。  CallbackData: Danmaku。
-DISCONNECTED：  正常断开连接。  CallbackData: None。
-ERROR:  发生错误。 CallbackData: None。
-CONNECTED:  成功连接。 CallbackData: None。
+    ONLINE：        在线人数更新。  CallbackData: dict。
+    DANMAKU：       收到实时弹幕。  CallbackData: Danmaku。
+    DISCONNECTED：  正常断开连接。  CallbackData: None。
+    ERROR:          发生错误。     CallbackData: None。
+    CONNECTED:      成功连接。     CallbackData: None。
 
 
 

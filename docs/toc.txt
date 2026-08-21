@@ -1258,10 +1258,16 @@ bilibili_api
  register_pre_filter
  remove_instance
  request_log
+  add_event_listener
+  dispatch
   get_all_events
   get_ignore_events
   get_on_events
   is_on
+  on
+  register_event
+  remove_all_event_listener
+  remove_event_listener
   set_ignore_events
   set_on
   set_on_events

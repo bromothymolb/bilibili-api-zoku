@@ -235,7 +235,6 @@ from bilibili_api import cheese
 **Returns:** `list[Danmaku]`:  Danmaku 类的列表。
 
 
-注意：
 - 1. 段数可以通过视频时长计算。6分钟为一段。
 - 2. `from_seg` 和 `to_seg` 仅对 `date == None` 的时候有效果。
 - 3. 例：取前 `12` 分钟的弹幕：`from_seg=0, to_seg=1`

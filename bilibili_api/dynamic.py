@@ -10,7 +10,7 @@ from enum import Enum
 import json
 import re
 import sys
-from typing import Any
+from typing import Any, Self
 
 import yaml
 
@@ -259,7 +259,7 @@ class BuildDynamic:
             dyn.set_send_time(send_time)
         return dyn
 
-    def add_plain_text(self, text: str) -> "BuildDynamic":
+    def add_plain_text(self, text: str) -> Self:
         """
         添加纯文本
 
@@ -274,7 +274,7 @@ class BuildDynamic:
         )
         return self
 
-    def add_at(self, uid: int = 0, uname: str = "") -> "BuildDynamic":
+    def add_at(self, uid: int = 0, uname: str = "") -> Self:
         """
         添加@用户，支持传入 用户名或 UID
 
@@ -294,7 +294,7 @@ class BuildDynamic:
         )
         return self
 
-    def add_emoji(self, emoji: str) -> "BuildDynamic":
+    def add_emoji(self, emoji: str) -> Self:
         """
         添加表情
 
@@ -313,7 +313,7 @@ class BuildDynamic:
         )
         return self
 
-    def add_vote(self, vote_id: int) -> "BuildDynamic":
+    def add_vote(self, vote_id: int) -> Self:
         """
         添加投票
 
@@ -332,7 +332,7 @@ class BuildDynamic:
         )
         return self
 
-    def add_image(self, image: list[Picture] | Picture) -> "BuildDynamic":
+    def add_image(self, image: list[Picture] | Picture) -> Self:
         """
         添加图片
 
@@ -347,7 +347,7 @@ class BuildDynamic:
         self.pics += image
         return self
 
-    def add_text(self, text: str) -> "BuildDynamic":
+    def add_text(self, text: str) -> Self:
         """
         添加文本 (可包括 at, 表情包)
 
@@ -457,7 +457,7 @@ class BuildDynamic:
                 )
         return self
 
-    def set_attach_card(self, oid: int) -> "BuildDynamic":
+    def set_attach_card(self, oid: int) -> Self:
         """
         设置直播预约
 
@@ -477,7 +477,7 @@ class BuildDynamic:
         }
         return self
 
-    def set_topic(self, topic_id: int) -> "BuildDynamic":
+    def set_topic(self, topic_id: int) -> Self:
         """
         设置话题
 
@@ -492,7 +492,7 @@ class BuildDynamic:
 
     def set_options(
         self, up_choose_comment: bool = False, close_comment: bool = False
-    ) -> "BuildDynamic":
+    ) -> Self:
         """
         设置选项
 
@@ -509,7 +509,7 @@ class BuildDynamic:
             self.options["close_comment"] = 1
         return self
 
-    def set_send_time(self, time: datetime) -> "BuildDynamic":
+    def set_send_time(self, time: datetime) -> Self:
         """
         设置发送时间
 

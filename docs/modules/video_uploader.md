@@ -77,23 +77,23 @@ meta 参数示例: (保留 video, cover, tid, aid 字段)
 
 ``` json
 {
-"title": "str: 标题",
-"copyright": "int: 是否原创，0 否 1 是",
-"tag": "标签. 用,隔开. ",
-"desc_format_id": "const int: 0",
-"desc": "str: 描述",
-"dynamic": "str: 动态信息",
-"interactive": "const int: 0",
-"new_web_edit": "const int: 1",
-"act_reserve_create": "const int: 0",
-"handle_staff": "const bool: false",
-"topic_grey": "const int: 1",
-"no_reprint": "int: 是否显示“未经允许禁止转载”. 0 否 1 是",
-"subtitles # 字幕设置": {
-"lan": "str: 字幕投稿语言，不清楚作用请将该项设置为空",
-"open": "int: 是否启用字幕投稿，1 or 0"
-},
-"web_os": "const int: 2"
+    "title": "str: 标题",
+    "copyright": "int: 是否原创，0 否 1 是",
+    "tag": "标签. 用,隔开. ",
+    "desc_format_id": "const int: 0",
+    "desc": "str: 描述",
+    "dynamic": "str: 动态信息",
+    "interactive": "const int: 0",
+    "new_web_edit": "const int: 1",
+    "act_reserve_create": "const int: 0",
+    "handle_staff": "const bool: false",
+    "topic_grey": "const int: 1",
+    "no_reprint": "int: 是否显示“未经允许禁止转载”. 0 否 1 是",
+    "subtitles # 字幕设置": {
+        "lan": "str: 字幕投稿语言，不清楚作用请将该项设置为空",
+        "open": "int: 是否启用字幕投稿，1 or 0"
+    },
+    "web_os": "const int: 2"
 }
 ```
 
@@ -134,18 +134,18 @@ meta 参数示例: (保留 video, cover, tid, aid 字段)
 
 视频稿件编辑事件枚举
 
-+ PRELOAD   : 加载数据前
++ PRELOAD       : 加载数据前
 + AFTER_PRELOAD : 加载成功
 + PRELOAD_FAILED: 加载失败
-+ PRE_COVER : 上传封面前
++ PRE_COVER     : 上传封面前
 + AFTER_COVER   : 上传封面后
 + COVER_FAILED  : 上传封面失败
-+ PRE_SUBMIT: 提交前
++ PRE_SUBMIT    : 提交前
 + AFTER_SUBMIT  : 提交后
 + SUBMIT_FAILED : 提交失败
-+ COMPLETED : 完成
-+ ABOTRED   : 停止
-+ FAILED: 失败
++ COMPLETED     : 完成
++ ABOTRED       : 停止
++ FAILED        : 失败
 
 
 
@@ -318,25 +318,25 @@ meta 参数示例：
 
 ```json
 {
-"title": "",
-"copyright": 1,
-"tid": 130,
-"tag": "",
-"desc_format_id": 9999,
-"desc": "",
-"recreate": -1,
-"dynamic": "",
-"interactive": 0,
-"act_reserve_create": 0,
-"no_disturbance": 0,
-"no_reprint": 1,
-"subtitle": {
-"open": 0,
-"lan": "",
-},
-"dolby": 0,
-"lossless_music": 0,
-"web_os": 1,
+    "title": "",
+    "copyright": 1,
+    "tid": 130,
+    "tag": "",
+    "desc_format_id": 9999,
+    "desc": "",
+    "recreate": -1,
+    "dynamic": "",
+    "interactive": 0,
+    "act_reserve_create": 0,
+    "no_disturbance": 0,
+    "no_reprint": 1,
+    "subtitle": {
+        "open": 0,
+        "lan": "",
+    },
+    "dolby": 0,
+    "lossless_music": 0,
+    "web_os": 1,
 }
 ```
 

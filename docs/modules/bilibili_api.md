@@ -227,10 +227,16 @@ from bilibili_api import ...
 - [def register\_pre\_filter()](#def-register\_pre\_filter)
 - [def remove\_instance()](#def-remove\_instance)
 - [var request\_log](#var-request\_log)
+  - [def add\_event\_listener()](#def-add\_event\_listener)
+  - [def dispatch()](#def-dispatch)
   - [def get\_all\_events()](#def-get\_all\_events)
   - [def get\_ignore\_events()](#def-get\_ignore\_events)
   - [def get\_on\_events()](#def-get\_on\_events)
   - [def is\_on()](#def-is\_on)
+  - [def on()](#def-on)
+  - [def register\_event()](#def-register\_event)
+  - [def remove\_all\_event\_listener()](#def-remove\_all\_event\_listener)
+  - [def remove\_event\_listener()](#def-remove\_event\_listener)
   - [def set\_ignore\_events()](#def-set\_ignore\_events)
   - [def set\_on()](#def-set\_on)
   - [def set\_on\_events()](#def-set\_on\_events)
@@ -1105,8 +1111,8 @@ Cookies 刷新错误。
 2. `blank` 为 `get_core_cookies` 字段全为 `None` 的凭据类，即 `Credential()`。可通过 `check_blank()` 检查凭据类是否为 `blank`。
 3. 其余凭据类均为 `normal`，即使传入 `sessdata="", bili_jct=""` 亦视为 `normal`。
 4. `get_xxx` 函数拆分为 `ensure_xxx` 和 `obtain_xxx`，接受凭据类传入。
-1. `ensure` 保证 `buvid` / `bili_ticket` 存在且可用，只有凭据类中的 `buvid` 和 `bili_ticket` 不可用才进行 `obtain`。`ensure` 在已有 cookies 情况下不会修改 cookies。
-2. `obtain` 总是发起网络请求获取新的 `buvid` / `bili_ticket`。
+    1. `ensure` 保证 `buvid` / `bili_ticket` 存在且可用，只有凭据类中的 `buvid` 和 `bili_ticket` 不可用才进行 `obtain`。`ensure` 在已有 cookies 情况下不会修改 cookies。
+    2. `obtain` 总是发起网络请求获取新的 `buvid` / `bili_ticket`。
 5. `blank` 或在 `global_persistence` 下，凭据类进行 `ensure` 或 `obtain` 将先 `ensure global` 或 `obtain global`，再复制 `global` 相关字段，称此复制过程为同步。
 6. `get_cookies` 中直接调用 `ensure`，不会直接调用 `obtain`。在禁用 `buvid` 与 `bili_ticket` 自动获取时只同步不请求。
 7. `ensure` 与 `obtain` 若没有传入凭据类，将创建一个新的 `blank` 作为凭据类带入。因此获取 `global` 字段直接不带参调用 `ensure`，更新 `global` 字段直接不带参调用 `obtain`。
@@ -3330,6 +3336,55 @@ async def handle(desc: str, data: dict) -> None:
 
 
 
+### def add_event_listener()
+
+注册事件监听器。
+
+``` python
+def handle_request(desc: str, data: dict) -> None:
+    # desc: 发起请求
+    # data: {'method': 'GET', 'url': 'https://api.bilibili.com/x/web-interface/zone', ...}
+    raise ApiException("测试抛出异常")
+
+request_log.add_event_listener("REQUEST", handle_request)
+
+def handle_all(name: str, desc: str, data: dict) -> None:
+    # name: REQUEST
+    # desc: 发起请求
+    # data: {'method': 'GET', 'url': 'https://api.bilibili.com/x/web-interface/zone', ...}
+    print(data)
+
+request_log.add_event_listener("__ALL__", handle_all)
+
+def handle_exception(exc: Exception) -> None:
+    # exc: ApiException("测试抛出异常")
+    print(exc)
+
+request_log.add_event_listener("__TASK_EXCEPTION__", handle_exception)
+```
+
+
+| name | type | description |
+| - | - | - |
+| `name` | `str` | 事件名。 |
+| `handler` | `Callable` | 回调函数。 |
+
+
+
+
+### def dispatch()
+
+异步发布事件。
+
+
+| name | type | description |
+| - | - | - |
+| `name` | `str` | 事件名。 |
+| `args` | `Any` | 要传递给函数的参数。 *args 传递。 |
+
+
+
+
 ### def get_all_events()
 
 获取日志支持的所有默认事件列表
@@ -3370,6 +3425,76 @@ async def handle(desc: str, data: dict) -> None:
 
 
 **Returns:** `bool`:  是否启用
+
+
+
+
+### def on()
+
+装饰器注册事件监听器。
+
+``` python
+@request_log.on("REQUEST")
+def handle_request(desc: str, data: dict) -> None:
+    # desc: 发起请求
+    # data: {'method': 'GET', 'url': 'https://api.bilibili.com/x/web-interface/zone', ...}
+    raise ApiException("测试抛出异常")
+
+@request_log.on("__ALL__")
+def handle_all(name: str, desc: str, data: dict) -> None:
+    # name: REQUEST
+    # desc: 发起请求
+    # data: {'method': 'GET', 'url': 'https://api.bilibili.com/x/web-interface/zone', ...}
+    print(data)
+
+@request_log.on("__TASK_EXCEPTION__")
+def handle_exception(exc: Exception) -> None:
+    # exc: ApiException("测试抛出异常")
+    print(exc)
+```
+
+
+| name | type | description |
+| - | - | - |
+| `event_name` | `str` | 事件名。 |
+
+**Returns:** `Callable`:  装饰器。
+
+
+
+
+### def register_event()
+
+注册请求日志事件
+
+
+| name | type | description |
+| - | - | - |
+| `name` | `str` | 请求日志事件 |
+
+
+
+
+### def remove_all_event_listener()
+
+移除所有事件监听函数
+
+
+
+
+
+
+### def remove_event_listener()
+
+移除事件监听函数。
+
+
+| name | type | description |
+| - | - | - |
+| `name` | `str` | 事件名。 |
+| `handler` | `Callable` | 要移除的函数。 |
+
+**Returns:** `bool`:  是否移除成功。
 
 
 
