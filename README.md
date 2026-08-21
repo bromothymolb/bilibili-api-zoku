@@ -9,9 +9,8 @@
 [![API 数量](https://img.shields.io/badge/API%20数量-400+-blue)][api.json]
 [![LICENSE](https://img.shields.io/badge/LICENSE-GPLv3+-red)][LICENSE]
 [![Python](https://img.shields.io/badge/python-3.11+-blue)](https://www.python.org)
-[![Stable Version](https://img.shields.io/github/v/release/bromothymolb/bilibili-api-zoku?label=stable)][pypi]
+[![Stable Version](https://img.shields.io/pypi/v/bilibili-api-zoku?label=stable)][pypi]
 [![Pre-release Version](https://img.shields.io/github/v/release/bromothymolb/bilibili-api-zoku?label=pre-release&include_prereleases&sort=semver)][pypi]
-[![STARS](https://img.shields.io/github/stars/bromothymolb/bilibili-api-zoku?color=yellow&label=Github%20Stars)][stargazers]
 [![Docs](https://img.shields.io/badge/Docs-Site-green)][docs]
 [![Docs](https://img.shields.io/badge/Docs-Github-green)][docs-github]
 
