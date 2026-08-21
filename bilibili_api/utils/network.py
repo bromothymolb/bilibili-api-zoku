@@ -56,9 +56,38 @@ else:
 T = TypeVar("T")
 
 
+# _BiliAPIClient
 client_func_cnt = 0
 client_lock = ThreadingLock()
 loops: set[EventLoopToken] = set()
+# client -> BiliAPIClient class
+sessions: dict[str, type["BiliAPIClient"]] = {}
+# client -> settings
+client_settings: dict[str, list] = {}
+client_defaults: dict[str, dict] = {}
+# client -> instance
+client_groups: dict[str, dict[str, "_BiliAPIClientGroup"]] = {}
+# filters
+__registered_filters: list[BiliFilter] = []
+# selected client / instance
+selected_client: MultiContextVariable[str] = MultiContextVariable("bili_client", "")
+selected_instance: MultiContextVariable[str] = MultiContextVariable("bili_instance", "")
+# global settings
+request_settings = RequestSettings()
+"""
+模块请求客户端的全局设置实例，继承自 `RequestSettings`。
+
+亦可通过 `get_settings` 获取此实例。
+
+相关使用方法请参考 `RequestSettings` 类文档。
+"""
+request_settings.__doc__ = """
+模块请求客户端的全局设置实例，继承自 `RequestSettings`。
+
+亦可通过 `get_settings` 获取此实例。
+
+相关使用方法请参考 `RequestSettings` 类文档。
+"""
 
 
 class _BiliAPIClient:
@@ -563,30 +592,6 @@ class _BiliAPIClientGroup:
                 await set_sess.close()
             else:
                 await to_thread.run_sync(from_thread.run, set_sess.close, loop)
-
-
-sessions: dict[str, type["BiliAPIClient"]] = {}  # client -> BiliAPIClient class
-client_settings: dict[str, list] = {}  # client -> settings
-client_defaults: dict[str, dict] = {}
-client_groups: dict[str, dict[str, _BiliAPIClientGroup]] = {}  # client -> instance
-__registered_filters: list[BiliFilter] = []  # filters
-selected_client: MultiContextVariable[str] = MultiContextVariable("bili_client", "")
-selected_instance: MultiContextVariable[str] = MultiContextVariable("bili_instance", "")
-request_settings = RequestSettings()  # default settings
-"""
-模块请求客户端的全局设置实例，继承自 `RequestSettings`。
-
-亦可通过 `get_settings` 获取此实例。
-
-相关使用方法请参考 `RequestSettings` 类文档。
-"""
-request_settings.__doc__ = """
-模块请求客户端的全局设置实例，继承自 `RequestSettings`。
-
-亦可通过 `get_settings` 获取此实例。
-
-相关使用方法请参考 `RequestSettings` 类文档。
-"""
 
 
 ##### client #####
