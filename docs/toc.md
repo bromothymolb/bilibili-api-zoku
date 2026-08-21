@@ -601,7 +601,6 @@
     - [async def generate\_qrcode()](./modules/login_v2.md#async-def-generate\_qrcode)
     - [def get\_credential()](./modules/login_v2.md#def-get\_credential)
     - [async def get\_qrcode\_picture()](./modules/login_v2.md#async-def-get\_qrcode\_picture)
-    - [async def get\_qrcode\_terminal()](./modules/login_v2.md#async-def-get\_qrcode\_terminal)
     - [def has\_done()](./modules/login_v2.md#def-has\_done)
     - [def has\_qrcode()](./modules/login_v2.md#def-has\_qrcode)
   - [class QrCodeLoginChannel()](./modules/login_v2.md#class-QrCodeLoginChannel)

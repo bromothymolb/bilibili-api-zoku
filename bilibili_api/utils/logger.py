@@ -16,8 +16,9 @@ from .utils import loguru_apply_anti_tag
 
 def get_logging_loggers(name: str, level: int) -> logging.Logger:
     logger = logging.getLogger(name)
-    logger.setLevel(level)
     if not logger.handlers:
+        # initialization
+        logger.setLevel(level)
         handler = logging.StreamHandler()
         handler.setFormatter(
             logging.Formatter(f"[{name}][%(asctime)s][%(levelname)s] %(message)s")

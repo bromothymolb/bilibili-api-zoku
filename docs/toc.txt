@@ -597,7 +597,6 @@ login_v2
   generate_qrcode
   get_credential
   get_qrcode_picture
-  get_qrcode_terminal
   has_done
   has_qrcode
  QrCodeLoginChannel
