@@ -19,7 +19,7 @@ from .utils.AsyncEvent import AsyncEvent
 from .utils.BytesReader import BytesReader
 from .utils.danmaku import Danmaku
 from .utils.high_level import Api, Credential, ensure_buvid, get_bili_headers
-from .utils.logger import AsyncEvent_log
+from .utils.logger import _AsyncEventLoggingSupport
 from .utils.models import BiliWsMsgType
 from .utils.network import get_client
 from .utils.utils import get_api
@@ -1374,7 +1374,7 @@ def parse_send_gift_v2(bt: bytes) -> dict:
     return ret
 
 
-class LiveDanmaku(AsyncEvent):
+class LiveDanmaku(AsyncEvent, _AsyncEventLoggingSupport):
     """
     Websocket 实时获取直播弹幕
 
@@ -1523,30 +1523,14 @@ class LiveDanmaku(AsyncEvent):
         self.room = LiveRoom(
             room_display_id=self.room_display_id, credential=self.credential
         )
-        self.__debug = debug
-        self.__log = log
+        self._debug = debug
+        self._log = log
 
     def __str__(self) -> str:
         return f"LiveDanmaku(room_display_id={self.room_display_id})"
 
     def __repr__(self) -> str:
         return f"LiveDanmaku(room_display_id={self.room_display_id})"
-
-    def _log_debug(self, msg: str) -> None:
-        if self.__log:
-            AsyncEvent_log(str(self), msg, "debug", self.__debug)
-
-    def _log_info(self, msg: str) -> None:
-        if self.__log:
-            AsyncEvent_log(str(self), msg, "info", self.__debug)
-
-    def _log_warning(self, msg: str) -> None:
-        if self.__log:
-            AsyncEvent_log(str(self), msg, "warning", self.__debug)
-
-    def _log_error(self, msg: str) -> None:
-        if self.__log:
-            AsyncEvent_log(str(self), msg, "error", self.__debug)
 
     def get_live_room(self) -> LiveRoom:
         """

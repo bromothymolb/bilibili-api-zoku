@@ -53,9 +53,56 @@ request_log.set_ignore_events(["API_REQUEST", "API_RESPONSE"]) # 去除 Api 类�
 
 可以通过 `request_log.get_all_events()` 获取所有的信息类型。
 
-可以使用 `get_logger` 获取模块使用的 `logging.Logger` 实例。有了 `logging.Logger` 或 `loguru.logger` 之后就可以自定义日志输出样式了。
+### 请求日志是如何工作的？
 
-下面是 Loguru 自定义日志输出格式的示例：
+`request_log` 底层上接近 `AsyncEvent`，即发布-订阅模式异步事件类，虽然并未保留异步功能，但仍然可以通过 `AsyncEvent.on` 设置相关事件发送后的回调。
+
+> `request_log` 未保留异步功能，因此其**不支持异步函数回调**，也不支持运行**阻塞同步函数**。
+
+在模块中，日志输出信息先经过 `request_log.dispatch` 发送，再传入到模块的默认回调函数 (`request_log.__handle_events`) 中，回调函数将调用 `logging.Logger` 或 `loguru.logger` 输出日志信息。
+
+实际上，`set_on` 设置为 `False` 只会禁用模块的默认回调函数的执行，`set_on_events` 和 `set_ignore_events` 的过滤也是在模块的默认回调函数中进行。因此，对这些选项进行任何设置，都不会影响到其他回调函数。
+
+例如，可以将 `set_on` 设为 `False` 后，绑定以下回调，会发现仍将有日志输出。
+
+``` python
+request_log.set_on(False)
+
+@request_log.on("__ALL__")
+def log(name: str, desc: str, data: dict) -> None:
+    print(name, data)
+```
+
+## 2. `AsyncEvent` 日志
+
+模块以下异步事件类提供日志：`live.LiveDanmaku` `session.Session` `video.VideoOnlineMonitor`，这些日志也同时支持 logging 和 loguru。以上三个类均提供初始化参数 `debug`，用于设置是否开启 `debug` 信息。
+
+如果使用 logging，模块将设置日志实例的日志等级，以过滤掉 `DEBUG` 信息，如果参数设置为 `debug=False`。如果使用 loguru，此时模块过滤 `DEBUG` 信息的方法是，检查 `debug` 参数，若其为 `False`，则不会调用 `logger.debug`。
+
+默认情况下，无论如何，上面三个类都将在 `stderr` 输出 `INFO` 日志信息，如果需要关闭输出，可以设置初始参数 `log=False`，原理是不调用任何输出日志的函数，与 loguru 下过滤 `DEBUG` 信息的方法相同。
+
+## 3. 获取日志实例
+
+众所周知，`logging.getLogger` 接受一个参数 `name`，用于对应模块名，模块此处用于对应输出日志的对象。例如 `live.LiveDanmaku` `session.Session` `video.VideoOnlineMonitor` 三个 `AsyncEvent` 中，其 `name` 将设置为对象自身（当然需要转换为字符串），模块已预设过相关字符串，这些字符串可以直观地表示 `AsyncEvent` 类，例如 `LiveDanmaku(room_display_id=...)`。因此只需要 `logging.getLogger(str(LiveDanmaku(...)))` 获取 `logging.Logger` 后，即可直接对日志实例进行操作，例如修改格式、增加文件输出等等。
+
+针对 `loguru`，模块在所有日志发出时将绑定 (`bind`) 字段 `name=...`，充当 `logging.getLogger` 的 `name` 参数的作用。同时，此处的 `name` 参数将作为前缀加在正文消息前输出。
+
+`request_log` 的 `name` 参数为 `bilibili-api-request`。
+
+## 4. 自定义日志输出格式
+
+针对 logging，使用 `logging.getLogger` 获取日志实例 `logging.Logger`。若使用 Loguru ，则直接对 `loguru.logger` 直接操作即可，如需过滤日志输出对象，可以使用 `logger.add(..., filter=...)`。
+
+使用 logging 进行文件输出配置如下：
+
+``` python
+logging.getLogger("bilibili-api-request").addHandler(logging.FileHandler("test.log"))
+# or
+request_log.get_logger().addHandler(logging.FileHandler("test.log"))
+# 如果设置 bili_settings.set_enable_loguru(True)，即使如此设置也不会有效果。
+```
+
+下面是使用 Loguru 自定义日志输出格式的示例：
 
 ``` python
 from loguru import logger
@@ -71,33 +118,3 @@ logger.add(sys.stderr, format=log_format)
 
 logger.add("test.log", format=log_format)  # 将日志输出到文件
 ```
-
-### 请求日志是如何工作的？
-
-`request_log` 底层上接近 `AsyncEvent`，即发布-订阅模式异步事件类，虽然并未保留异步功能，但仍然可以通过 `AsyncEvent.on` 设置相关事件发送后的回调。
-
-> `request_log` 未保留异步功能，因此其**不支持异步函数回调**，也不支持运行**阻塞同步函数**。
-
-在模块中，日志输出信息先经过 `request_log.dispatch` 发送，再传入到模块的默认回调函数 (`request_log.__handle_events`) 中，回调函数将调用 `logging.Logger` 或 `loguru.logger` 输出日志信息。
-
-实际上，`set_on` 设置为 `False` 只会禁用模块的默认回调函数，`set_on_events` 和 `set_ignore_events` 的过滤也是在模块的默认回调函数中进行。因此，对这些选项进行任何的设置，都不会影响到 `AsyncEvent` 与其他回调函数的正常发布-订阅流程。
-
-例如，可以将 `set_on` 设为 `False` 后，绑定以下回调，会发现仍将有日志输出。
-
-``` python
-request_log.set_on(False)
-
-@request_log.on("__ALL__")
-def log(event: dict) -> None:
-    print(event["name"], event["data"])
-```
-
-## 2. `AsyncEvent` 日志
-
-模块以下异步事件类提供日志：`live.LiveDanmaku` `session.Session` `video.VideoOnlineMonitor`，这些日志也同时支持 logging 和 loguru。以上三个类均提供初始化参数 `debug`，用于设置是否开启 `debug` 信息。
-
-如果使用 logging，以上三个类将使用名称为 `str(AsyncEvent())` 的日志实例。例如，`dm = live.LiveDanmaku(xxx)` 的日志实例名称为 `str(dm)`，即 `LiveDanmaku(LiveRoom(room_display_id=xxx, real_id=yyy))`，这个名称用于传入 `logging.getLogger` 函数，可获取对应的日志实例。或者，使用 `get_logger` 方法亦可获取 `logging.Logger` 实例。模块将设置日志实例的日志等级，以过滤掉 `DEBUG` 信息，如果参数设置为 `debug=False`。
-
-如果使用 loguru，模块将在日志信息前添加前缀，即 `str(dm)`，用于和其他消息区分，此时模块过滤 `DEBUG` 信息的方法是，检查 `debug` 参数，若其为 `False`，则不会调用 `logger.debug`。
-
-默认情况下，无论如何，上面三个类都将在 `stderr` 输出 `INFO` 日志信息，如果需要关闭输出，可以设置初始参数 `log=False`，原理是不调用任何输出日志的函数，与 loguru 下过滤 `DEBUG` 信息的方法相同。

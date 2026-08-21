@@ -16,7 +16,7 @@ from .exceptions import ArgsException
 from .user import get_self_info
 from .utils.AsyncEvent import AsyncEvent
 from .utils.high_level import Api, Credential
-from .utils.logger import AsyncEvent_log
+from .utils.logger import _AsyncEventLoggingSupport
 from .utils.picture import Picture
 from .utils.utils import get_api
 from .video import Video
@@ -422,7 +422,7 @@ async def send_msg(
     )
 
 
-class Session(AsyncEvent):
+class Session(AsyncEvent, _AsyncEventLoggingSupport):
     """
     会话类，用来开启消息监听。
     """
@@ -454,30 +454,14 @@ class Session(AsyncEvent):
         self.events = {}
 
         # logging
-        self.__debug = debug
-        self.__log = log
+        self._debug = debug
+        self._log = log
 
     def __repr__(self) -> str:
         return "Session()"
 
     def __str__(self) -> str:
         return "Session()"
-
-    def _log_debug(self, msg: str) -> None:
-        if self.__log:
-            AsyncEvent_log(str(self), msg, "debug", self.__debug)
-
-    def _log_info(self, msg: str) -> None:
-        if self.__log:
-            AsyncEvent_log(str(self), msg, "info", self.__debug)
-
-    def _log_warning(self, msg: str) -> None:
-        if self.__log:
-            AsyncEvent_log(str(self), msg, "warning", self.__debug)
-
-    def _log_error(self, msg: str) -> None:
-        if self.__log:
-            AsyncEvent_log(str(self), msg, "error", self.__debug)
 
     def on(self, event_type: str | EventType) -> Callable:  # type: ignore
         """

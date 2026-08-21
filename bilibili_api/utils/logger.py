@@ -14,19 +14,19 @@ from .settings import bili_settings
 from .utils import loguru_apply_anti_tag
 
 
-def get_logging_loggers(namespace: str, level: int) -> logging.Logger:
-    logger = logging.getLogger(namespace)
+def get_logging_loggers(name: str, level: int) -> logging.Logger:
+    logger = logging.getLogger(name)
     logger.setLevel(level)
     if not logger.handlers:
         handler = logging.StreamHandler()
         handler.setFormatter(
-            logging.Formatter(f"[{namespace}][%(asctime)s][%(levelname)s] %(message)s")
+            logging.Formatter(f"[{name}][%(asctime)s][%(levelname)s] %(message)s")
         )
         logger.addHandler(handler)
     return logger
 
 
-def AsyncEvent_log(namespace: str, msg: str, level: str, debug: bool) -> None:
+def AsyncEvent_log(name: str, msg: str, level: str, debug: bool) -> None:
     if bili_settings.get_enable_loguru():
         if not debug and level == "debug":
             return
@@ -34,16 +34,38 @@ def AsyncEvent_log(namespace: str, msg: str, level: str, debug: bool) -> None:
 
         msg = loguru_apply_anti_tag(msg)
         if level != "error":
-            getattr(logger.opt(colors=True), level)(f"<red>{namespace}</red> | {msg}")
+            getattr(logger.bind(name=name).opt(colors=True), level)(
+                f"<red>{name}</red> | {msg}"
+            )
         else:
-            getattr(logger.opt(colors=True, exception=True), level)(
-                f"<red>{namespace}</red> | {msg}"
+            getattr(logger.bind(name=name).opt(colors=True, exception=True), level)(
+                f"<red>{name}</red> | {msg}"
             )
     else:
-        logger = get_logging_loggers(
-            namespace, logging.DEBUG if debug else logging.INFO
-        )
+        logger = get_logging_loggers(name, logging.DEBUG if debug else logging.INFO)
         getattr(logger, level)(msg)
+
+
+class _AsyncEventLoggingSupport:
+    def __init__(self) -> None:
+        self._debug: bool
+        self._log: bool
+
+    def _log_debug(self, msg: str) -> None:
+        if self._log:
+            AsyncEvent_log(str(self), msg, "debug", self._debug)
+
+    def _log_info(self, msg: str) -> None:
+        if self._log:
+            AsyncEvent_log(str(self), msg, "info", self._debug)
+
+    def _log_warning(self, msg: str) -> None:
+        if self._log:
+            AsyncEvent_log(str(self), msg, "warning", self._debug)
+
+    def _log_error(self, msg: str) -> None:
+        if self._log:
+            AsyncEvent_log(str(self), msg, "error", self._debug)
 
 
 class RequestLog:
@@ -80,6 +102,12 @@ class RequestLog:
         self.__handlers = {}
         self.__ignore_events: list[str] = []
         self.add_event_listener("__ALL__", self.__handle_events)
+
+    def __str__(self) -> str:
+        return "request_log"
+
+    def __repr__(self) -> str:
+        return "request_log"
 
     @overload
     def add_event_listener(
@@ -322,7 +350,9 @@ class RequestLog:
                         + event[(idx + len(color_str)) :]
                     )
                     end_tag = 1 - end_tag
-            logger.opt(colors=True).debug(f"<red>bilibili-api-request</red> | {event}")
+            logger.bind(name="bilibili-api-request").opt(colors=True).debug(
+                f"<red>bilibili-api-request</red> | {event}"
+            )
         else:
             for color in colors.keys():
                 event = event.replace(str(color), "")

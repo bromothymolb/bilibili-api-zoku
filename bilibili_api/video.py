@@ -32,7 +32,7 @@ from .utils.AsyncEvent import AsyncEvent
 from .utils.BytesReader import BytesReader
 from .utils.danmaku import Danmaku, SpecialDanmaku
 from .utils.high_level import Api, Credential
-from .utils.logger import AsyncEvent_log
+from .utils.logger import _AsyncEventLoggingSupport
 from .utils.models import BiliWsMsgType
 from .utils.network import get_client
 from .utils.utils import get_api, get_data, raise_for_statement
@@ -1912,7 +1912,7 @@ class Video:
 from . import bangumi
 
 
-class VideoOnlineMonitor(AsyncEvent):
+class VideoOnlineMonitor(AsyncEvent, _AsyncEventLoggingSupport):
     """
     视频在线人数实时监测。
 
@@ -1996,30 +1996,14 @@ class VideoOnlineMonitor(AsyncEvent):
 
         self.__page_index = page_index
         self.__tasks: list[anyio.TaskHandle] = []
-        self.__debug = debug
-        self.__log = log
+        self._debug = debug
+        self._log = log
 
     def __repr__(self) -> str:
         return f"VideoOnlineMonitor(id={self.id_showed})"
 
     def __str__(self) -> str:
         return f"VideoOnlineMonitor(id={self.id_showed})"
-
-    def _log_debug(self, msg: str) -> None:
-        if self.__log:
-            AsyncEvent_log(str(self), msg, "debug", self.__debug)
-
-    def _log_info(self, msg: str) -> None:
-        if self.__log:
-            AsyncEvent_log(str(self), msg, "info", self.__debug)
-
-    def _log_warning(self, msg: str) -> None:
-        if self.__log:
-            AsyncEvent_log(str(self), msg, "warning", self.__debug)
-
-    def _log_error(self, msg: str) -> None:
-        if self.__log:
-            AsyncEvent_log(str(self), msg, "error", self.__debug)
 
     async def connect(self) -> None:
         """
