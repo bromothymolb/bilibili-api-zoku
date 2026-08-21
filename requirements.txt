@@ -10,5 +10,4 @@ pillow
 pycryptodomex
 pyyaml
 qrcode
-qrcode_terminal
 yarl

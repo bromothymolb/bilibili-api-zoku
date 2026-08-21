@@ -14,7 +14,6 @@ from anyio import to_thread
 from Cryptodome.Cipher import PKCS1_v1_5
 from Cryptodome.PublicKey import RSA
 import qrcode
-import qrcode_terminal
 import yarl
 
 from .exceptions import GeetestException, LoginError
@@ -440,20 +439,6 @@ class QrCodeLogin:
                 await to_thread.run_sync(get_img_bytes), "png"
             )
         return self.__qr_picture  # type: ignore
-
-    async def get_qrcode_terminal(self) -> str:
-        """
-        获取二维码的终端字符串
-
-        Returns:
-            str: 二维码的终端字符串
-        """
-        link = self.__qr_link or await self.generate_qrcode()
-        if not self.__qr_terminal:
-            self.__qr_terminal = await to_thread.run_sync(
-                qrcode_terminal.qr_terminal_str, link
-            )
-        return self.__qr_terminal
 
     async def generate_qrcode(self) -> str:
         """

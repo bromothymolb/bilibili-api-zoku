@@ -37,7 +37,6 @@ dependencies = [
     "pycryptodomex",
     "pyyaml",
     "qrcode",
-    "qrcode_terminal",
     "yarl",
 ]
 scripts = { "ivitools" = "bilibili_api.tools.ivitools.__main__:main" }
