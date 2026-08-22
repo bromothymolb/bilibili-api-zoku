@@ -724,6 +724,7 @@
   - [class EventType()](./modules/session.md#class-EventType)
   - [class Session()](./modules/session.md#class-Session)
     - [def \_\_init\_\_()](./modules/session.md#def-\_\_init\_\_)
+    - [def add\_event\_listener()](./modules/session.md#def-add\_event\_listener)
     - [def close()](./modules/session.md#def-close)
     - [def get\_status()](./modules/session.md#def-get\_status)
     - [def on()](./modules/session.md#def-on)

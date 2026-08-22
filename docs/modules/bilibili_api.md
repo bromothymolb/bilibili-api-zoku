@@ -386,11 +386,34 @@ API 基类异常。
 
 注册事件监听器。
 
+``` python
+async def handle_normal(data: dict) -> None:
+    # data: 事件数据
+    pass
+
+AsyncEvent.add_event_listener("NORMAL_EVENT", handle_normal)
+
+async def handle_all(name: str, data: dict) -> None:
+    # name: 事件名
+    # data: 事件数据
+    pass
+
+AsyncEvent.add_event_listener("__ALL__", handle_normal)
+
+async def handle_exception(name: str, exc: str) -> None:
+    # 处理任务异常
+    # name: 抛出异常的任务所属事件
+    # exc: 异常
+    pass
+
+AsyncEvent.add_event_listener("__TASK_EXCEPTION__", handle_exception)
+```
+
 
 | name | type | description |
 | - | - | - |
 | `name` | `str` | 事件名。 |
-| `handler` | `Callable \| Coroutine` | 回调函数。 |
+| `handler` | `Callable` | 回调函数。 |
 
 
 
@@ -454,7 +477,6 @@ API 基类异常。
 | - | - | - |
 | `name` | `str` | 事件名。 |
 | `args` | `Any` | 要传递给函数的参数。 *args 传递。 |
-| `kwargs` | `Any` | 要传递给函数的参数。 **kwargs 传递。 |
 
 
 
@@ -474,6 +496,26 @@ API 基类异常。
 ### def on()
 
 装饰器注册事件监听器。
+
+``` python
+@AsyncEvent.on("NORMAL_EVENT")
+async def handle_normal(data: dict) -> None:
+    # data: 事件数据
+    pass
+
+@AsyncEvent.on("__ALL__")
+async def handle_all(name: str, data: dict) -> None:
+    # name: 事件名
+    # data: 事件数据
+    pass
+
+@AsyncEvent.on("__TASK_EXCEPTION__")
+async def handle_exception(name: str, exc: Exception) -> None:
+    # 处理任务异常
+    # name: 抛出异常的任务所属事件
+    # exc: 异常
+    pass
+```
 
 
 | name | type | description |
@@ -502,7 +544,7 @@ API 基类异常。
 | name | type | description |
 | - | - | - |
 | `name` | `str` | 事件名。 |
-| `handler` | `Callable \| Coroutine` | 要移除的函数。 |
+| `handler` | `Callable` | 要移除的函数。 |
 
 **Returns:** `bool`:  是否移除成功。
 
@@ -3356,7 +3398,8 @@ def handle_all(name: str, desc: str, data: dict) -> None:
 
 request_log.add_event_listener("__ALL__", handle_all)
 
-def handle_exception(exc: Exception) -> None:
+def handle_exception(name: str, exc: Exception) -> None:
+    # name: REQUEST
     # exc: ApiException("测试抛出异常")
     print(exc)
 
@@ -3448,7 +3491,7 @@ def handle_all(name: str, desc: str, data: dict) -> None:
     print(data)
 
 @request_log.on("__TASK_EXCEPTION__")
-def handle_exception(exc: Exception) -> None:
+def handle_exception(name: str, exc: Exception) -> None:
     # exc: ApiException("测试抛出异常")
     print(exc)
 ```

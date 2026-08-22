@@ -15,6 +15,7 @@ from bilibili_api import session
 - [class EventType()](#class-EventType)
 - [class Session()](#class-Session)
   - [def \_\_init\_\_()](#def-\_\_init\_\_)
+  - [def add\_event\_listener()](#def-add\_event\_listener)
   - [def close()](#def-close)
   - [def get\_status()](#def-get\_status)
   - [def on()](#def-on)
@@ -106,6 +107,42 @@ Logger: Session.logger (logging.Logger | loguru.Logger)
 | `debug` | `bool, optional` | 调试模式，将输出更多信息. Defaults to False. |
 
 
+### def add_event_listener()
+
+注册事件监听器
+
+``` python
+async def handle_normal(event: Event) -> None:
+    # event: session.Event
+    pass
+
+Session.add_event_listener(EventType.TEXT, handle_normal)
+
+async def handle_all(name: int, event: Event) -> None:
+    # name: session.EventType.value
+    # event: session.Event
+    pass
+
+Session.add_event_listener("__ALL__", handle_normal)
+
+async def handle_exception(name: int, exc: Exception) -> None:
+    # 处理任务异常
+    # name: session.EventType.value
+    # exc: Exception
+    pass
+
+Session.add_event_listener("__TASK_EXCEPTION__", handle_exception)
+```
+
+
+| name | type | description |
+| - | - | - |
+| `event_type` | `str \| EventType` | 事件类型 |
+| `handler` | `Callable` | 监听器 |
+
+
+
+
 ### def close()
 
 结束轮询
@@ -128,7 +165,27 @@ Logger: Session.logger (logging.Logger | loguru.Logger)
 
 ### def on()
 
-重载装饰器注册事件监听器
+装饰器注册事件监听器
+
+``` python
+@Session.on(EventType.TEXT)
+async def handle_normal(event: Event) -> None:
+    # event: session.Event
+    pass
+
+@Session.on("__ALL__")
+async def handle_all(name: int, event: Event) -> None:
+    # name: session.EventType.value
+    # event: session.Event
+    pass
+
+@Session.on("__TASK_EXCEPTION__")
+async def handle_exception(name: int, exc: Exception) -> None:
+    # 处理任务异常
+    # name: session.EventType.value
+    # exc: Exception
+    pass
+```
 
 
 | name | type | description |

@@ -134,7 +134,9 @@ class RequestLog:
 
     @overload
     def add_event_listener(
-        self, name: Literal["__TASK_EXCEPTION__"], handler: Callable[[Exception], Any]
+        self,
+        name: Literal["__TASK_EXCEPTION__"],
+        handler: Callable[[str, Exception], Any],
     ) -> None: ...
 
     @overload
@@ -162,7 +164,8 @@ class RequestLog:
 
         request_log.add_event_listener("__ALL__", handle_all)
 
-        def handle_exception(exc: Exception) -> None:
+        def handle_exception(name: str, exc: Exception) -> None:
+            # name: REQUEST
             # exc: ApiException("测试抛出异常")
             print(exc)
 
@@ -186,7 +189,7 @@ class RequestLog:
     @overload
     def on(
         self, event_name: Literal["__TASK_EXCEPTION__"]
-    ) -> Callable[[Callable[[Exception], Any]], Any]: ...
+    ) -> Callable[[Callable[[str, Exception], Any]], Any]: ...
 
     @overload
     def on(self, event_name: str) -> Callable[[Callable[[str, dict], Any]], Any]: ...
@@ -210,7 +213,7 @@ class RequestLog:
             print(data)
 
         @request_log.on("__TASK_EXCEPTION__")
-        def handle_exception(exc: Exception) -> None:
+        def handle_exception(name: str, exc: Exception) -> None:
             # exc: ApiException("测试抛出异常")
             print(exc)
         ```
@@ -340,7 +343,7 @@ class RequestLog:
                 except Exception as e:
                     if name == "__TASK_EXCEPTION__":
                         raise e
-                    self.dispatch("__TASK_EXCEPTION__", e)
+                    self.dispatch("__TASK_EXCEPTION__", name, e)
         if name != "__ALL__" and name != "__TASK_EXCEPTION__":
             self.dispatch("__ALL__", name, *args)
 

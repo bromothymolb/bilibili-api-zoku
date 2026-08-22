@@ -7,15 +7,10 @@ bilibili_api.utils.AsyncEvent
 from asyncio import CancelledError
 from collections.abc import AsyncGenerator, Callable, Coroutine
 from contextlib import AbstractAsyncContextManager, asynccontextmanager
-from inspect import iscoroutinefunction
-from typing import Any, TypeVar
+from inspect import iscoroutine
+from typing import Any, Literal, TypeVar, overload
 
-from anyio import (
-    Event,
-    TaskHandle,
-    create_task_group,
-    to_thread,
-)
+from anyio import Event, TaskHandle, create_task_group
 from anyio.abc import TaskGroup
 
 T = TypeVar("T")
@@ -40,22 +35,93 @@ class AsyncEvent:
         self.__exit_event: Event
         self.__task: TaskHandle
 
-    def add_event_listener(self, name: str, handler: Callable | Coroutine) -> None:
+    @overload
+    def add_event_listener(
+        self, name: Literal["__ALL__"], handler: Callable[[str, dict], Any]
+    ) -> None: ...
+
+    @overload
+    def add_event_listener(
+        self,
+        name: Literal["__TASK_EXCEPTION__"],
+        handler: Callable[[str, Exception], Any],
+    ) -> None: ...
+
+    @overload
+    def add_event_listener(self, name: str, handler: Callable[[dict], Any]) -> None: ...
+
+    def add_event_listener(self, name: str, handler: Callable) -> None:
         """
         注册事件监听器。
 
+        ``` python
+        async def handle_normal(data: dict) -> None:
+            # data: 事件数据
+            pass
+
+        AsyncEvent.add_event_listener("NORMAL_EVENT", handle_normal)
+
+        async def handle_all(name: str, data: dict) -> None:
+            # name: 事件名
+            # data: 事件数据
+            pass
+
+        AsyncEvent.add_event_listener("__ALL__", handle_normal)
+
+        async def handle_exception(name: str, exc: str) -> None:
+            # 处理任务异常
+            # name: 抛出异常的任务所属事件
+            # exc: 异常
+            pass
+
+        AsyncEvent.add_event_listener("__TASK_EXCEPTION__", handle_exception)
+        ```
+
         Args:
             name (str): 事件名。
-            handler (Callable | Coroutine): 回调函数。
+            handler (Callable): 回调函数。
         """
         name = name.upper()
         if name not in self.__handlers:
             self.__handlers[name] = []
         self.__handlers[name].append(handler)
 
+    @overload
+    def on(  # type: ignore
+        self, event_name: Literal["__ALL__"]
+    ) -> Callable[[Callable[[str, dict], Any]], Any]: ...
+
+    @overload
+    def on(
+        self, event_name: Literal["__TASK_EXCEPTION__"]
+    ) -> Callable[[Callable[[str, Exception], Any]], Any]: ...
+
+    @overload
+    def on(self, event_name: str) -> Callable[[Callable[[dict], Any]], Any]: ...
+
     def on(self, event_name: str) -> Callable:
         """
         装饰器注册事件监听器。
+
+        ``` python
+        @AsyncEvent.on("NORMAL_EVENT")
+        async def handle_normal(data: dict) -> None:
+            # data: 事件数据
+            pass
+
+        @AsyncEvent.on("__ALL__")
+        async def handle_all(name: str, data: dict) -> None:
+            # name: 事件名
+            # data: 事件数据
+            pass
+
+        @AsyncEvent.on("__TASK_EXCEPTION__")
+        async def handle_exception(name: str, exc: Exception) -> None:
+            # 处理任务异常
+            # name: 抛出异常的任务所属事件
+            # exc: 异常
+            pass
+        ```
 
         Args:
             event_name (str): 事件名。
@@ -64,7 +130,7 @@ class AsyncEvent:
             Callable: 装饰器。
         """
 
-        def decorator(func: Callable | Coroutine):
+        def decorator(func: Callable):
             self.add_event_listener(event_name, func)
             return func
 
@@ -76,13 +142,13 @@ class AsyncEvent:
         """
         self.__handlers = {}
 
-    def remove_event_listener(self, name: str, handler: Callable | Coroutine) -> bool:
+    def remove_event_listener(self, name: str, handler: Callable) -> bool:
         """
         移除事件监听函数。
 
         Args:
             name (str): 事件名。
-            handler (Callable | Coroutine): 要移除的函数。
+            handler (Callable): 要移除的函数。
 
         Returns:
             bool: 是否移除成功。
@@ -110,52 +176,26 @@ class AsyncEvent:
         """
         self.__ignore_events = []
 
-    def __run_sync_block(
-        self, func: Callable, event_name: str, *args, **kwargs
-    ) -> None:
+    async def __run_func(self, func: Callable, name: str, *args) -> None:
         try:
-            func(*args, **kwargs)
+            result = func(*args)
+            if iscoroutine(result):
+                await result
         except Exception as e:
-            if event_name != "__TASK_EXCEPTION__":
-                self.dispatch("__TASK_EXCEPTION__", e)
+            if name != "__TASK_EXCEPTION__":
+                self.dispatch("__TASK_EXCEPTION__", name, e)
             else:
                 raise e
 
-    async def __run_sync(
-        self, func: Callable, event_name: str, *args, **kwargs
-    ) -> None:
-        try:
-            await to_thread.run_sync(
-                lambda func: func(*args, **kwargs), func, abandon_on_cancel=True
-            )
-        except Exception as e:
-            if event_name != "__TASK_EXCEPTION__":
-                self.dispatch("__TASK_EXCEPTION__", e)
-            else:
-                raise e
-
-    async def __run_coro(self, coro: Coroutine, event_name: str) -> None:
-        """
-        执行异步函数，如果任务抛出异常，分发特殊异常事件，避免 `Task exception was never retrieved`。
-        """
-        try:
-            await coro
-        except Exception as e:
-            if event_name != "__TASK_EXCEPTION__":
-                self.dispatch("__TASK_EXCEPTION__", e)
-            else:
-                raise e
-
-    def dispatch(self, name: str, *args, **kwargs) -> None:
+    def dispatch(self, name: str, *args) -> None:
         """
         异步发布事件。
 
         Args:
             name (str): 事件名。
             args (Any): 要传递给函数的参数。 *args 传递。
-            kwargs (Any): 要传递给函数的参数。 **kwargs 传递。
         """
-        if len(args) == 0 and len(kwargs.keys()) == 0:
+        if len(args) == 0:
             args = [{}]
         if name.upper() in self.__ignore_events:
             return
@@ -163,24 +203,10 @@ class AsyncEvent:
         name = name.upper()
         if name in self.__handlers:
             for func in self.__handlers[name]:
-                if iscoroutinefunction(func):
-                    if not hasattr(self, "task_group"):
-                        continue
-                    else:
-                        self.task_group.create_task(
-                            self.__run_coro(func(*args, **kwargs), name)
-                        )
-                else:
-                    if not hasattr(self, "task_group"):
-                        self.__run_sync_block(func, name, *args, **kwargs)
-                    else:
-                        self.task_group.create_task(
-                            self.__run_sync(func, name, *args, **kwargs)
-                        )
+                self.task_group.create_task(self.__run_func(func, name, *args))
 
         if name != "__ALL__" and name != "__TASK_EXCEPTION__":
-            kwargs.update({"name": name, "data": args})
-            self.dispatch("__ALL__", kwargs)
+            self.dispatch("__ALL__", name, *args)
 
     async def async_event_start(self, coro: Coroutine[Any, Any, T]) -> T | None:
         """

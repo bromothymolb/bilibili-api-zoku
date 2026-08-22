@@ -16,7 +16,6 @@ from inspect import (
     isasyncgenfunction,
     iscoroutine,
     iscoroutinefunction,
-    isfunction,
     isgenerator,
     signature,
 )
@@ -131,7 +130,7 @@ class _BiliAPIClient:
 
     def __getattr__(self, key: str) -> Any:
         obj = getattr(self.client, key)
-        if not (isfunction(obj) or iscoroutinefunction(obj)):
+        if not iscoroutinefunction(obj):
             return obj
 
         if key.startswith("_"):
@@ -197,96 +196,6 @@ class _BiliAPIClient:
                     result = BiliFilterReturn.continue_exec()
                 return [result]
 
-        def method_wrapper(method: Callable) -> Callable:
-            def wrapped_method(*args, **kwargs) -> Any:
-                args = arg_convert(args, kwargs)
-                ret = None
-                filter_args = {
-                    "client": self.__client__,
-                    "instance": self.__instance__,
-                    "func": key,
-                    "sess": self._get_bili_api_client(),
-                    "filter_cnt": cnt,
-                    "filter_data": BiliFilterData(),
-                    "settings": self.__settings.all(),
-                    "event_loop_token": self.__event_loop,
-                }
-                filts = get_registered_filters(in_priority=True)
-                skip_pre = False
-                log_helper = {"pre": ["PRE", "前置"], "post": ["POST", "后置"]}
-                i = 0
-                while i < len(filts):
-                    filt = filts[i]
-                    locate = filt.locate
-                    if not skip_pre:
-                        request_log.dispatch(
-                            f"DO_{log_helper[locate][0]}_FILTER",
-                            f"执行{log_helper[locate][1]}过滤器",
-                            {
-                                "act_id": cnt,
-                                "name": filt.name,
-                                "priority": filt.priority,
-                                "client": self.__client__,
-                                "instance": self.__instance__,
-                                "action": key,
-                                "event_loop": self.__event_loop,
-                                "filter_id": i,
-                            },
-                        )
-                    gflag = BiliFilterFlags.CONTINUE
-                    gparam: Any = None
-                    if locate == "pre" and skip_pre:
-                        pass
-                    elif filt.function:
-                        try:
-                            results = run_filter(
-                                filt.function,
-                                BiliFilterArgs(
-                                    **filter_args,
-                                    params=args.copy(),
-                                    ret=deepcopy(ret),
-                                    filter_index=i,
-                                    filter_locate=locate,
-                                ),
-                            )
-                        except Exception as e:
-                            raise FilterException(locate, filt.name, e) from e
-                        for result in results:
-                            try:
-                                sflag, sparam = result[0], result[1]
-                            except Exception:
-                                raise ArgsException(
-                                    "过滤器返回值/生成值不满足形式 tuple[BiliFilterFlags, Any]。"
-                                ) from None
-                            if sflag == BiliFilterFlags.SET_PARAMS:
-                                args = deepcopy(sparam)
-                            elif sflag == BiliFilterFlags.SET_RETURN:
-                                ret = deepcopy(sparam)
-                            gflag, gparam = sflag, sparam
-                    else:
-                        i += 1
-                        continue
-                    if gflag == BiliFilterFlags.EXECUTE_NOW:
-                        skip_pre = True
-                    elif gflag == BiliFilterFlags.RETURN_NOW:
-                        return ret
-                    elif gflag == BiliFilterFlags.GOTO:
-                        raise_for_statement(
-                            isinstance(gparam, int),
-                            "执行 BiliFilterFlasg.GOTO 需同时传入整数值下标",
-                        )
-                        i = gparam
-                        continue
-                    i += 1
-                    if locate == "pre" and (
-                        i >= len(filts) or filts[i].locate == "post"
-                    ):
-                        ret = method(**args)
-                        skip_pre = False
-                return ret
-
-            return wrapped_method
-
         def coroutine_wrapper(async_function: Callable) -> Callable:
             async def wrapped_amethod(*args, **kwargs) -> Any:
                 args = arg_convert(args, kwargs)
@@ -330,8 +239,7 @@ class _BiliAPIClient:
                     elif filt.function or filt.async_function:
                         try:
                             if filt.function:
-                                results = await to_thread.run_sync(
-                                    run_filter,
+                                results = run_filter(
                                     filt.function,
                                     BiliFilterArgs(
                                         **filter_args,
@@ -392,11 +300,7 @@ class _BiliAPIClient:
 
             return wrapped_amethod
 
-        if iscoroutinefunction(obj):
-            return coroutine_wrapper(obj)
-        elif isfunction(obj):
-            return method_wrapper(obj)
-        return None
+        return coroutine_wrapper(obj)
 
 
 class BiliFilterReturn:

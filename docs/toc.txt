@@ -720,6 +720,7 @@ session
  EventType
  Session
   __init__
+  add_event_listener
   close
   get_status
   on

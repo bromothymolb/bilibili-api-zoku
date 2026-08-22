@@ -9,6 +9,7 @@ from contextlib import AbstractAsyncContextManager
 from enum import Enum
 import json
 import time
+from typing import Any, Literal, overload
 
 import anyio
 
@@ -465,9 +466,89 @@ class Session(AsyncEvent, _AsyncEventLoggingSupport):
     def __str__(self) -> str:
         return "Session()"
 
+    @overload
+    def add_event_listener(
+        self, name: Literal["__ALL__"], handler: Callable[[str, Event], Any]
+    ) -> None: ...
+
+    @overload
+    def add_event_listener(
+        self, name: str, handler: Callable[[Event], Any]
+    ) -> None: ...
+
+    def add_event_listener(  # type: ignore
+        self, event_type: str | EventType, handler: Callable
+    ) -> None:  # type: ignore
+        """
+        注册事件监听器
+
+        ``` python
+        async def handle_normal(event: Event) -> None:
+            # event: session.Event
+            pass
+
+        Session.add_event_listener(EventType.TEXT, handle_normal)
+
+        async def handle_all(name: int, event: Event) -> None:
+            # name: session.EventType.value
+            # event: session.Event
+            pass
+
+        Session.add_event_listener("__ALL__", handle_normal)
+
+        async def handle_exception(name: int, exc: Exception) -> None:
+            # 处理任务异常
+            # name: session.EventType.value
+            # exc: Exception
+            pass
+
+        Session.add_event_listener("__TASK_EXCEPTION__", handle_exception)
+        ```
+
+        Args:
+            event_type (str | EventType): 事件类型
+            handler (Callable): 监听器
+        """
+        return super().add_event_listener(
+            name=str(
+                event_type.value if isinstance(event_type, EventType) else event_type
+            ),
+            handler=handler,  # type: ignore
+        )  # type: ignore
+
+    @overload
+    def on(  # type: ignore
+        self, event_name: Literal["__ALL__"]
+    ) -> Callable[[Callable[[str, Event], Any]], Any]: ...
+
+    @overload
+    def on(
+        self, event_name: str | EventType
+    ) -> Callable[[Callable[[Event], Any]], Any]: ...
+
     def on(self, event_type: str | EventType) -> Callable:  # type: ignore
         """
-        重载装饰器注册事件监听器
+        装饰器注册事件监听器
+
+        ``` python
+        @Session.on(EventType.TEXT)
+        async def handle_normal(event: Event) -> None:
+            # event: session.Event
+            pass
+
+        @Session.on("__ALL__")
+        async def handle_all(name: int, event: Event) -> None:
+            # name: session.EventType.value
+            # event: session.Event
+            pass
+
+        @Session.on("__TASK_EXCEPTION__")
+        async def handle_exception(name: int, exc: Exception) -> None:
+            # 处理任务异常
+            # name: session.EventType.value
+            # exc: Exception
+            pass
+        ```
 
         Args:
             event_type (str | EventType): 事件类型
@@ -479,7 +560,7 @@ class Session(AsyncEvent, _AsyncEventLoggingSupport):
             event_name=str(
                 event_type.value if isinstance(event_type, EventType) else event_type
             )
-        )
+        )  # type: ignore
 
     def get_status(self) -> int:
         """
