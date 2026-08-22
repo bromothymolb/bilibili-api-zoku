@@ -10,7 +10,7 @@ from collections.abc import AsyncGenerator, Callable, Coroutine, Generator
 from contextlib import AbstractContextManager
 from copy import deepcopy
 from enum import Enum
-from functools import cmp_to_key
+from functools import cmp_to_key, partial
 from inspect import (
     isasyncgen,
     isasyncgenfunction,
@@ -1032,7 +1032,7 @@ def __clean() -> None:
     """
     for loop in loops:
         try:
-            from_thread.run(clean_session, loop, token=loop)
+            from_thread.run(partial(clean_session, token=loop), token=loop)
         except RunFinishedError:
             pass
 
