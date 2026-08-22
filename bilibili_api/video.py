@@ -1940,12 +1940,14 @@ class VideoOnlineMonitor(AsyncEvent, _AsyncEventLoggingSupport):
 
     Extends: AsyncEvent
 
+    Logger: VideoOnlineMonitor.logger (logging.Logger | loguru.Logger)
+
     Events:
         ONLINE：        在线人数更新。  CallbackData: dict。
         DANMAKU：       收到实时弹幕。  CallbackData: Danmaku。
-        DISCONNECTED：  正常断开连接。  CallbackData: None。
-        ERROR:          发生错误。     CallbackData: None。
-        CONNECTED:      成功连接。     CallbackData: None。
+        DISCONNECTED：  正常断开连接。  CallbackData: {}。
+        ERROR:          发生错误。     CallbackData: {}。
+        CONNECTED:      成功连接。     CallbackData: {}。
     """
 
     class Datapack(Enum):
@@ -2071,7 +2073,7 @@ class VideoOnlineMonitor(AsyncEvent, _AsyncEventLoggingSupport):
             except Exception:
                 self._log_error("连接被异常断开")
                 self.__cancel_all_tasks()
-                self.dispatch("ERROR", "")
+                self.dispatch("ERROR")
                 continue
             if flag == BiliWsMsgType.BINARY:
                 data = self.__unpack(data)

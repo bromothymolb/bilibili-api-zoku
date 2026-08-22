@@ -1380,6 +1380,8 @@ class LiveDanmaku(AsyncEvent, _AsyncEventLoggingSupport):
 
     Extends: AsyncEvent
 
+    Logger: LiveDanmaku.logger (logging.Logger | loguru.Logger)
+
     Events:
     + DANMU_MSG: 用户发送弹幕
     + SEND_GIFT: 礼物
@@ -1636,15 +1638,6 @@ class LiveDanmaku(AsyncEvent, _AsyncEventLoggingSupport):
                 self.__ws = await self.__client.ws_create(
                     url=uri, headers=get_bili_headers()
                 )
-
-                @self.on("VERIFICATION_SUCCESSFUL")
-                async def on_verification_successful(data):
-                    # 新建心跳任务
-                    self.__tasks.append(self.task_group.create_task(self.__heartbeat()))
-                    self.__tasks.append(
-                        self.task_group.create_task(self.__heartbeat_web())
-                    )
-
                 self._log_debug("连接主机成功, 准备发送认证信息")
                 await self.__send_verify_data(conf["token"])
 
@@ -1715,6 +1708,11 @@ class LiveDanmaku(AsyncEvent, _AsyncEventLoggingSupport):
                     callback_info["data"] = None
                     self.dispatch("VERIFICATION_SUCCESSFUL", callback_info)
                     self.dispatch("ALL", callback_info)
+                    # 添加心跳包任务
+                    self.__tasks.append(self.task_group.create_task(self.__heartbeat()))
+                    self.__tasks.append(
+                        self.task_group.create_task(self.__heartbeat_web())
+                    )
 
             elif info["datapack_type"] == LiveDanmaku.DATAPACK_TYPE_HEARTBEAT_RESPONSE:
                 # 心跳包反馈，返回直播间人气

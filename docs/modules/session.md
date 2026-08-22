@@ -91,6 +91,8 @@ from bilibili_api import session
 
 会话类，用来开启消息监听。
 
+Logger: Session.logger (logging.Logger | loguru.Logger)
+
 
 
 

@@ -1416,12 +1416,14 @@ sync(r.connect())
 
 Extends: AsyncEvent
 
+Logger: VideoOnlineMonitor.logger (logging.Logger | loguru.Logger)
+
 Events:
     ONLINE：        在线人数更新。  CallbackData: dict。
     DANMAKU：       收到实时弹幕。  CallbackData: Danmaku。
-    DISCONNECTED：  正常断开连接。  CallbackData: None。
-    ERROR:          发生错误。     CallbackData: None。
-    CONNECTED:      成功连接。     CallbackData: None。
+    DISCONNECTED：  正常断开连接。  CallbackData: {}。
+    ERROR:          发生错误。     CallbackData: {}。
+    CONNECTED:      成功连接。     CallbackData: {}。
 
 
 

@@ -1581,4 +1581,4 @@ class InteractiveVideoDownloader(AsyncEvent):
         中断下载
         """
         self.async_event_cancel()
-        self.dispatch("ABORTED", None)
+        self.dispatch("ABORTED")

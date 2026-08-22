@@ -768,7 +768,7 @@ class AudioUploader(AsyncEvent):
         中断更改
         """
         self.async_event_cancel()
-        self.dispatch(AudioUploaderEvents.ABORTED.value, None)
+        self.dispatch(AudioUploaderEvents.ABORTED.value)
 
 
 async def upload_lrc(lrc: str, song_id: int, credential: Credential) -> str:
