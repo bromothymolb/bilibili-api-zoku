@@ -50,7 +50,7 @@ class _AsyncEventLoggingSupport:
         self._log: bool
 
     @property
-    def logger(self) -> object:
+    def logger(self) -> Any:
         if bili_settings.get_enable_loguru():
             from loguru import logger
 
@@ -119,7 +119,7 @@ class RequestLog:
         return "request_log"
 
     @property
-    def logger(self) -> object:
+    def logger(self) -> Any:
         if bili_settings.get_enable_loguru():
             from loguru import logger
 
