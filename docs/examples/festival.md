@@ -19,7 +19,7 @@ FES_ID = "bnj2025"
 async def download(url: str, out: str, intro: str):
     dwn_id = await get_client().download_create(url, HEADERS)
     bts = 0
-    tot = get_client().download_content_length(dwn_id)
+    tot = await get_client().download_content_length(dwn_id)
     with open(out, "wb") as file:
         while True:
             print(f"{intro} - {out} [{bts} / {tot}]", end="\r")

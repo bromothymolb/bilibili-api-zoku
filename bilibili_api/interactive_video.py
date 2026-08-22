@@ -1256,7 +1256,7 @@ class InteractiveVideoDownloader(AsyncEvent):
         self.dispatch("DOWNLOAD_START", {"url": url, "out": out})
 
         bts = 0
-        tot = client.download_content_length(cnt=dwn_id)
+        tot = await client.download_content_length(cnt=dwn_id)
         start_time = time.perf_counter()
 
         async with await anyio.open_file(out, "wb") as f:

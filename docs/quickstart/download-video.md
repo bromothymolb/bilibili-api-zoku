@@ -156,7 +156,7 @@ async def download(url: str, out: str):
     client = get_client()
     dwn_id = await client.download_create(url=url, headers=get_bili_headers())
     bts = 0
-    tot = client.download_content_length(cnt=dwn_id)
+    tot = await client.download_content_length(cnt=dwn_id)
     async with await anyio.open_file(out, "wb") as file:
         while True:
             bts += await file.write(await client.download_chunk(cnt=dwn_id))

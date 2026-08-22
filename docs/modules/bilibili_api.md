@@ -670,7 +670,7 @@ class BiliAPIClient(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def download_content_length(self, cnt: int) -> int:
+    async def download_content_length(self, cnt: int) -> int:
         """
         获取下载总字节数
 

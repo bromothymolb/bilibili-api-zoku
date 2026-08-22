@@ -106,7 +106,7 @@ FFMPEG_PATH = "ffmpeg"
 async def download(url: str, out: str, intro: str):
     dwn_id = await get_client().download_create(url, HEADERS)
     bts = 0
-    tot = get_client().download_content_length(dwn_id)
+    tot = await get_client().download_content_length(dwn_id)
     with open(out, "wb") as file:
         while True:
             bts += file.write(await get_client().download_chunk(dwn_id))

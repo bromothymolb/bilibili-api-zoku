@@ -1344,7 +1344,7 @@ async def bili_simple_download(
         url=url, headers=get_bili_headers(), chunk_size=chunk
     )
     bts = 0
-    tot = client.download_content_length(cnt=dwn_id)
+    tot = await client.download_content_length(cnt=dwn_id)
     if tot == 0:
         raise ArgsException("Unsupported link.")
     async with await open_file(out, "wb") as file:
@@ -1378,7 +1378,7 @@ async def bili_fast_download(
     """
     client = get_client()
     head_id = await client.download_create(url=url, headers=get_bili_headers())
-    length = client.download_content_length(cnt=head_id)
+    length = await client.download_content_length(cnt=head_id)
     if length == 0:
         raise ArgsException("Unsupported link.")
     await client.download_close(cnt=head_id)
@@ -1401,7 +1401,7 @@ async def bili_fast_download(
             chunk_size=chunk,
         )
         raw = bytes(0)
-        tot = client.download_content_length(cnt=dwn_id)
+        tot = await client.download_content_length(cnt=dwn_id)
         while True:
             raw += await client.download_chunk(cnt=dwn_id)
             print(

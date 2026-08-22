@@ -227,7 +227,7 @@ class HTTPXClient(BiliAPIClient):
             data = b""
         return data
 
-    def download_content_length(self, cnt: int) -> int:
+    async def download_content_length(self, cnt: int) -> int:
         resp = self.__downloads[cnt]
         if resp.headers.get("Content-Length"):
             return int(resp.headers["Content-Length"])
