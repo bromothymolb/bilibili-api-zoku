@@ -1380,7 +1380,7 @@ class LiveDanmaku(AsyncEvent, _AsyncEventLoggingSupport):
 
     Extends: AsyncEvent
 
-    Logger: LiveDanmaku.logger (logging.Logger | loguru.Logger)
+    Logger: LiveDanmaku.logger (logging.Logger)
 
     Events:
     + DANMU_MSG: 用户发送弹幕

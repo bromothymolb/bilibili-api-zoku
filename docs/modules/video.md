@@ -1416,7 +1416,7 @@ sync(r.connect())
 
 Extends: AsyncEvent
 
-Logger: VideoOnlineMonitor.logger (logging.Logger | loguru.Logger)
+Logger: VideoOnlineMonitor.logger (logging.Logger)
 
 Events:
     ONLINE：        在线人数更新。  CallbackData: dict。

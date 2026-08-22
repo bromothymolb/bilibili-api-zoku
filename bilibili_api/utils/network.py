@@ -20,7 +20,7 @@ from inspect import (
     signature,
 )
 from threading import Lock as ThreadingLock
-from typing import Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar
 
 from anyio import (
     RunFinishedError,
@@ -46,11 +46,14 @@ from .utils import MultiContextVariable, raise_for_statement
 
 TRIO_AVAILABLE = "trio" in get_available_backends()
 
-if TRIO_AVAILABLE:
-    from anyio._backends._trio import TrioBackend
+if TYPE_CHECKING:
     from trio.lowlevel import TrioToken
 else:
-    TrioToken = None
+    if TRIO_AVAILABLE:
+        from anyio._backends._trio import TrioBackend
+        from trio.lowlevel import TrioToken
+    else:
+        TrioToken = None
 
 T = TypeVar("T")
 

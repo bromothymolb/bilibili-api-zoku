@@ -27,20 +27,23 @@ def get_logging_loggers(name: str, level: int) -> logging.Logger:
     return logger
 
 
-def AsyncEvent_log(
-    logger: object, name: str, msg: str, level: str, debug: bool
-) -> None:
+def AsyncEvent_log(name: str, msg: str, level: str, debug: bool) -> None:
     if bili_settings.get_enable_loguru():
+        from loguru import logger
+
         if not debug and level == "debug":
             return
         msg = loguru_apply_anti_tag(msg)
         if level != "error":
-            getattr(logger.opt(colors=True), level)(f"<red>{name}</red> | {msg}")  # type: ignore
+            getattr(logger.bind(name=name).opt(colors=True), level)(
+                f"<red>{name}</red> | {msg}"
+            )  # type: ignore
         else:
-            getattr(logger.opt(colors=True, exception=True), level)(  # type: ignore
+            getattr(logger.bind(name=name).opt(colors=True, exception=True), level)(  # type: ignore
                 f"<red>{name}</red> | {msg}"
             )  # type: ignore
     else:
+        logger = get_logging_loggers(name, logging.DEBUG if debug else logging.INFO)
         getattr(logger, level)(msg)
 
 
@@ -50,31 +53,26 @@ class _AsyncEventLoggingSupport:
         self._log: bool
 
     @property
-    def logger(self) -> Any:
-        if bili_settings.get_enable_loguru():
-            from loguru import logger
-
-            return logger.bind(name=str(self))
-        else:
-            return get_logging_loggers(
-                str(self), logging.DEBUG if self._debug else logging.INFO
-            )
+    def logger(self) -> logging.Logger:
+        return get_logging_loggers(
+            str(self), logging.DEBUG if self._debug else logging.INFO
+        )
 
     def _log_debug(self, msg: str) -> None:
         if self._log:
-            AsyncEvent_log(self.logger, str(self), msg, "debug", self._debug)
+            AsyncEvent_log(str(self), msg, "debug", self._debug)
 
     def _log_info(self, msg: str) -> None:
         if self._log:
-            AsyncEvent_log(self.logger, str(self), msg, "info", self._debug)
+            AsyncEvent_log(str(self), msg, "info", self._debug)
 
     def _log_warning(self, msg: str) -> None:
         if self._log:
-            AsyncEvent_log(self.logger, str(self), msg, "warning", self._debug)
+            AsyncEvent_log(str(self), msg, "warning", self._debug)
 
     def _log_error(self, msg: str) -> None:
         if self._log:
-            AsyncEvent_log(self.logger, str(self), msg, "error", self._debug)
+            AsyncEvent_log(str(self), msg, "error", self._debug)
 
 
 class RequestLog:
@@ -119,13 +117,8 @@ class RequestLog:
         return "request_log"
 
     @property
-    def logger(self) -> Any:
-        if bili_settings.get_enable_loguru():
-            from loguru import logger
-
-            return logger.bind(name="bilibili-api-request")
-        else:
-            return get_logging_loggers("bilibili-api-request", logging.DEBUG)
+    def logger(self) -> logging.Logger:
+        return get_logging_loggers("bilibili-api-request", logging.DEBUG)
 
     @overload
     def add_event_listener(
@@ -355,6 +348,8 @@ class RequestLog:
             Fore.CYAN: ("<cyan>", "</cyan>"),
         }
         if bili_settings.get_enable_loguru():
+            from loguru import logger
+
             event = loguru_apply_anti_tag(event)
             for color, color_tags in colors.items():
                 end_tag = 0
@@ -369,7 +364,7 @@ class RequestLog:
                         + event[(idx + len(color_str)) :]
                     )
                     end_tag = 1 - end_tag
-            self.logger.opt(colors=True).debug(  # type: ignore
+            logger.bind(name="bilibili-api-request").opt(colors=True).debug(  # type: ignore
                 f"<red>bilibili-api-request</red> | {event}"
             )
         else:
@@ -431,7 +426,7 @@ request_log = RequestLog()
 
 可以添加更多监听器达到更多效果。
 
-Logger: request_log.logger (logging.Logger | loguru.Logger)
+Logger: request_log.logger (logging.Logger)
 
 Events:
 
@@ -473,7 +468,7 @@ request_log.__doc__ = """
 
 可以添加更多监听器达到更多效果。
 
-Extends: AsyncEvent
+Logger: request_log.logger (logging.Logger)
 
 Events:
 

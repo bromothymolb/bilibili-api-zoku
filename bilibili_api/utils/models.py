@@ -12,7 +12,7 @@ from enum import Enum
 import json
 import mimetypes
 import os
-from typing import Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar
 
 from anyio import get_available_backends, open_file
 from anyio.lowlevel import EventLoopToken
@@ -22,10 +22,14 @@ from .utils import raise_for_statement
 
 TRIO_AVAILABLE = "trio" in get_available_backends()
 
-if TRIO_AVAILABLE:
+if TYPE_CHECKING:
     from trio.lowlevel import TrioToken
 else:
-    TrioToken = None
+    if TRIO_AVAILABLE:
+        from trio.lowlevel import TrioToken
+    else:
+        TrioToken = None
+
 
 T = TypeVar("T")
 
