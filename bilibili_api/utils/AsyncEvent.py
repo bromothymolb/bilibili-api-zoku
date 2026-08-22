@@ -195,10 +195,11 @@ class AsyncEvent:
             name (str): 事件名。
             args (Any): 要传递给函数的参数。 *args 传递。
         """
-        if len(args) == 0:
-            args = [{}]
         if name.upper() in self.__ignore_events:
             return
+
+        if len(args) == 0:
+            args = [{}]
 
         name = name.upper()
         if name in self.__handlers:

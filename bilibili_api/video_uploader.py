@@ -992,7 +992,7 @@ class VideoUploader(AsyncEvent):
         Returns:
             str: 封面 URL
         """
-        self.dispatch(VideoUploaderEvents.PRE_COVER.value, None)
+        self.dispatch(VideoUploaderEvents.PRE_COVER.value)
         try:
             if isinstance(self.cover, str):
                 self.cover = Picture.from_file(self.cover)
@@ -1301,7 +1301,7 @@ class VideoUploader(AsyncEvent):
         中断上传
         """
         self.async_event_cancel()
-        self.dispatch(VideoUploaderEvents.ABORTED.value, None)
+        self.dispatch(VideoUploaderEvents.ABORTED.value)
 
 
 async def get_missions(tid: int = 0, credential: Credential | None = None) -> dict:
@@ -1518,4 +1518,4 @@ class VideoEditor(AsyncEvent):
         中断更改
         """
         self.async_event_cancel()
-        self.dispatch(VideoEditorEvents.ABORTED.value, None)
+        self.dispatch(VideoEditorEvents.ABORTED.value)

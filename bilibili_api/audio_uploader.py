@@ -622,14 +622,14 @@ class AudioUploader(AsyncEvent):
             except Exception as e:
                 self.dispatch(AudioUploaderEvents.COVER_FAILED.value, {"err": e})
                 raise e
-            self.dispatch(AudioUploaderEvents.AFTER_COVER.value, cover_url)
+            self.dispatch(AudioUploaderEvents.AFTER_COVER.value, {"url": cover_url})
         self.dispatch(AudioUploaderEvents.PRE_SUBMIT.value)
         try:
             result = await self._submit(lrc_url=lrc_url, cover_url=cover_url)
         except Exception as e:
             self.dispatch(AudioUploaderEvents.SUBMIT_FAILED.value, {"err": e})
             raise e
-        self.dispatch(AudioUploaderEvents.AFTER_SUBMIT.value, result)
+        self.dispatch(AudioUploaderEvents.AFTER_SUBMIT.value, {"auid": result})
         return result
 
     async def _submit(self, cover_url: str, lrc_url: str = "") -> int:
