@@ -10,9 +10,9 @@ maintainers = [{ name = "bromothymolb", email = "bromothymolb@qq.com" }]
 readme = "README.md"
 license = "GPL-3.0-or-later"
 license-files = ["LICENSE"]
-keywords = ["bilibili", "api", "spider"]
+keywords = ["bilibili", "api", "spider", "asyncio", "trio"]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
     "Natural Language :: Chinese (Simplified)",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
