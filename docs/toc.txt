@@ -1076,6 +1076,7 @@ bilibili_api
   get_trio_token
  BiliFilterData
   __init__
+  delete_data
   get_data
   has_data
   set_data

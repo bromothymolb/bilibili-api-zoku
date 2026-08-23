@@ -45,6 +45,7 @@ from bilibili_api import ...
   - [def get\_trio\_token()](#def-get\_trio\_token)
 - [class BiliFilterData()](#class-BiliFilterData)
   - [def \_\_init\_\_()](#def-\_\_init\_\_)
+  - [def delete\_data()](#def-delete\_data)
   - [def get\_data()](#def-get\_data)
   - [def has\_data()](#def-has\_data)
   - [def set\_data()](#def-set\_data)
@@ -903,6 +904,18 @@ class BiliAPIClient(ABC):
 
 ### def \_\_init\_\_()
 
+
+
+
+
+### def delete_data()
+
+删除数据
+
+
+| name | type | description |
+| - | - | - |
+| `key` | `str` | 键 |
 
 
 

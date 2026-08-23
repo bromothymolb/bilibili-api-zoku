@@ -17,7 +17,7 @@ from typing import TYPE_CHECKING, Any, TypeVar
 from anyio import get_available_backends, open_file
 from anyio.lowlevel import EventLoopToken
 
-from ..exceptions import ArgsException
+from ..exceptions import ArgsException, StatementException
 from .utils import raise_for_statement
 
 TRIO_AVAILABLE = "trio" in get_available_backends()
@@ -824,7 +824,21 @@ class BiliFilterData:
         Returns:
             Any: 值
         """
+        if not self.has_data(key):
+            raise StatementException(f"不存在数据 {key}")
         return self.__data[key]
+
+    def delete_data(self, key: str) -> None:
+        """
+        删除数据
+
+        Args:
+            key (str): 键
+        """
+
+        if not self.has_data(key):
+            raise StatementException(f"不存在数据 {key}")
+        del self.__data[key]
 
 
 @dataclass

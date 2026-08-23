@@ -1420,7 +1420,7 @@ Logger: VideoOnlineMonitor.logger (logging.Logger)
 
 Events:
     ONLINE：        在线人数更新。  CallbackData: dict。
-    DANMAKU：       收到实时弹幕。  CallbackData: Danmaku。
+    DANMAKU：       收到实时弹幕。  CallbackData: {"danmaku": Danmaku(...)}。
     DISCONNECTED：  正常断开连接。  CallbackData: {}。
     ERROR:          发生错误。     CallbackData: {}。
     CONNECTED:      成功连接。     CallbackData: {}。

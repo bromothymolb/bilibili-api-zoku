@@ -1080,6 +1080,7 @@
     - [def get\_trio\_token()](./modules/bilibili_api.md#def-get\_trio\_token)
   - [class BiliFilterData()](./modules/bilibili_api.md#class-BiliFilterData)
     - [def \_\_init\_\_()](./modules/bilibili_api.md#def-\_\_init\_\_)
+    - [def delete\_data()](./modules/bilibili_api.md#def-delete\_data)
     - [def get\_data()](./modules/bilibili_api.md#def-get\_data)
     - [def has\_data()](./modules/bilibili_api.md#def-has\_data)
     - [def set\_data()](./modules/bilibili_api.md#def-set\_data)
