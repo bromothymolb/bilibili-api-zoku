@@ -93,7 +93,7 @@ from .utils.high_level import (
     recalculate_wbi,
 )
 from .utils.logger import request_log
-from .utils.models import (
+from .utils.network import (
     BiliAPIClient,
     BiliAPIFile,
     BiliAPIResponse,
@@ -101,12 +101,10 @@ from .utils.models import (
     BiliFilterArgs,
     BiliFilterData,
     BiliFilterFlags,
-    BiliWsMsgType,
-    RequestSettings,
-)
-from .utils.network import (
     BiliFilterReturn,
+    BiliWsMsgType,
     DelegateType,
+    RequestSettings,
     clean_session,
     delegate,
     delegate_local_context,

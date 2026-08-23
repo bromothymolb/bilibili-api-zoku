@@ -9,7 +9,7 @@ import asyncio
 import aiohttp
 import anyio
 
-from ..utils.models import (
+from ..utils.network import (
     BiliAPIClient,
     BiliAPIFile,
     BiliAPIResponse,

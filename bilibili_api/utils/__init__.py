@@ -20,7 +20,6 @@ bilibili_api.utils
 
 - cache_pool: 模块数据缓存
 - logger: 日志支持
-- models: BiliAPIClient 和过滤器相关模型
 - settings: 设置支持
 - sync: 同步执行异步代码
 - utils: 工具类/工具函数

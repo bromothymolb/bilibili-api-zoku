@@ -9,7 +9,7 @@ from collections.abc import AsyncIterator
 import httpx
 
 from ..exceptions import ApiException
-from ..utils.models import (
+from ..utils.network import (
     BiliAPIClient,
     BiliAPIFile,
     BiliAPIResponse,

@@ -11,7 +11,7 @@ import anyio
 import curl_cffi
 from curl_cffi import requests
 
-from ..utils.models import (
+from ..utils.network import (
     BiliAPIClient,
     BiliAPIFile,
     BiliAPIResponse,

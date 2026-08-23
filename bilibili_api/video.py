@@ -33,8 +33,7 @@ from .utils.BytesReader import BytesReader
 from .utils.danmaku import Danmaku, SpecialDanmaku
 from .utils.high_level import Api, Credential
 from .utils.logger import _AsyncEventLoggingSupport
-from .utils.models import BiliWsMsgType
-from .utils.network import get_client
+from .utils.network import BiliWsMsgType, get_client
 from .utils.utils import get_api, get_data, raise_for_statement
 
 API = get_api("video")

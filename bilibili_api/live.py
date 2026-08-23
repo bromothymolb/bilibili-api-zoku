@@ -20,8 +20,7 @@ from .utils.BytesReader import BytesReader
 from .utils.danmaku import Danmaku
 from .utils.high_level import Api, Credential, ensure_buvid, get_bili_headers
 from .utils.logger import _AsyncEventLoggingSupport
-from .utils.models import BiliWsMsgType
-from .utils.network import get_client
+from .utils.network import BiliWsMsgType, get_client
 from .utils.utils import get_api
 
 API = get_api("live")

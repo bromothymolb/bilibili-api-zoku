@@ -43,8 +43,14 @@ from .anti_spider import (
     get_browser_fingerprint,
 )
 from .logger import request_log
-from .models import BiliAPIClient, BiliAPIFile, BiliAPIResponse
-from .network import get_client, request_settings, select_client
+from .network import (
+    BiliAPIClient,
+    BiliAPIFile,
+    BiliAPIResponse,
+    get_client,
+    request_settings,
+    select_client,
+)
 from .settings import bili_settings
 from .utils import MultiEventLoopLocks, get_api
 

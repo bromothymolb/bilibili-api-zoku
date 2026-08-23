@@ -27,26 +27,6 @@ def get_logging_loggers(name: str, level: int) -> logging.Logger:
     return logger
 
 
-def AsyncEvent_log(name: str, msg: str, level: str, debug: bool) -> None:
-    if bili_settings.get_enable_loguru():
-        from loguru import logger
-
-        if not debug and level == "debug":
-            return
-        msg = loguru_apply_anti_tag(msg)
-        if level != "error":
-            getattr(logger.bind(name=name).opt(colors=True), level)(
-                f"<red>{name}</red> | {msg}"
-            )  # type: ignore
-        else:
-            getattr(logger.bind(name=name).opt(colors=True, exception=True), level)(  # type: ignore
-                f"<red>{name}</red> | {msg}"
-            )  # type: ignore
-    else:
-        logger = get_logging_loggers(name, logging.DEBUG if debug else logging.INFO)
-        getattr(logger, level)(msg)
-
-
 class _AsyncEventLoggingSupport:
     def __init__(self) -> None:
         self._debug: bool
@@ -58,21 +38,40 @@ class _AsyncEventLoggingSupport:
             str(self), logging.DEBUG if self._debug else logging.INFO
         )
 
+    def _base_log(self, msg: str, level: str) -> None:
+        if not self._log:
+            return
+
+        if bili_settings.get_enable_loguru():
+            from loguru import logger
+
+            if not self._debug and level == "debug":
+                return
+            msg = loguru_apply_anti_tag(msg)
+            if level != "error":
+                getattr(logger.bind(name=str(self)).opt(colors=True), level)(
+                    f"<red>{self!s}</red> | {msg}"
+                )  # type: ignore
+            else:
+                getattr(
+                    logger.bind(name=str(self)).opt(colors=True, exception=True), level
+                )(  # type: ignore
+                    f"<red>{self!s}</red> | {msg}"
+                )  # type: ignore
+        else:
+            getattr(self.logger, level)(msg)
+
     def _log_debug(self, msg: str) -> None:
-        if self._log:
-            AsyncEvent_log(str(self), msg, "debug", self._debug)
+        self._base_log(msg, "debug")
 
     def _log_info(self, msg: str) -> None:
-        if self._log:
-            AsyncEvent_log(str(self), msg, "info", self._debug)
+        self._base_log(msg, "info")
 
     def _log_warning(self, msg: str) -> None:
-        if self._log:
-            AsyncEvent_log(str(self), msg, "warning", self._debug)
+        self._base_log(msg, "warning")
 
     def _log_error(self, msg: str) -> None:
-        if self._log:
-            AsyncEvent_log(str(self), msg, "error", self._debug)
+        self._base_log(msg, "error")
 
 
 class RequestLog:
