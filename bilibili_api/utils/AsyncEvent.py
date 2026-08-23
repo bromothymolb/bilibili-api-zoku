@@ -7,13 +7,26 @@ bilibili_api.utils.AsyncEvent
 from asyncio import CancelledError
 from collections.abc import AsyncGenerator, Callable, Coroutine
 from contextlib import AbstractAsyncContextManager, asynccontextmanager
+from enum import Enum
 from inspect import iscoroutine
 from typing import Any, Literal, TypeVar, overload
 
-from anyio import Event, TaskHandle, create_task_group
+from anyio import Event, TaskHandle, create_memory_object_stream, create_task_group
 from anyio.abc import TaskGroup
 
 T = TypeVar("T")
+
+
+class AsyncEventDispatchMode(Enum):
+    """
+    异步事件分发模式
+
+    - TASK: 创建任务，后台运行 (默认)
+    - AWAIT: 等待任务完成
+    """
+
+    TASK = "task"
+    AWAIT = "await"
 
 
 class AsyncEvent:
@@ -34,6 +47,25 @@ class AsyncEvent:
         self.task_group: TaskGroup
         self.__exit_event: Event
         self.__task: TaskHandle
+        self.__dispatch_mode: AsyncEventDispatchMode = AsyncEventDispatchMode.TASK
+
+    def get_dispatch_mode(self) -> AsyncEventDispatchMode:
+        """
+        获取当前 AsyncEvent 的事件分发模式 (后台任务/等待完成)
+
+        Returns:
+            AsyncEventDispatchMode: 事件分发模式
+        """
+        return self.__dispatch_mode
+
+    def set_dispatch_mode(self, mode: AsyncEventDispatchMode) -> None:
+        """
+        获取当前 AsyncEvent 的事件分发模式 (后台任务/等待完成)
+
+        Returns:
+            AsyncEventDispatchMode: 事件分发模式
+        """
+        self.__dispatch_mode = mode
 
     @overload
     def add_event_listener(
@@ -183,11 +215,11 @@ class AsyncEvent:
                 await result
         except Exception as e:
             if name != "__TASK_EXCEPTION__":
-                self.dispatch("__TASK_EXCEPTION__", name, e)
+                await self.dispatch("__TASK_EXCEPTION__", name, e)
             else:
                 raise e
 
-    def dispatch(self, name: str, *args) -> None:
+    async def dispatch(self, name: str, *args) -> None:
         """
         异步发布事件。
 
@@ -197,17 +229,22 @@ class AsyncEvent:
         """
         if name.upper() in self.__ignore_events:
             return
-
         if len(args) == 0:
             args = [{}]
 
         name = name.upper()
         if name in self.__handlers:
-            for func in self.__handlers[name]:
-                self.task_group.create_task(self.__run_func(func, name, *args))
+            match self.get_dispatch_mode():
+                case AsyncEventDispatchMode.TASK:
+                    for func in self.__handlers[name]:
+                        self.task_group.create_task(self.__run_func(func, name, *args))
+                case AsyncEventDispatchMode.AWAIT:
+                    async with create_task_group() as task:
+                        for func in self.__handlers[name]:
+                            task.create_task(self.__run_func(func, name, *args))
 
         if name != "__ALL__" and name != "__TASK_EXCEPTION__":
-            self.dispatch("__ALL__", name, *args)
+            await self.dispatch("__ALL__", name, *args)
 
     async def async_event_start(self, coro: Coroutine[Any, Any, T]) -> T | None:
         """
@@ -261,6 +298,26 @@ class AsyncEvent:
 
         return __run_bg_task()
 
+    async def async_event_iter(
+        self, start_coro: Coroutine[Any, Any, T]
+    ) -> AsyncGenerator[tuple[str, Any]]:
+        self.set_dispatch_mode(AsyncEventDispatchMode.AWAIT)
+        send_stream, receive_stream = create_memory_object_stream[tuple[str, Any]]()
+
+        @self.on("__ALL__")
+        async def yield_event(event: str, data: Any):
+            await send_stream.send((event, data))
+
+        async with self.async_event_run(start_coro):
+            try:
+                async for event, data in receive_stream:
+                    yield (event, data)
+            except CancelledError:
+                self.__exit_event.set()
+            finally:
+                send_stream.close()
+                receive_stream.close()
+
     def async_event_cancel(self) -> None:
         """
         取消异步事件类主任务
@@ -299,12 +356,6 @@ async def start(self, ...) -> ...:
     except Exception as e:
         # 异常处理
         raise e
-
-def run(self, ...) -> ...:
-    '''
-    非阻塞式异步爬虫
-    '''
-    return self.async_event_run(self.start(...))
 
 async def close(self) -> ...:
     '''

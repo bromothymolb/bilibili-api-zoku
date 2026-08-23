@@ -531,7 +531,7 @@ class AudioUploader(AsyncEvent):
         Returns:
             dict: 初始化信息
         """
-        self.dispatch(AudioUploaderEvents.PREUPLOAD.value, {"song": self.meta})
+        await self.dispatch(AudioUploaderEvents.PREUPLOAD.value, {"song": self.meta})
         api = _API["preupload"]
 
         # 首先获取音频文件预检信息
@@ -553,7 +553,7 @@ class AudioUploader(AsyncEvent):
             headers=get_bili_headers(),
         )
         if resp.code >= 400:
-            self.dispatch(
+            await self.dispatch(
                 AudioUploaderEvents.PREUPLOAD_FAILED.value, {"song": self.meta}
             )
             raise NetworkException(resp.code, "")
@@ -561,7 +561,7 @@ class AudioUploader(AsyncEvent):
         preupload = resp.json()
 
         if preupload["OK"] != 1:
-            self.dispatch(
+            await self.dispatch(
                 AudioUploaderEvents.PREUPLOAD_FAILED.value, {"song": self.meta}
             )
             raise ApiException(json.dumps(preupload))
@@ -585,7 +585,7 @@ class AudioUploader(AsyncEvent):
             },
         )
         if resp.code >= 400:
-            self.dispatch(
+            await self.dispatch(
                 AudioUploaderEvents.PREUPLOAD_FAILED.value, {"song": self.meta}
             )
             raise ApiException("获取 upload_id 错误")
@@ -593,7 +593,7 @@ class AudioUploader(AsyncEvent):
         data = resp.json()
 
         if data["OK"] != 1:
-            self.dispatch(
+            await self.dispatch(
                 AudioUploaderEvents.PREUPLOAD_FAILED.value, {"song": self.meta}
             )
             raise ApiException("获取 upload_id 错误：" + json.dumps(data))
@@ -614,22 +614,24 @@ class AudioUploader(AsyncEvent):
             )
         else:
             lrc_url = ""
-        self.dispatch(AudioUploaderEvents.PRE_COVER.value)
+        await self.dispatch(AudioUploaderEvents.PRE_COVER.value)
         cover_url = ""
         if self.meta.cover:
             try:
                 cover_url = await self._upload_cover(self.meta.cover)
             except Exception as e:
-                self.dispatch(AudioUploaderEvents.COVER_FAILED.value, {"err": e})
+                await self.dispatch(AudioUploaderEvents.COVER_FAILED.value, {"err": e})
                 raise e
-            self.dispatch(AudioUploaderEvents.AFTER_COVER.value, {"url": cover_url})
-        self.dispatch(AudioUploaderEvents.PRE_SUBMIT.value)
+            await self.dispatch(
+                AudioUploaderEvents.AFTER_COVER.value, {"url": cover_url}
+            )
+        await self.dispatch(AudioUploaderEvents.PRE_SUBMIT.value)
         try:
             result = await self._submit(lrc_url=lrc_url, cover_url=cover_url)
         except Exception as e:
-            self.dispatch(AudioUploaderEvents.SUBMIT_FAILED.value, {"err": e})
+            await self.dispatch(AudioUploaderEvents.SUBMIT_FAILED.value, {"err": e})
             raise e
-        self.dispatch(AudioUploaderEvents.AFTER_SUBMIT.value, {"auid": result})
+        await self.dispatch(AudioUploaderEvents.AFTER_SUBMIT.value, {"auid": result})
         return result
 
     async def _submit(self, cover_url: str, lrc_url: str = "") -> int:
@@ -760,15 +762,15 @@ class AudioUploader(AsyncEvent):
         try:
             return await self.async_event_start(self._main())
         except Exception as e:
-            self.dispatch(AudioUploaderEvents.FAILED.value, {"err": e})
+            await self.dispatch(AudioUploaderEvents.FAILED.value, {"err": e})
             raise e
 
-    def abort(self) -> None:
+    async def abort(self) -> None:
         """
         中断更改
         """
         self.async_event_cancel()
-        self.dispatch(AudioUploaderEvents.ABORTED.value)
+        await self.dispatch(AudioUploaderEvents.ABORTED.value)
 
 
 async def upload_lrc(lrc: str, song_id: int, credential: Credential) -> str:

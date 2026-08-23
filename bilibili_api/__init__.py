@@ -77,7 +77,7 @@ from .exceptions import (
 )
 from .utils.aid_bvid_transformer import aid2bvid, bvid2aid
 from .utils.anti_spider import get_bili_headers
-from .utils.AsyncEvent import AsyncEvent
+from .utils.AsyncEvent import AsyncEvent, AsyncEventDispatchMode
 from .utils.danmaku import Danmaku, DmFontSize, DmMode, SpecialDanmaku
 from .utils.geetest import Geetest, GeetestMeta, GeetestType
 from .utils.high_level import (
@@ -176,6 +176,7 @@ __all__ = [
     "ApiException",
     "ArgsException",
     "AsyncEvent",
+    "AsyncEventDispatchMode",
     "BiliAPIClient",
     "BiliAPIFile",
     "BiliAPIResponse",

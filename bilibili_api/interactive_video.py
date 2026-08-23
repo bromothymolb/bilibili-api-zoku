@@ -1253,7 +1253,7 @@ class InteractiveVideoDownloader(AsyncEvent):
         if not os.path.exists(parent):
             os.mkdir(parent)
 
-        self.dispatch("DOWNLOAD_START", {"url": url, "out": out})
+        await self.dispatch("DOWNLOAD_START", {"url": url, "out": out})
 
         bts = 0
         tot = await client.download_content_length(cnt=dwn_id)
@@ -1262,7 +1262,7 @@ class InteractiveVideoDownloader(AsyncEvent):
         async with await anyio.open_file(out, "wb") as f:
             while True:
                 bts += await f.write(await client.download_chunk(cnt=dwn_id))
-                self.dispatch(
+                await self.dispatch(
                     "DOWNLOAD_PART",
                     {
                         "done": bts,
@@ -1275,13 +1275,13 @@ class InteractiveVideoDownloader(AsyncEvent):
 
         await client.download_close(cnt=dwn_id)
 
-        self.dispatch("DOWNLOAD_SUCCESS")
+        await self.dispatch("DOWNLOAD_SUCCESS")
 
     async def __fetch_edges(self) -> dict:
         graph = await self.__video.get_graph()
         async for node in graph.get_all_nodes(retry=self.__fetching_nodes_retry_times):
             info = await node.get_info()
-            self.dispatch(
+            await self.dispatch(
                 "GET",
                 {
                     "title": info["title"],
@@ -1296,7 +1296,7 @@ class InteractiveVideoDownloader(AsyncEvent):
         for _, item in edges_info["nodes"].items():
             cid = item["cid"]
             if cid not in cid_set:
-                self.dispatch("PREPARE_DOWNLOAD", {"cid": item["cid"]})
+                await self.dispatch("PREPARE_DOWNLOAD", {"cid": item["cid"]})
                 cid_set.add(cid)
                 url = await self.__video.get_download_url(cid=cid)
                 streams = VideoDownloadURLDataDetecter(url).detect_best_streams(
@@ -1333,7 +1333,7 @@ class InteractiveVideoDownloader(AsyncEvent):
 
     async def __main(self) -> None:
         # 初始化
-        self.dispatch("START")
+        await self.dispatch("START")
         if self.__out == "":
             self.__out = self.__video.get_bvid() + ".ivi"
         if self.__out.endswith(".ivi"):
@@ -1360,7 +1360,7 @@ class InteractiveVideoDownloader(AsyncEvent):
 
         await self.__download_videos(edges_info, tmp_dir)
 
-        self.dispatch("PACKAGING")
+        await self.dispatch("PACKAGING")
 
         def package_zip():
             zip = zipfile.ZipFile(
@@ -1379,10 +1379,10 @@ class InteractiveVideoDownloader(AsyncEvent):
 
         await anyio.to_thread.run_sync(package_zip)
 
-        self.dispatch("SUCCESS")
+        await self.dispatch("SUCCESS")
 
     async def __node_videos_main(self) -> None:
-        self.dispatch("START")
+        await self.dispatch("START")
         tmp_dir = self.__out
         if not os.path.exists(tmp_dir):
             os.mkdir(tmp_dir)
@@ -1391,10 +1391,10 @@ class InteractiveVideoDownloader(AsyncEvent):
 
         await self.__download_videos(edges_info, tmp_dir)
 
-        self.dispatch("SUCCESS")
+        await self.dispatch("SUCCESS")
 
     async def __dot_graph_main(self) -> None:
-        self.dispatch("START")
+        await self.dispatch("START")
         if not self.__out.endswith(".dot"):
             self.__out += ".dot"
 
@@ -1432,7 +1432,7 @@ class InteractiveVideoDownloader(AsyncEvent):
             for cur_node in queue_backup:
                 cur_node_info = await cur_node.get_info()
                 cur_node_children = await cur_node.get_children()
-                self.dispatch(
+                await self.dispatch(
                     "GET",
                     {
                         "title": cur_node_info["title"],
@@ -1517,11 +1517,11 @@ class InteractiveVideoDownloader(AsyncEvent):
             self.__out, "w+", encoding="utf-8"
         ) as dot_file:
             await dot_file.write(graph_content)
-        self.dispatch("SUCCESS")
+        await self.dispatch("SUCCESS")
 
     async def __no_packaging_main(self) -> None:
         # 初始化
-        self.dispatch("START")
+        await self.dispatch("START")
         tmp_dir = self.__out
         if not os.path.exists(tmp_dir):
             os.mkdir(tmp_dir)
@@ -1542,15 +1542,15 @@ class InteractiveVideoDownloader(AsyncEvent):
 
         await self.__download_videos(edges_info, tmp_dir)
 
-        self.dispatch("SUCCESS")
+        await self.dispatch("SUCCESS")
 
     async def __json_main(self) -> None:
-        self.dispatch("START")
+        await self.dispatch("START")
         if not self.__out.endswith(".json"):
             self.__out += ".json"
         async with await anyio.open_file(self.__out, "w+", encoding="utf-8") as f:
             await f.write(json.dumps(await self.__fetch_edges()))
-        self.dispatch("SUCCESS")
+        await self.dispatch("SUCCESS")
 
     async def __start(self) -> None:
         if self.__mode.value == "ivi":
@@ -1573,12 +1573,12 @@ class InteractiveVideoDownloader(AsyncEvent):
         try:
             return await self.async_event_start(self.__start())
         except Exception as e:
-            self.dispatch("FAILED", {"err": e})
+            await self.dispatch("FAILED", {"err": e})
             raise e
 
-    def abort(self) -> None:
+    async def abort(self) -> None:
         """
         中断下载
         """
         self.async_event_cancel()
-        self.dispatch("ABORTED")
+        await self.dispatch("ABORTED")

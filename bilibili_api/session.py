@@ -615,7 +615,7 @@ class Session(AsyncEvent, _AsyncEventLoggingSupport):
 
                     # 自己发出的消息不发布任务
                     if event.sender_uid != self.uid or not exclude_self:
-                        self.dispatch(str(event.msg_type), event)
+                        await self.dispatch(str(event.msg_type), event)
 
             async with anyio.create_task_group() as tg:
                 for session in js["session_list"]:

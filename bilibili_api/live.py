@@ -1460,7 +1460,6 @@ class LiveDanmaku(AsyncEvent, _AsyncEventLoggingSupport):
     + 本模块自定义事件：
     + ==========================
     + VIEW: 直播间人气更新
-    + ALL: 所有事件
     + DISCONNECT: 断开连接（传入连接状态码参数）
     + TIMEOUT: 心跳响应超时
     + VERIFICATION_SUCCESSFUL: 认证成功
@@ -1705,8 +1704,7 @@ class LiveDanmaku(AsyncEvent, _AsyncEventLoggingSupport):
                     self.__status = self.STATUS_ESTABLISHED
                     callback_info["type"] = "VERIFICATION_SUCCESSFUL"
                     callback_info["data"] = None
-                    self.dispatch("VERIFICATION_SUCCESSFUL", callback_info)
-                    self.dispatch("ALL", callback_info)
+                    await self.dispatch("VERIFICATION_SUCCESSFUL", callback_info)
                     # 添加心跳包任务
                     self.__tasks.append(self.task_group.create_task(self.__heartbeat()))
                     self.__tasks.append(
@@ -1720,8 +1718,7 @@ class LiveDanmaku(AsyncEvent, _AsyncEventLoggingSupport):
                 self.__heartbeat_timer = 30.0
                 callback_info["type"] = "VIEW"
                 callback_info["data"] = info["data"]["view"]
-                self.dispatch("VIEW", callback_info)
-                self.dispatch("ALL", callback_info)
+                await self.dispatch("VIEW", callback_info)
 
             elif (
                 info["datapack_type"] == LiveDanmaku.DATAPACK_TYPE_NOTICE
@@ -1772,8 +1769,7 @@ class LiveDanmaku(AsyncEvent, _AsyncEventLoggingSupport):
                     )
 
                 callback_info["data"] = info["data"]
-                self.dispatch(callback_info["type"], callback_info)
-                self.dispatch("ALL", callback_info)
+                await self.dispatch(callback_info["type"], callback_info)
 
             else:
                 self._log_warning("检测到未知的数据包类型，无法处理")
@@ -1857,7 +1853,7 @@ class LiveDanmaku(AsyncEvent, _AsyncEventLoggingSupport):
                 await self.__client.ws_send(cnt=self.__ws, data=HEARTBEAT)
             elif self.__heartbeat_timer <= -30:
                 # 视为已异常断开连接，发布 TIMEOUT 事件
-                self.dispatch("TIMEOUT")
+                await self.dispatch("TIMEOUT")
                 break
             await anyio.sleep(1.0)
             self.__heartbeat_timer -= 1

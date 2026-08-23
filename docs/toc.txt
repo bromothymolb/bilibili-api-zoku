@@ -1055,15 +1055,19 @@ bilibili_api
   __init__
   add_event_listener
   async_event_cancel
+  async_event_iter
   async_event_run
   async_event_running
   async_event_start
   dispatch
+  get_dispatch_mode
   ignore_event
   on
   remove_all_event_listener
   remove_event_listener
   remove_ignore_events
+  set_dispatch_mode
+ AsyncEventDispatchMode
  BiliAPIClient
  BiliAPIFile
   open

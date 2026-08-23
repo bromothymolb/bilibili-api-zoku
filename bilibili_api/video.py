@@ -2017,7 +2017,7 @@ class VideoOnlineMonitor(AsyncEvent, _AsyncEventLoggingSupport):
         断开服务器
         """
         self._log_info("主动断开连接。")
-        self.dispatch("DISCONNECTED")
+        await self.dispatch("DISCONNECTED")
         self.__cancel_all_tasks()
         self.async_event_cancel()
         await self.__client.ws_close(cnt=self.__ws)
@@ -2072,7 +2072,7 @@ class VideoOnlineMonitor(AsyncEvent, _AsyncEventLoggingSupport):
             except Exception:
                 self._log_error("连接被异常断开")
                 self.__cancel_all_tasks()
-                self.dispatch("ERROR")
+                await self.dispatch("ERROR")
                 continue
             if flag == BiliWsMsgType.BINARY:
                 data = self.__unpack(data)
@@ -2102,7 +2102,7 @@ class VideoOnlineMonitor(AsyncEvent, _AsyncEventLoggingSupport):
                 # 心跳包反馈，同时包含在线人数。
                 self._log_debug(f"收到服务器心跳包反馈，编号：{d['number']}")
                 self._log_info(f"实时观看人数：{d['data']['data']['room']['online']}")
-                self.dispatch("ONLINE", d["data"])
+                await self.dispatch("ONLINE", d["data"])
 
             elif d["type"] == VideoOnlineMonitor.Datapack.DANMAKU.value:
                 # 实时弹幕。
@@ -2123,7 +2123,7 @@ class VideoOnlineMonitor(AsyncEvent, _AsyncEventLoggingSupport):
                     text=text,
                 )
                 self._log_info(f"收到实时弹幕：{dm.text}")
-                self.dispatch("DANMAKU", {"danmaku": dm})
+                await self.dispatch("DANMAKU", {"danmaku": dm})
 
             else:
                 # 未知类型数据包

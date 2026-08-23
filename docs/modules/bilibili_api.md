@@ -24,15 +24,19 @@ from bilibili_api import ...
   - [def \_\_init\_\_()](#def-\_\_init\_\_)
   - [def add\_event\_listener()](#def-add\_event\_listener)
   - [def async\_event\_cancel()](#def-async\_event\_cancel)
+  - [async def async\_event\_iter()](#async-def-async\_event\_iter)
   - [def async\_event\_run()](#def-async\_event\_run)
   - [def async\_event\_running()](#def-async\_event\_running)
   - [async def async\_event\_start()](#async-def-async\_event\_start)
-  - [def dispatch()](#def-dispatch)
+  - [async def dispatch()](#async-def-dispatch)
+  - [def get\_dispatch\_mode()](#def-get\_dispatch\_mode)
   - [def ignore\_event()](#def-ignore\_event)
   - [def on()](#def-on)
   - [def remove\_all\_event\_listener()](#def-remove\_all\_event\_listener)
   - [def remove\_event\_listener()](#def-remove\_event\_listener)
   - [def remove\_ignore\_events()](#def-remove\_ignore\_events)
+  - [def set\_dispatch\_mode()](#def-set\_dispatch\_mode)
+- [class AsyncEventDispatchMode()](#class-AsyncEventDispatchMode)
 - [class BiliAPIClient()](#class-BiliAPIClient)
 - [class BiliAPIFile()](#class-BiliAPIFile)
   - [async def open()](#async-def-open)
@@ -428,6 +432,14 @@ AsyncEvent.add_event_listener("__TASK_EXCEPTION__", handle_exception)
 
 
 
+### async def async_event_iter()
+
+
+
+
+
+
+
 ### def async_event_run()
 
 非阻塞启动异步事件类
@@ -469,7 +481,7 @@ AsyncEvent.add_event_listener("__TASK_EXCEPTION__", handle_exception)
 
 
 
-### def dispatch()
+### async def dispatch()
 
 异步发布事件。
 
@@ -478,6 +490,17 @@ AsyncEvent.add_event_listener("__TASK_EXCEPTION__", handle_exception)
 | - | - | - |
 | `name` | `str` | 事件名。 |
 | `args` | `Any` | 要传递给函数的参数。 *args 传递。 |
+
+
+
+
+### def get_dispatch_mode()
+
+获取当前 AsyncEvent 的事件分发模式 (后台任务/等待完成)
+
+
+
+**Returns:** `AsyncEventDispatchMode`:  事件分发模式
 
 
 
@@ -557,6 +580,31 @@ async def handle_exception(name: str, exc: Exception) -> None:
 移除所有忽略事件
 
 
+
+
+
+
+### def set_dispatch_mode()
+
+获取当前 AsyncEvent 的事件分发模式 (后台任务/等待完成)
+
+
+
+**Returns:** `AsyncEventDispatchMode`:  事件分发模式
+
+
+
+
+---
+
+## class AsyncEventDispatchMode()
+
+> Extend: `enum.Enum`
+
+异步事件分发模式
+
+- TASK: 创建任务，后台运行 (默认)
+- AWAIT: 等待任务完成
 
 
 
@@ -842,7 +890,7 @@ class BiliAPIClient(ABC):
 | `name` | `str` | 过滤器名称. |
 | `locate` | `str` | 过滤器位置. pre 为前置， post 为后置。 |
 | `priority` | `int, optional` | 优先级。优先级越小，越早执行。Defaults to 1. |
-| `function` | `Callable[[BiliFilterArgs], BiliFilterReturn.Returns \| Generator[BiliFilterReturn.Returns]] \| None, optional` | 同步函数。Defaults to None. |
+| `function` | `Callable[[BiliFilterArgs], list[BiliFilterReturn] \| BiliFilterReturn] \| None, optional` | 同步函数。Defaults to None. |
 | `async_function` | `Callable[..., Coroutine[Any, Any, BiliFilterReturn.Returns] \| AsyncGenerator[BiliFilterReturn.Returns]] \| None, optional` | 异步函数。Defaults to None. |
 
 
@@ -969,14 +1017,10 @@ class BiliAPIClient(ABC):
 
 过滤器行为枚举
 
-返回过滤器行为可通过函数 `return` 返回或生成器 `yield` 抛出。
-
-`return` 只能返回一个行为， `yield` 可以抛出多个行为。
-
-- 【NOTE】以下过滤器建议配合 `yield` 使用。
+- 【NOTE】以下为设置类过滤器行为，可无限叠加（存在顺序）。
 - SET_PARAMS: 设置函数的参数 (仅前置过滤器)
 - SET_RETURN: 设置返回值 (仅后置过滤器)
-- 【NOTE】以下过滤器需要配合 `yield` + `return` 使用。
+- 【NOTE】以下为跳转类过滤器行为，不可叠加，将在设置类过滤器之后执行。
 - CONTINUE: 继续下一个过滤器
 - EXECUTE_NOW: 直接运行函数 (仅前置过滤器)
 - RETURN_NOW: 直接作为函数返回值返回
@@ -989,16 +1033,19 @@ class BiliAPIClient(ABC):
 
 ## class BiliFilterReturn()
 
-用于结束过滤器返回结果的工具类
+> `@dataclasses.dataclass` 
 
-提供 `BiliFilterReturn.Returns` 作为过滤器返回值 `tuple[BiliFilterFlags, Any]` 的缩写。
+过滤器返回值
+
+- flag (BiliFilterFlags): 过滤器返回后行为
+- param (Any, optional): 过滤器返回携带参数，可能存在。Defaults to None.
 
 
 
 
 ### def continue_exec()
 
-> `@staticmethod` 
+> `@classmethod` 
 
 继续过滤器执行
 
@@ -1011,7 +1058,7 @@ class BiliAPIClient(ABC):
 
 ### def execute_now()
 
-> `@staticmethod` 
+> `@classmethod` 
 
 直接运行函数 (仅前置过滤器)
 
@@ -1024,7 +1071,7 @@ class BiliAPIClient(ABC):
 
 ### def goto_idx()
 
-> `@staticmethod` 
+> `@classmethod` 
 
 跳到任意一个过滤器
 
@@ -1040,7 +1087,7 @@ class BiliAPIClient(ABC):
 
 ### def goto_name()
 
-> `@staticmethod` 
+> `@classmethod` 
 
 跳到任意一个过滤器
 
@@ -1056,7 +1103,7 @@ class BiliAPIClient(ABC):
 
 ### def return_now()
 
-> `@staticmethod` 
+> `@classmethod` 
 
 直接返回结果，作为待运行函数返回值
 
@@ -1069,7 +1116,7 @@ class BiliAPIClient(ABC):
 
 ### def set_params()
 
-> `@staticmethod` 
+> `@classmethod` 
 
 设置函数的参数 (仅前置过滤器)
 
@@ -1085,7 +1132,7 @@ class BiliAPIClient(ABC):
 
 ### def set_return()
 
-> `@staticmethod` 
+> `@classmethod` 
 
 设置函数的返回值 (仅后置过滤器)
 

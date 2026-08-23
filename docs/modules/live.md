@@ -173,7 +173,6 @@ Events:
 + 本模块自定义事件：
 + ==========================
 + VIEW: 直播间人气更新
-+ ALL: 所有事件
 + DISCONNECT: 断开连接（传入连接状态码参数）
 + TIMEOUT: 心跳响应超时
 + VERIFICATION_SUCCESSFUL: 认证成功

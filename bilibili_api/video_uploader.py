@@ -760,7 +760,7 @@ class VideoUploader(AsyncEvent):
         Returns:
             dict: 初始化信息
         """
-        self.dispatch(VideoUploaderEvents.PREUPLOAD.value, {"page": page})
+        await self.dispatch(VideoUploaderEvents.PREUPLOAD.value, {"page": page})
         api = _API["preupload"]
 
         # 首先获取视频文件预检信息
@@ -787,13 +787,17 @@ class VideoUploader(AsyncEvent):
             },
         )
         if resp.code >= 400:
-            self.dispatch(VideoUploaderEvents.PREUPLOAD_FAILED.value, {"page": page})
+            await self.dispatch(
+                VideoUploaderEvents.PREUPLOAD_FAILED.value, {"page": page}
+            )
             raise NetworkException(resp.code, "")
 
         preupload = resp.json()
 
         if preupload["OK"] != 1:
-            self.dispatch(VideoUploaderEvents.PREUPLOAD_FAILED.value, {"page": page})
+            await self.dispatch(
+                VideoUploaderEvents.PREUPLOAD_FAILED.value, {"page": page}
+            )
             raise ApiException(json.dumps(preupload))
 
         preupload = self._switch_upload_endpoint(preupload, self.line)
@@ -818,13 +822,17 @@ class VideoUploader(AsyncEvent):
             },
         )
         if resp.code >= 400:
-            self.dispatch(VideoUploaderEvents.PREUPLOAD_FAILED.value, {"page": page})
+            await self.dispatch(
+                VideoUploaderEvents.PREUPLOAD_FAILED.value, {"page": page}
+            )
             raise ApiException("获取 upload_id 错误")
 
         data = resp.json()
 
         if data["OK"] != 1:
-            self.dispatch(VideoUploaderEvents.PREUPLOAD_FAILED.value, {"page": page})
+            await self.dispatch(
+                VideoUploaderEvents.PREUPLOAD_FAILED.value, {"page": page}
+            )
             raise ApiException("获取 upload_id 错误：" + json.dumps(data))
 
         preupload["upload_id"] = data["upload_id"]
@@ -967,7 +975,7 @@ class VideoUploader(AsyncEvent):
 
         result = await self._submit(videos, cover_url)
 
-        self.dispatch(VideoUploaderEvents.COMPLETED.value, result)
+        await self.dispatch(VideoUploaderEvents.COMPLETED.value, result)
         return result
 
     async def start(self) -> dict | None:
@@ -982,7 +990,7 @@ class VideoUploader(AsyncEvent):
         try:
             return await self.async_event_start(self._main())
         except Exception as e:
-            self.dispatch(VideoUploaderEvents.FAILED.value, {"err": e})
+            await self.dispatch(VideoUploaderEvents.FAILED.value, {"err": e})
             raise e
 
     async def _upload_cover(self) -> str:
@@ -992,15 +1000,17 @@ class VideoUploader(AsyncEvent):
         Returns:
             str: 封面 URL
         """
-        self.dispatch(VideoUploaderEvents.PRE_COVER.value)
+        await self.dispatch(VideoUploaderEvents.PRE_COVER.value)
         try:
             if isinstance(self.cover, str):
                 self.cover = Picture.from_file(self.cover)
             cover_url = await upload_cover(cover=self.cover, credential=self.credential)  # type: ignore
-            self.dispatch(VideoUploaderEvents.AFTER_COVER.value, {"url": cover_url})
+            await self.dispatch(
+                VideoUploaderEvents.AFTER_COVER.value, {"url": cover_url}
+            )
             return cover_url
         except Exception as e:
-            self.dispatch(VideoUploaderEvents.COVER_FAILED.value, {"err": e})
+            await self.dispatch(VideoUploaderEvents.COVER_FAILED.value, {"err": e})
             raise e
 
     async def _upload_page(self, page: VideoUploaderPage) -> dict:
@@ -1014,7 +1024,7 @@ class VideoUploader(AsyncEvent):
             str: 分 P 文件 ID，用于 submit 时的 $.videos[n].filename 字段使用。
         """
         preupload = await self._preupload(page)
-        self.dispatch(VideoUploaderEvents.PRE_PAGE.value, {"page": page})
+        await self.dispatch(VideoUploaderEvents.PRE_PAGE.value, {"page": page})
 
         page_size = await page.get_size()
         # 所有分块起始位置
@@ -1060,7 +1070,7 @@ class VideoUploader(AsyncEvent):
 
         data = await self._complete_page(page, total_chunk_count, preupload, upload_id)
 
-        self.dispatch(VideoUploaderEvents.AFTER_PAGE.value, {"page": page})
+        await self.dispatch(VideoUploaderEvents.AFTER_PAGE.value, {"page": page})
 
         return data
 
@@ -1107,7 +1117,9 @@ class VideoUploader(AsyncEvent):
             "chunk_number": chunk_number,
             "total_chunk_count": total_chunk_count,
         }
-        self.dispatch(VideoUploaderEvents.PRE_CHUNK.value, chunk_event_callback_data)
+        await self.dispatch(
+            VideoUploaderEvents.PRE_CHUNK.value, chunk_event_callback_data
+        )
         session = get_client()
 
         async with await anyio.open_file(page.path, "rb") as stream:
@@ -1155,7 +1167,7 @@ class VideoUploader(AsyncEvent):
             )
             if resp.code >= 400:
                 chunk_event_callback_data["info"] = f"Status {resp.code}"
-                self.dispatch(
+                await self.dispatch(
                     VideoUploaderEvents.CHUNK_FAILED.value,
                     chunk_event_callback_data,
                 )
@@ -1165,7 +1177,7 @@ class VideoUploader(AsyncEvent):
 
             if data != "MULTIPART_PUT_SUCCESS" and data != "":
                 chunk_event_callback_data["info"] = "分块上传失败"
-                self.dispatch(
+                await self.dispatch(
                     VideoUploaderEvents.CHUNK_FAILED.value,
                     chunk_event_callback_data,
                 )
@@ -1173,12 +1185,14 @@ class VideoUploader(AsyncEvent):
 
         except Exception as e:
             chunk_event_callback_data["info"] = str(e)
-            self.dispatch(
+            await self.dispatch(
                 VideoUploaderEvents.CHUNK_FAILED.value, chunk_event_callback_data
             )
             return err_return
 
-        self.dispatch(VideoUploaderEvents.AFTER_CHUNK.value, chunk_event_callback_data)
+        await self.dispatch(
+            VideoUploaderEvents.AFTER_CHUNK.value, chunk_event_callback_data
+        )
         return ok_return
 
     async def _complete_page(
@@ -1199,7 +1213,7 @@ class VideoUploader(AsyncEvent):
         Returns:
             dict: filename: 该分 P 的标识符，用于最后提交视频。cid: 分 P 的 cid
         """
-        self.dispatch(VideoUploaderEvents.PRE_PAGE_SUBMIT.value, {"page": page})
+        await self.dispatch(VideoUploaderEvents.PRE_PAGE_SUBMIT.value, {"page": page})
 
         data = {
             "parts": [{"partNumber": x, "eTag": "etag"} for x in range(1, chunks + 1)]
@@ -1230,7 +1244,7 @@ class VideoUploader(AsyncEvent):
         )
         if resp.code >= 400:
             err = NetworkException(resp.code, "状态码错误，提交分 P 失败")
-            self.dispatch(
+            await self.dispatch(
                 VideoUploaderEvents.PAGE_SUBMIT_FAILED.value,
                 {"page": page, "err": err},
             )
@@ -1240,13 +1254,13 @@ class VideoUploader(AsyncEvent):
 
         if data["OK"] != 1:
             err = ResponseCodeException(-1, f"提交分 P 失败，原因: {data['message']}")
-            self.dispatch(
+            await self.dispatch(
                 VideoUploaderEvents.PAGE_SUBMIT_FAILED.value,
                 {"page": page, "err": err},
             )
             raise err
 
-        self.dispatch(VideoUploaderEvents.AFTER_PAGE_SUBMIT.value, {"page": page})
+        await self.dispatch(VideoUploaderEvents.AFTER_PAGE_SUBMIT.value, {"page": page})
 
         return {
             "filename": os.path.splitext(data["key"].removeprefix("/"))[0],
@@ -1271,7 +1285,7 @@ class VideoUploader(AsyncEvent):
         meta["cover"] = cover_url
         meta["videos"] = videos
 
-        self.dispatch(VideoUploaderEvents.PRE_SUBMIT.value, deepcopy(meta))
+        await self.dispatch(VideoUploaderEvents.PRE_SUBMIT.value, deepcopy(meta))
 
         meta["csrf"] = self.credential.bili_jct  # csrf 不需要 print
         api = _API["submit"]
@@ -1289,19 +1303,19 @@ class VideoUploader(AsyncEvent):
                 # .update_headers(**headers)
                 .result
             )
-            self.dispatch(VideoUploaderEvents.AFTER_SUBMIT.value, resp)
+            await self.dispatch(VideoUploaderEvents.AFTER_SUBMIT.value, resp)
             return resp
 
         except Exception as err:
-            self.dispatch(VideoUploaderEvents.SUBMIT_FAILED.value, {"err": err})
+            await self.dispatch(VideoUploaderEvents.SUBMIT_FAILED.value, {"err": err})
             raise err
 
-    def abort(self) -> None:
+    async def abort(self) -> None:
         """
         中断上传
         """
         self.async_event_cancel()
-        self.dispatch(VideoUploaderEvents.ABORTED.value)
+        await self.dispatch(VideoUploaderEvents.ABORTED.value)
 
 
 async def get_missions(tid: int = 0, credential: Credential | None = None) -> dict:
@@ -1417,7 +1431,7 @@ class VideoEditor(AsyncEvent):
         """
         在本地缓存原来的上传信息
         """
-        self.dispatch(VideoEditorEvents.PRELOAD.value)
+        await self.dispatch(VideoEditorEvents.PRELOAD.value)
         try:
             api = _API["upload_args"]
             params = {"bvid": self.bvid}
@@ -1427,9 +1441,9 @@ class VideoEditor(AsyncEvent):
                 .result
             )
         except Exception as e:
-            self.dispatch(VideoEditorEvents.PRELOAD_FAILED.value, {"err", e})
+            await self.dispatch(VideoEditorEvents.PRELOAD_FAILED.value, {"err", e})
             raise e
-        self.dispatch(
+        await self.dispatch(
             VideoEditorEvents.AFTER_PRELOAD.value, {"data": self.__old_configs}
         )
 
@@ -1442,7 +1456,7 @@ class VideoEditor(AsyncEvent):
         """
         if self.cover_path == "":
             return
-        self.dispatch(VideoEditorEvents.PRE_COVER.value, None)
+        await self.dispatch(VideoEditorEvents.PRE_COVER.value, None)
         try:
             pic = (
                 self.cover_path
@@ -1450,18 +1464,18 @@ class VideoEditor(AsyncEvent):
                 else Picture().from_file(self.cover_path)
             )
             resp = await upload_cover(pic, self.credential)
-            self.dispatch(VideoEditorEvents.AFTER_COVER.value, {"url": resp})
+            await self.dispatch(VideoEditorEvents.AFTER_COVER.value, {"url": resp})
             # not sure if this key changed to "url" as well
             self.meta["cover"] = resp
         except Exception as e:
-            self.dispatch(VideoEditorEvents.COVER_FAILED.value, {"err": e})
+            await self.dispatch(VideoEditorEvents.COVER_FAILED.value, {"err": e})
             raise e
 
     async def _submit(self):
         api = _API["edit"]
         data = self.meta
         data["csrf"] = self.credential.bili_jct
-        self.dispatch(VideoEditorEvents.PRE_SUBMIT.value)
+        await self.dispatch(VideoEditorEvents.PRE_SUBMIT.value)
         try:
             params = {"csrf": self.credential.bili_jct, "t": int(time.time())}
             headers = {
@@ -1478,9 +1492,9 @@ class VideoEditor(AsyncEvent):
                 .update_headers(**headers)
                 .result
             )
-            self.dispatch(VideoEditorEvents.AFTER_SUBMIT.value, resp)
+            await self.dispatch(VideoEditorEvents.AFTER_SUBMIT.value, resp)
         except Exception as e:
-            self.dispatch(VideoEditorEvents.SUBMIT_FAILED.value, {"err", e})
+            await self.dispatch(VideoEditorEvents.SUBMIT_FAILED.value, {"err", e})
             raise e
 
     async def _main(self) -> dict:
@@ -1497,7 +1511,7 @@ class VideoEditor(AsyncEvent):
         self.meta["tid"] = self.__old_configs["archive"]["tid"]
         await self._change_cover()
         await self._submit()
-        self.dispatch(VideoEditorEvents.COMPLETED.value)
+        await self.dispatch(VideoEditorEvents.COMPLETED.value)
         return {"bvid": self.bvid}
 
     async def start(self) -> dict | None:
@@ -1510,12 +1524,12 @@ class VideoEditor(AsyncEvent):
         try:
             return await self.async_event_start(self._main())
         except Exception as e:
-            self.dispatch(VideoEditorEvents.FAILED.value, {"err": e})
+            await self.dispatch(VideoEditorEvents.FAILED.value, {"err": e})
             raise e
 
-    def abort(self) -> None:
+    async def abort(self) -> None:
         """
         中断更改
         """
         self.async_event_cancel()
-        self.dispatch(VideoEditorEvents.ABORTED.value)
+        await self.dispatch(VideoEditorEvents.ABORTED.value)

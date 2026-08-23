@@ -12,7 +12,7 @@ from bilibili_api import audio_uploader
 
 - [class AudioUploader()](#class-AudioUploader)
   - [def \_\_init\_\_()](#def-\_\_init\_\_)
-  - [def abort()](#def-abort)
+  - [async def abort()](#async-def-abort)
   - [async def start()](#async-def-start)
 - [class AudioUploaderEvents()](#class-AudioUploaderEvents)
 - [class AuthorInfo()](#class-AuthorInfo)
@@ -60,7 +60,7 @@ from bilibili_api import audio_uploader
 | `credential` | `Credential` | 账号信息 |
 
 
-### def abort()
+### async def abort()
 
 中断更改
 
