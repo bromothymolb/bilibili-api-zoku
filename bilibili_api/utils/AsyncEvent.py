@@ -301,17 +301,21 @@ class AsyncEvent:
     async def async_event_iter(
         self, start_coro: Coroutine[Any, Any, T]
     ) -> AsyncGenerator[tuple[str, Any]]:
-        self.set_dispatch_mode(AsyncEventDispatchMode.AWAIT)
-        send_stream, receive_stream = create_memory_object_stream[tuple[str, Any]]()
+        send_stream, receive_stream = create_memory_object_stream[
+            tuple[str, Any, Event]
+        ]()
 
         @self.on("__ALL__")
         async def yield_event(event: str, data: Any):
-            await send_stream.send((event, data))
+            wait_event = Event()
+            await send_stream.send((event, data, wait_event))
+            await wait_event.wait()
 
         async with self.async_event_run(start_coro):
             try:
-                async for event, data in receive_stream:
+                async for event, data, wait_event in receive_stream:
                     yield (event, data)
+                    wait_event.set()
             except CancelledError:
                 self.__exit_event.set()
             finally:
