@@ -7,7 +7,7 @@ CurlCFFIClient 实现
 import asyncio
 from collections.abc import AsyncGenerator
 
-import anyio
+from anyio import Lock
 import curl_cffi
 from curl_cffi import requests
 
@@ -65,8 +65,8 @@ class CurlCFFIClient(BiliAPIClient):
         self.__download_iter: dict[int, AsyncGenerator] = {}
         self.__download_cnt: int = 0
 
-        self.__ws_cnt_lock = anyio.Lock()
-        self.__down_cnt_lock = anyio.Lock()
+        self.__ws_cnt_lock = Lock()
+        self.__down_cnt_lock = Lock()
 
     def get_wrapped_session(self) -> requests.AsyncSession:
         return self.__session
@@ -274,7 +274,6 @@ class CurlCFFIClient(BiliAPIClient):
 
     async def close(self) -> None:
         await self.__session.close()
-        del self.__session
 
     get_wrapped_session.__doc__ = BiliAPIClient.get_wrapped_session.__doc__
     request.__doc__ = BiliAPIClient.request.__doc__

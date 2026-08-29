@@ -5,9 +5,10 @@ AioHTTPClient 实现
 """
 
 import asyncio
+from threading import Lock as ThreadingLock
 
 import aiohttp
-import anyio
+from anyio import Lock
 
 from ..utils.network import (
     BiliAPIClient,
@@ -54,11 +55,23 @@ class AioHTTPClient(BiliAPIClient):
         self.__download_iter: dict[int, aiohttp.streams.AsyncStreamIterator] = {}
         self.__download_cnt: int = 0
 
-        self.__session_update_lock = anyio.Lock()
-        self.__ws_cnt_lock = anyio.Lock()
-        self.__down_cnt_lock = anyio.Lock()
+        self.__session_update_lock = ThreadingLock()
+        self.__session_close_lock = Lock()
+        self.__ws_cnt_lock = Lock()
+        self.__down_cnt_lock = Lock()
 
     def get_wrapped_session(self) -> aiohttp.ClientSession:
+        with self.__session_update_lock:
+            # get new configured session
+            if self.__need_update_session:
+                self.__session = aiohttp.ClientSession(
+                    loop=asyncio.get_event_loop(),
+                    trust_env=self.__args["trust_env"],
+                    connector=aiohttp.TCPConnector(
+                        verify_ssl=self.__args["verify_ssl"]
+                    ),
+                )
+                self.__need_update_session = False
         return self.__session
 
     def set_proxy(self, proxy: str = "") -> None:
@@ -68,7 +81,6 @@ class AioHTTPClient(BiliAPIClient):
         Args:
             proxy (str, optional): 代理地址. Defaults to "".
         """
-        self.__use_args = True
         self.__args["proxy"] = proxy
 
     def set_timeout(self, timeout: float = 0) -> None:
@@ -78,7 +90,6 @@ class AioHTTPClient(BiliAPIClient):
         Args:
             timeout (float, optional): 请求超时时间. Defaults to 0.0.
         """
-        self.__use_args = True
         self.__args["timeout"] = timeout
 
     def set_verify_ssl(self, verify_ssl: bool = True) -> None:
@@ -88,7 +99,6 @@ class AioHTTPClient(BiliAPIClient):
         Args:
             verify_ssl (bool, optional): 是否验证 SSL. Defaults to True.
         """
-        self.__use_args = True
         self.__args["verify_ssl"] = verify_ssl
         self.__need_update_session = True
 
@@ -99,23 +109,14 @@ class AioHTTPClient(BiliAPIClient):
         Args:
             trust_env (bool, optional): `trust_env`. Defaults to True.
         """
-        self.__use_args = True
         self.__args["trust_env"] = trust_env
         self.__need_update_session = True
 
     async def __auto_update_session(self) -> None:
-        if self.__need_update_session:
-            async with self.__session_update_lock:
-                if self.__need_update_session:
-                    await self.__session.close()
-                    self.__session = aiohttp.ClientSession(
-                        loop=asyncio.get_event_loop(),
-                        trust_env=self.__args["trust_env"],
-                        connector=aiohttp.TCPConnector(
-                            verify_ssl=self.__args["verify_ssl"]
-                        ),
-                    )
-                    self.__need_update_session = False
+        # close old session
+        async with self.__session_close_lock:
+            if self.__need_update_session and not self.__session.closed:
+                await self.__session.close()
 
     async def request(
         self,
@@ -149,7 +150,7 @@ class AioHTTPClient(BiliAPIClient):
                 )
             data = form  # type: ignore
         if self.__use_args:
-            resp = await self.__session.request(
+            resp = await self.get_wrapped_session().request(
                 method=method,
                 url=url,
                 params=params,
@@ -161,7 +162,7 @@ class AioHTTPClient(BiliAPIClient):
                 timeout=aiohttp.ClientTimeout(self.__args["timeout"]),
             )
         else:
-            resp = await self.__session.request(
+            resp = await self.get_wrapped_session().request(
                 method=method,
                 url=url,
                 params=params,
@@ -200,7 +201,9 @@ class AioHTTPClient(BiliAPIClient):
         self.__download_cnt += 1
         cnt = self.__download_cnt
         self.__down_cnt_lock.release()
-        self.__downloads[cnt] = await self.__session.get(url=url, headers=headers)
+        self.__downloads[cnt] = await self.get_wrapped_session().get(
+            url=url, headers=headers
+        )
         self.__download_iter[cnt] = self.__downloads[cnt].content.iter_chunked(
             chunk_size
         )
@@ -237,7 +240,7 @@ class AioHTTPClient(BiliAPIClient):
         self.__ws_cnt += 1
         cnt = self.__ws_cnt
         self.__ws_cnt_lock.release()
-        self.__wss[cnt] = await self.__session.ws_connect(
+        self.__wss[cnt] = await self.get_wrapped_session().ws_connect(
             url=url, params=params, headers=headers
         )
         return cnt
@@ -255,7 +258,6 @@ class AioHTTPClient(BiliAPIClient):
 
     async def close(self):
         await self.__session.close()
-        del self.__session
 
     __init__.__doc__ = BiliAPIClient.__init__.__doc__
     get_wrapped_session.__doc__ = BiliAPIClient.get_wrapped_session.__doc__

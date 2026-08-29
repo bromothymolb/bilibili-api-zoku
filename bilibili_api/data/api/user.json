@@ -123,6 +123,7 @@
       "method": "GET",
       "verify": false,
       "wbi": true,
+      "dm": true,
       "params": {
         "mid": "int: uid",
         "w_webid": "str: w_webid"
