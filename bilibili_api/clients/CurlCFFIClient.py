@@ -121,7 +121,7 @@ class CurlCFFIClient(BiliAPIClient):
         设置是否使用 http2.
 
         Args:
-            impersonate (str, optional): 是否使用 http2. Defaults to False.
+            http2 (bool, optional): 是否使用 http2. Defaults to False.
         """
         self.__session.http_version = curl_cffi.CurlHttpVersion.V2_0 if http2 else None
 

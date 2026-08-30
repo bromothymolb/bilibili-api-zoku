@@ -4,7 +4,7 @@ bilibili_api.utils.utils
 通用工具库。
 """
 
-from collections.abc import Generator
+from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from contextvars import ContextVar
 from datetime import datetime
@@ -24,6 +24,7 @@ from anyio import (
     to_thread,
 )
 from anyio.lowlevel import EventLoopToken, current_token
+from frozendict import frozendict
 
 from ..exceptions import StatementException
 
@@ -418,3 +419,78 @@ class MultiEventLoopLocks:
                 from_thread.run_sync(event.set, token=token)
 
         await to_thread.run_sync(stop_waiting_anyio_events)
+
+
+ClientT = TypeVar("ClientT")
+
+
+class Sessions(Generic[ClientT]):
+    """
+    用于维护 BiliAPIClient 中的包装实例
+
+    实例将随着部分配置项的变化而变化
+
+    初始设置： `init`
+
+    改变设置后：`ensure` + `trace`
+
+    清理旧会话：`closed_sessions`
+    """
+
+    def __init__(self, cls: type[ClientT]) -> None:
+        self.__sessions: dict[frozendict, ClientT] = {}
+        self.__count: dict[frozendict, int] = {}
+        self.__count_lock: ThreadingLock = ThreadingLock()
+        self.__cls = cls
+
+    def _ensure(self, config: frozendict, init_args: dict) -> None:
+        if config not in self.__sessions.keys():
+            self.__sessions[config] = self.__cls(
+                **{
+                    k: (v() if isinstance(v, Callable) else v)
+                    for k, v in init_args.items()
+                }
+            )
+            self.__count[config] = 0
+
+    def _require(self, config: frozendict) -> None:
+        self.__count[config] += 1
+
+    def _release(self, config: frozendict) -> None:
+        self.__count[config] -= 1
+
+    def get(self, config: frozendict) -> ClientT:
+        return self.__sessions[config]
+
+    def all(self) -> list[frozendict]:
+        with self.__count_lock:
+            return list(self.__sessions.keys())
+
+    def closed_sessions(
+        self, configs: list[frozendict]
+    ) -> list[tuple[frozendict, ClientT]]:
+        with self.__count_lock:
+            ret = []
+            for config in configs:
+                if config not in self.__count.keys():
+                    continue
+                if self.__count[config] == 0:
+                    ret.append((config, self.__sessions.pop(config)))
+                    self.__count.pop(config)
+            return ret
+
+    def init(self, config: frozendict, init_args: dict) -> None:
+        with self.__count_lock:
+            self._ensure(config, init_args)
+            self._require(config)
+
+    def update(self, old: frozendict, new: frozendict, init_args: dict) -> None:
+        with self.__count_lock:
+            self._ensure(new, init_args)
+            if old != new:
+                self._release(old)
+                self._require(new)
+
+    def close(self, config: frozendict) -> None:
+        with self.__count_lock:
+            self._release(config)

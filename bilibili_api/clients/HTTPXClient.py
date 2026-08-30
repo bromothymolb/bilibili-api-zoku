@@ -5,7 +5,6 @@ HTTPXClient 实现
 """
 
 from collections.abc import AsyncIterator
-from threading import Lock as ThreadingLock
 
 from anyio import Lock
 from frozendict import frozendict
@@ -18,10 +17,9 @@ from ..utils.network import (
     BiliAPIResponse,
     BiliWsMsgType,
 )
+from ..utils.utils import Sessions
 
-sessions: dict[frozendict, httpx.AsyncClient] = {}
-sessions_count: dict[frozendict, int] = {}
-sessions_lock = ThreadingLock()
+sessions: Sessions[httpx.AsyncClient] = Sessions(httpx.AsyncClient)
 
 
 class HTTPXClient(BiliAPIClient):
@@ -54,23 +52,20 @@ class HTTPXClient(BiliAPIClient):
         self.__verify_ssl = verify_ssl
         self.__trust_env = trust_env
         self.__http2 = http2
-        if session:
-            self.__session = session
-        else:
-            with sessions_lock:
-                self._new_session()
-                self._change_args_after()
-            self.__session = sessions[self._get_session_args_dict()]
+        self.__closed = False
+        self.__session = session
+
         self.__downloads: dict[int, httpx.Response] = {}
         self.__download_iter: dict[int, AsyncIterator] = {}
         self.__download_cnt: int = 0
         self.__down_cnt_lock = Lock()
 
-        self.__session_user_specified = bool(session)
-        self.__session_close = False
-        self.__session_close_lock = Lock()
+        if not self.__session:
+            sessions.init(self._configuration(), self._init_args())
+            self.__last_config = self._configuration()
+            self.__configs: set[frozendict] = {self._configuration()}
 
-    def _get_session_args_dict(self) -> frozendict:
+    def _configuration(self) -> frozendict:
         return frozendict(
             {
                 "proxy": self.__proxy,
@@ -81,33 +76,33 @@ class HTTPXClient(BiliAPIClient):
             }
         )
 
-    def _new_session(self) -> None:
-        if not sessions.get(self._get_session_args_dict()):
-            sessions[self._get_session_args_dict()] = httpx.AsyncClient(
-                timeout=self.__timeout,
-                proxy=self.__proxy if self.__proxy != "" else None,
-                verify=self.__verify_ssl,
-                trust_env=self.__trust_env,
-                http2=self.__http2,
-            )
+    def _init_args(self) -> dict:
+        return {
+            "timeout": self.__timeout,
+            "proxy": self.__proxy if self.__proxy != "" else None,
+            "verify": self.__verify_ssl,
+            "trust_env": self.__trust_env,
+            "http2": self.__http2,
+        }
 
-    def _change_args_before(self) -> None:
-        sessions_count[self._get_session_args_dict()] -= 1
-        if not sessions_count[self._get_session_args_dict()]:
-            self.__session_close = True
-            sessions.pop(self._get_session_args_dict())
-            sessions_count.pop(self._get_session_args_dict())
+    def _update_session(self) -> None:
+        sessions.update(self.__last_config, self._configuration(), self._init_args())
+        self.__last_config = self._configuration()
+        self.__configs.add(self._configuration())
 
-    def _change_args_after(self) -> None:
-        if not sessions_count.get(self._get_session_args_dict()):
-            sessions_count[self._get_session_args_dict()] = 0
-        sessions_count[self._get_session_args_dict()] += 1
+    async def _close_old_sessions(self) -> None:
+        if self.__session:
+            return
+        self._update_session()
+        for config, session in sessions.closed_sessions(list(self.__configs)):
+            self.__configs.remove(config)
+            await session.aclose()
 
     def get_wrapped_session(self) -> httpx.AsyncClient:
-        # get session for current configuration
-        if not self.__session_user_specified:
-            self.__session = sessions[self._get_session_args_dict()]
-        return self.__session
+        if self.__session:
+            return self.__session
+        self._update_session()
+        return sessions.get(self._configuration())
 
     def set_proxy(self, proxy: str = "") -> None:
         """
@@ -116,11 +111,7 @@ class HTTPXClient(BiliAPIClient):
         Args:
             proxy (str, optional): 代理地址. Defaults to "".
         """
-        with sessions_lock:
-            self._change_args_before()
-            self.__proxy = proxy
-            self._new_session()
-            self._change_args_after()
+        self.__proxy = proxy
 
     def set_timeout(self, timeout: float = 0.0) -> None:
         """
@@ -129,11 +120,7 @@ class HTTPXClient(BiliAPIClient):
         Args:
             timeout (float, optional): 请求超时时间. Defaults to 0.0.
         """
-        with sessions_lock:
-            self._change_args_before()
-            self.__timeout = timeout
-            self._new_session()
-            self._change_args_after()
+        self.__timeout = timeout
 
     def set_verify_ssl(self, verify_ssl: bool = True) -> None:
         """
@@ -142,11 +129,7 @@ class HTTPXClient(BiliAPIClient):
         Args:
             verify_ssl (bool, optional): 是否验证 SSL. Defaults to True.
         """
-        with sessions_lock:
-            self._change_args_before()
-            self.__verify_ssl = verify_ssl
-            self._new_session()
-            self._change_args_after()
+        self.__verify_ssl = verify_ssl
 
     def set_trust_env(self, trust_env: bool = True) -> None:
         """
@@ -155,31 +138,16 @@ class HTTPXClient(BiliAPIClient):
         Args:
             trust_env (bool, optional): `trust_env`. Defaults to True.
         """
-        with sessions_lock:
-            self._change_args_before()
-            self.__trust_env = trust_env
-            self._new_session()
-            self._change_args_after()
+        self.__trust_env = trust_env
 
     def set_http2(self, http2: bool = False) -> None:
         """
         设置是否使用 http2.
 
         Args:
-            http2 (str, optional): 是否使用 http2. Defaults to False.
+            http2 (bool, optional): 是否使用 http2. Defaults to False.
         """
-        with sessions_lock:
-            self._change_args_before()
-            self.__http2 = http2
-            self._new_session()
-            self._change_args_after()
-
-    async def __update_session(self) -> None:
-        async with self.__session_close_lock:
-            if self.__session_close:
-                # close old session
-                await self.__session.aclose()
-                self.__session_close = False
+        self.__http2 = http2
 
     async def request(
         self,
@@ -197,7 +165,7 @@ class HTTPXClient(BiliAPIClient):
         files = files or {}
         headers = headers or {}
         cookies = cookies or {}
-        await self.__update_session()
+        await self._close_old_sessions()
         if files != {}:
             requests_like_files = {}
             for key, item in files.items():
@@ -240,7 +208,7 @@ class HTTPXClient(BiliAPIClient):
         chunk_size: int = 4096,
     ) -> int:
         headers = headers or {}
-        await self.__update_session()
+        await self._close_old_sessions()
         async with self.__down_cnt_lock:
             self.__download_cnt += 1
             cnt = self.__download_cnt
@@ -308,19 +276,16 @@ class HTTPXClient(BiliAPIClient):
         )
 
     async def close(self) -> None:
-        await self.__update_session()  # close old session
-        if self.__session_user_specified:
+        if self.__closed:
+            return
+        self.__closed = True
+        if self.__session:
             return await self.__session.aclose()
-        close_session = False
-        with sessions_lock:
-            if sessions_count.get(self._get_session_args_dict()) == 1:
-                close_session = True
-                del sessions_count[self._get_session_args_dict()]
-            elif sessions_count.get(self._get_session_args_dict()):
-                sessions_count[self._get_session_args_dict()] -= 1
-        if close_session:
-            await self.get_wrapped_session().aclose()
-            del sessions[self._get_session_args_dict()]
+        self._update_session()
+        sessions.close(self._configuration())
+        for config, session in sessions.closed_sessions(list(self.__configs)):
+            self.__configs.remove(config)
+            await session.aclose()
 
     get_wrapped_session.__doc__ = BiliAPIClient.get_wrapped_session.__doc__
     request.__doc__ = BiliAPIClient.request.__doc__

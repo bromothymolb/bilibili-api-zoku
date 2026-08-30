@@ -5,10 +5,10 @@ AioHTTPClient 实现
 """
 
 import asyncio
-from threading import Lock as ThreadingLock
 
 import aiohttp
 from anyio import Lock
+from frozendict import frozendict
 
 from ..utils.network import (
     BiliAPIClient,
@@ -16,6 +16,7 @@ from ..utils.network import (
     BiliAPIResponse,
     BiliWsMsgType,
 )
+from ..utils.utils import Sessions
 
 
 class AioHTTPClient(BiliAPIClient):
@@ -37,42 +38,59 @@ class AioHTTPClient(BiliAPIClient):
             "verify_ssl": verify_ssl,
             "trust_env": trust_env,
         }
-        self.__use_args: bool = True
-        self.__need_update_session: bool = False
-        self.__session: aiohttp.ClientSession
-        if session:
-            self.__use_args = False
-            self.__session = session
-        else:
-            self.__session = aiohttp.ClientSession(
-                loop=asyncio.get_event_loop(),
-                trust_env=self.__args["trust_env"],
-                connector=aiohttp.TCPConnector(verify_ssl=self.__args["verify_ssl"]),
-            )
+        self.__session = session
+        self.__closed = False
+
         self.__wss: dict[int, aiohttp.ClientWebSocketResponse[bool]] = {}
         self.__ws_cnt: int = 0
+        self.__ws_cnt_lock = Lock()
         self.__downloads: dict[int, aiohttp.ClientResponse] = {}
         self.__download_iter: dict[int, aiohttp.streams.AsyncStreamIterator] = {}
         self.__download_cnt: int = 0
-
-        self.__session_update_lock = ThreadingLock()
-        self.__session_close_lock = Lock()
-        self.__ws_cnt_lock = Lock()
         self.__down_cnt_lock = Lock()
 
+        if not self.__session:
+            self.__sessions: Sessions[aiohttp.ClientSession] = Sessions(
+                aiohttp.ClientSession
+            )
+            self.__sessions.init(self._configuration(), self._init_args())
+            self.__last_config = self._configuration()
+
+    def _configuration(self) -> frozendict:
+        return frozendict(
+            {
+                "trust_env": self.__args["trust_env"],
+                "verify_ssl": self.__args["verify_ssl"],
+            }
+        )
+
+    def _init_args(self) -> dict:
+        return {
+            "loop": asyncio.get_event_loop(),
+            "trust_env": self.__args["trust_env"],
+            "connector": lambda: aiohttp.TCPConnector(
+                verify_ssl=self.__args["verify_ssl"]
+            ),
+        }
+
+    def _update_session(self) -> None:
+        self.__sessions.update(
+            self.__last_config, self._configuration(), self._init_args()
+        )
+        self.__last_config = self._configuration()
+
+    async def _close_old_sessions(self) -> None:
+        if self.__session:
+            return
+        self._update_session()
+        for _, session in self.__sessions.closed_sessions(self.__sessions.all()):
+            await session.close()
+
     def get_wrapped_session(self) -> aiohttp.ClientSession:
-        with self.__session_update_lock:
-            # get new configured session
-            if self.__need_update_session:
-                self.__session = aiohttp.ClientSession(
-                    loop=asyncio.get_event_loop(),
-                    trust_env=self.__args["trust_env"],
-                    connector=aiohttp.TCPConnector(
-                        verify_ssl=self.__args["verify_ssl"]
-                    ),
-                )
-                self.__need_update_session = False
-        return self.__session
+        if self.__session:
+            return self.__session
+        self._update_session()
+        return self.__sessions.get(self._configuration())
 
     def set_proxy(self, proxy: str = "") -> None:
         """
@@ -100,7 +118,6 @@ class AioHTTPClient(BiliAPIClient):
             verify_ssl (bool, optional): 是否验证 SSL. Defaults to True.
         """
         self.__args["verify_ssl"] = verify_ssl
-        self.__need_update_session = True
 
     def set_trust_env(self, trust_env: bool = True) -> None:
         """
@@ -110,13 +127,6 @@ class AioHTTPClient(BiliAPIClient):
             trust_env (bool, optional): `trust_env`. Defaults to True.
         """
         self.__args["trust_env"] = trust_env
-        self.__need_update_session = True
-
-    async def __auto_update_session(self) -> None:
-        # close old session
-        async with self.__session_close_lock:
-            if self.__need_update_session and not self.__session.closed:
-                await self.__session.close()
 
     async def request(
         self,
@@ -134,7 +144,7 @@ class AioHTTPClient(BiliAPIClient):
         files = files or {}
         headers = headers or {}
         cookies = cookies or {}
-        await self.__auto_update_session()
+        await self._close_old_sessions()
         if files:
             form = aiohttp.FormData()
             if isinstance(data, str) or isinstance(data, bytes):
@@ -149,7 +159,7 @@ class AioHTTPClient(BiliAPIClient):
                     filename=value.name,
                 )
             data = form  # type: ignore
-        if self.__use_args:
+        if not self.__session:
             resp = await self.get_wrapped_session().request(
                 method=method,
                 url=url,
@@ -196,7 +206,7 @@ class AioHTTPClient(BiliAPIClient):
         chunk_size: int = 4096,
     ) -> int:
         headers = headers or {}
-        await self.__auto_update_session()
+        await self._close_old_sessions()
         await self.__down_cnt_lock.acquire()
         self.__download_cnt += 1
         cnt = self.__download_cnt
@@ -235,7 +245,7 @@ class AioHTTPClient(BiliAPIClient):
     ) -> int:
         params = params or {}
         headers = headers or {}
-        await self.__auto_update_session()
+        await self._close_old_sessions()
         await self.__ws_cnt_lock.acquire()
         self.__ws_cnt += 1
         cnt = self.__ws_cnt
@@ -257,7 +267,15 @@ class AioHTTPClient(BiliAPIClient):
         del self.__wss[cnt]
 
     async def close(self):
-        await self.__session.close()
+        if self.__closed:
+            return
+        self.__closed = True
+        if self.__session:
+            return await self.__session.close()
+        self._update_session()
+        self.__sessions.close(self._configuration())
+        for _, session in self.__sessions.closed_sessions(self.__sessions.all()):
+            await session.close()
 
     __init__.__doc__ = BiliAPIClient.__init__.__doc__
     get_wrapped_session.__doc__ = BiliAPIClient.get_wrapped_session.__doc__
