@@ -1117,17 +1117,17 @@ class _BiliAPIClient:
         return self.client
 
     def __getattr__(self, key: str) -> Any:
+        if key.startswith("set_"):
+            raise ArgsException(
+                "不支持直接调用 set_xxx 函数。请使用 get_settings / get_instance_settings / get_force_settings 间接设置。"
+            )
+
         obj = getattr(self.client, key)
         if not iscoroutinefunction(obj):
             return obj
 
         if key.startswith("_"):
             return obj
-
-        if key.startswith("set_"):
-            raise ArgsException(
-                "不支持直接调用 set_xxx 函数。请使用 get_settings / get_instance_settings / get_force_settings 间接设置。"
-            )
 
         global client_func_cnt
         with client_lock:
