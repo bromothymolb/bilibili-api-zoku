@@ -167,6 +167,9 @@ class Credential:
         self._buvid_locks = MultiEventLoopLocks()
         self._bili_ticket_locks = MultiEventLoopLocks()
 
+        # credential hint
+        self._hint = None
+
     def _gen_local_cookies(self) -> None:
         """
         生成部分用于 buvid 激活的本地 cookies
@@ -190,6 +193,28 @@ class Credential:
             and self.sid is None
             and self.ac_time_value is None
         )
+
+    def hint(self) -> str:
+        """
+        获取凭据类身份提示
+
+        Returns:
+            str: 身份提示
+        """
+        if self.check_blank():
+            return "<BLANK>"
+        if not self._hint:
+            self._hint = str(hash(json.dumps(self.get_core_cookies())))
+        return self._hint
+
+    def set_hint(self, hint: str) -> None:
+        """
+        设置凭据类身份提示
+
+        Args:
+            hint (str): 身份提示
+        """
+        self._hint = hint
 
     def is_buvid_generated(self) -> bool:
         """
@@ -521,6 +546,7 @@ class Credential:
         c.buvid4 = cookies.get("buvid4")
         c.dedeuserid = cookies.get("DedeUserID")
         c.dedeuserid_ckmd5 = cookies.get("DedeUserID__ckMd5")
+        c.sid = cookies.get("sid")
         c.ac_time_value = cookies.get("ac_time_value") or ac_time_value
         c.b_lsid = cookies.get("b_lsid")
         c.b_nut = cookies.get("b_nut")
@@ -550,10 +576,18 @@ class Credential:
         return c
 
     def __str__(self):
-        return f"SESSDATA: {self.sessdata}; bili_jct: {self.bili_jct}; buvid3: {self.buvid3}; buvid4: {self.buvid4}; DedeUserID: {self.dedeuserid}; ac_time_value: {self.ac_time_value}"
+        cookies = []
+        for key, value in self.get_core_cookies().items():
+            cookies.append(f"{key}: {value or ''};")
+        cookies.append(f"buvid3: {self.buvid3 or ''};")
+        cookies.append(f"buvid4: {self.buvid4 or ''};")
+        cookies.append(f"buvid_fp: {self.buvid_fp or ''};")
+        cookies.append(f"bili_ticket: {self.bili_ticket or ''};")
+        cookies.append(f"bili_ticket_expires: {self.bili_ticket or ''};")
+        return " ".join(cookies)
 
     def __repr__(self):
-        return f"Credential({self.__str__()})"
+        return f"Credential({self.hint()})"
 
 
 """
@@ -771,6 +805,7 @@ class GlobalCredential(Credential):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self._hint = "<GLOBAL>"
 
 
 global_credential = GlobalCredential(

@@ -81,6 +81,7 @@ from bilibili_api import ...
   - [def has\_buvid4()](#def-has\_buvid4)
   - [def has\_dedeuserid()](#def-has\_dedeuserid)
   - [def has\_sessdata()](#def-has\_sessdata)
+  - [def hint()](#def-hint)
   - [def is\_bili\_ticket\_valid()](#def-is\_bili\_ticket\_valid)
   - [def is\_buvid\_generated()](#def-is\_buvid\_generated)
   - [def raise\_for\_no\_ac\_time\_value()](#def-raise\_for\_no\_ac\_time\_value)
@@ -90,6 +91,7 @@ from bilibili_api import ...
   - [def raise\_for\_no\_dedeuserid()](#def-raise\_for\_no\_dedeuserid)
   - [def raise\_for\_no\_sessdata()](#def-raise\_for\_no\_sessdata)
   - [async def refresh()](#async-def-refresh)
+  - [def set\_hint()](#def-set\_hint)
   - [async def update()](#async-def-update)
 - [class CredentialNoAcTimeValueException()](#class-CredentialNoAcTimeValueException)
 - [class CredentialNoBiliJctException()](#class-CredentialNoBiliJctException)
@@ -1413,6 +1415,17 @@ buvid3 和 buvid4 建议配合食用，bili_ticket 和 bili_ticket_expires 亦�
 
 
 
+### def hint()
+
+获取凭据类身份提示
+
+
+
+**Returns:** `str`:  身份提示
+
+
+
+
 ### def is_bili_ticket_valid()
 
 bili_ticket 是否可用
@@ -1494,6 +1507,18 @@ buvid3 / buvid4 是否已生成
 刷新 cookies
 
 
+
+
+
+
+### def set_hint()
+
+设置凭据类身份提示
+
+
+| name | type | description |
+| - | - | - |
+| `hint` | `str` | 身份提示 |
 
 
 

@@ -461,10 +461,10 @@ class Session(AsyncEvent, _AsyncEventLoggingSupport):
         self._log = log
 
     def __repr__(self) -> str:
-        return "Session()"
+        return f"Session({self.credential!r})"
 
     def __str__(self) -> str:
-        return "Session()"
+        return f"Session({self.credential!r})"
 
     @overload
     def add_event_listener(

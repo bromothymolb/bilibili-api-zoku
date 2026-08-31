@@ -351,25 +351,30 @@ class MultiContextVariable(Generic[T]):
     """
 
     def __init__(self, name: str, empty: T) -> None:
+        self.__name: str = name
         self.__var: T = empty
-        self.__context_var: ContextVar[T] = ContextVar(name, default=empty)
         self.__empty = empty
+        self.__context_var: ContextVar[T] | None = None
 
     def set(self, value: T) -> None:
         self.__var = value
 
     @contextmanager
     def set_local_context(self, value: T) -> Generator[None]:
+        if not self.__context_var:
+            self.__context_var = ContextVar(self.__name, default=self.__empty)
         token = self.__context_var.set(value)
-        yield
-        self.__context_var.reset(token)
+        try:
+            yield
+        finally:
+            self.__context_var.reset(token)
 
     def get(self) -> T:
-        return (
-            self.__context_var.get()
-            if self.__context_var.get() != self.__empty
-            else self.__var
-        )
+        if self.__context_var:
+            context_val = self.__context_var.get()
+            if context_val != self.__empty:
+                return context_val
+        return self.__var
 
 
 class MultiEventLoopLocks:
@@ -432,9 +437,13 @@ class Sessions(Generic[ClientT]):
 
     初始设置： `init`
 
-    改变设置后：`ensure` + `trace`
+    获取实例：`get`
+
+    改变设置后：`update`
 
     清理旧会话：`closed_sessions`
+
+    关闭会话：`close`
     """
 
     def __init__(self, cls: type[ClientT]) -> None:

@@ -1112,6 +1112,7 @@ bilibili_api
   has_buvid4
   has_dedeuserid
   has_sessdata
+  hint
   is_bili_ticket_valid
   is_buvid_generated
   raise_for_no_ac_time_value
@@ -1121,6 +1122,7 @@ bilibili_api
   raise_for_no_dedeuserid
   raise_for_no_sessdata
   refresh
+  set_hint
   update
  CredentialNoAcTimeValueException
  CredentialNoBiliJctException
